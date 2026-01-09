@@ -1,98 +1,174 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from "react";
+import { StyleSheet, View, Switch, Text, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector, useDispatch } from "react-redux";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import MeditationTimer from "@/components/MeditationTimer";
+import AudioController from "@/components/AudioController";
+import { RootState } from "@/store/store";
+import { toggleDhammaAudio, setVolume } from "@/store/audioSlice";
+import { setIntervalTime } from "@/store/timerSlice";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const dispatch = useDispatch();
+  const { enableDhammaAudio, volume } = useSelector(
+    (state: RootState) => state.audio
+  );
+  const { interval, isRunning } = useSelector(
+    (state: RootState) => state.timer
+  );
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      <AudioController />
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.primary }]}>
+            Noble Truth
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.icon }]}>
+            Find your inner peace
+          </Text>
+        </View>
+
+        <View style={styles.timerContainer}>
+          <MeditationTimer />
+        </View>
+
+        <View
+          style={[styles.settingsContainer, { backgroundColor: theme.surface }]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Settings
+          </Text>
+
+          {/* Interval Setting */}
+          <View style={styles.settingRow}>
+            <Text style={[styles.settingLabel, { color: theme.text }]}>
+              Bell Interval
+            </Text>
+            <View style={styles.intervalToggle}>
+              <Text
+                style={[
+                  styles.intervalOption,
+                  interval === 1 && {
+                    color: theme.secondary,
+                    fontWeight: "bold",
+                  },
+                ]}
+                onPress={() => !isRunning && dispatch(setIntervalTime(30))}
+              >
+                1m
+              </Text>
+              <Text style={{ color: theme.icon }}> | </Text>
+              <Text
+                style={[
+                  styles.intervalOption,
+                  interval === 60 && {
+                    color: theme.secondary,
+                    fontWeight: "bold",
+                  },
+                ]}
+                onPress={() => !isRunning && dispatch(setIntervalTime(60))}
+              >
+                1h
+              </Text>
+            </View>
+          </View>
+
+          {/* Dhamma Audio Setting */}
+          <View style={styles.settingRow}>
+            <View>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>
+                Dhamma Audio
+              </Text>
+              <Text style={[styles.settingDescription, { color: theme.icon }]}>
+                Play guiding audio
+              </Text>
+            </View>
+            <Switch
+              value={enableDhammaAudio}
+              onValueChange={() => dispatch(toggleDhammaAudio())}
+              trackColor={{ false: theme.icon, true: theme.secondary }}
+              thumbColor={"#fff"}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  scrollContent: {
+    padding: 24,
+    minHeight: "100%",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  header: {
+    marginTop: 20,
+    marginBottom: 40,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "300",
+    letterSpacing: 1,
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 8,
+    fontStyle: "italic",
+  },
+  timerContainer: {
+    alignItems: "center",
+    marginBottom: 50,
+  },
+  settingsContainer: {
+    padding: 20,
+    borderRadius: 16,
+    gap: 20,
+    // Soft shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  settingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  settingDescription: {
+    fontSize: 12,
+  },
+  intervalToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  intervalOption: {
+    fontSize: 16,
+    padding: 5,
   },
 });
