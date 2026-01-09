@@ -3,16 +3,6 @@ import { Audio } from "expo-av";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 
-// Placeholder or real paths
-// Ensure these files exist in assets/sounds/ later
-// For now, we will handle the logic and log errors if files are missing.
-const BELL_SOUND = require("@/assets/images/react-logo.png"); // Placeholder to avoid crash on require if file missing.
-// REAL IMPLEMENTATION: const BELL_SOUND = require('@/assets/sounds/bell.mp3');
-// But since we don't have them, we will use a dummy require or comment out.
-// Wait, requiring a partial-react-logo as sound will crash audio player.
-// I will NOT require them at top level if they don't exist.
-// I'll leave the paths as string constants to be filled or loaded dynamically.
-
 export default function AudioController() {
   const { currentTime, interval, isFinished, isRunning } = useSelector(
     (state: RootState) => state.timer
@@ -21,25 +11,82 @@ export default function AudioController() {
     (state: RootState) => state.audio
   );
 
-  const [sound, setSound] = useState<Audio.Sound>();
-  const [dhammaSound, setDhammaSound] = useState<Audio.Sound>();
+  const [dhammaSoundObj, setDhammaSoundObj] = useState<Audio.Sound | null>(
+    null
+  );
 
-  // Helper to play sound
-  async function playSound(type: "interval" | "finish") {
-    // In a real app, load the file here
-    console.log(`Playing sound: ${type} at volume ${volume}`);
+  // Helper to play bell sound
+  async function playBell() {
+    try {
+      console.log(`Playing bell at volume ${volume}`);
+      const { sound } = await Audio.Sound.createAsync(
+        require("@/assets/sounds/bell.mp3")
+      );
+      await sound.setVolumeAsync(volume);
+      await sound.playAsync();
 
-    // Example implementation logic:
-    // const { sound } = await Audio.Sound.createAsync( require('@/assets/sounds/bell.mp3') );
-    // setSound(sound);
-    // await sound.setVolumeAsync(volume);
-    // await sound.playAsync();
+      // Unload after playback to free resources
+      sound.setOnPlaybackStatusUpdate(async (status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          await sound.unloadAsync();
+        }
+      });
+    } catch (error) {
+      console.log("Error playing bell:", error);
+    }
   }
+
+  // Manage Dhamma Audio (Looping functionality)
+  useEffect(() => {
+    let soundObj: Audio.Sound | null = null;
+
+    const manageAudio = async () => {
+      if (isRunning && enableDhammaAudio) {
+        if (!dhammaSoundObj) {
+          try {
+            console.log("Loading Dhamma audio...");
+            const { sound } = await Audio.Sound.createAsync(
+              require("@/assets/sounds/dhamma.mp3"),
+              { shouldPlay: true, isLooping: true }
+            );
+            await sound.setVolumeAsync(volume * 0.5); // Background volume slightly lower
+            soundObj = sound;
+            setDhammaSoundObj(sound);
+          } catch (error) {
+            console.log("Error loading Dhamma audio", error);
+          }
+        } else {
+          await dhammaSoundObj.playAsync();
+        }
+      } else {
+        if (dhammaSoundObj) {
+          console.log("Pausing Dhamma audio...");
+          await dhammaSoundObj.pauseAsync();
+        }
+      }
+    };
+
+    manageAudio();
+
+    return () => {
+      // Cleanup if component unmounts or dependency changes significantly
+      // Note: we want to keep it loaded while running, so only unload on manual stop/unmount
+    };
+  }, [isRunning, enableDhammaAudio]);
+
+  // Update volume if changed while playing
+  useEffect(() => {
+    if (dhammaSoundObj) {
+      dhammaSoundObj.setVolumeAsync(volume * 0.5);
+    }
+  }, [volume, dhammaSoundObj]);
 
   // Interval check
   useEffect(() => {
+    // interval * 60 for minutes.
+    // If interval is 1 minute (test), it's 60 seconds.
     if (isRunning && currentTime > 0 && currentTime % (interval * 60) === 0) {
-      playSound("interval");
+      playBell();
     }
   }, [currentTime, interval, isRunning]);
 
@@ -47,29 +94,15 @@ export default function AudioController() {
   useEffect(() => {
     if (isFinished) {
       // Ring twice
-      playSound("finish");
-      setTimeout(() => playSound("finish"), 3000); // 3 seconds later ring again
+      playBell();
+      setTimeout(() => playBell(), 3000); // 3 seconds later ring again
+
+      // Stop Dhamma audio if playing
+      if (dhammaSoundObj) {
+        dhammaSoundObj.stopAsync();
+      }
     }
   }, [isFinished]);
 
-  // Dhamma Audio management
-  useEffect(() => {
-    if (isRunning && enableDhammaAudio) {
-      // Play background audio
-      console.log("Starting Dhamma Audio");
-    } else {
-      // Stop background audio
-      console.log("Stopping Dhamma Audio");
-    }
-  }, [isRunning, enableDhammaAudio]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      sound?.unloadAsync();
-      dhammaSound?.unloadAsync();
-    };
-  }, [sound, dhammaSound]);
-
-  return null; // Invisible component
+  return null;
 }

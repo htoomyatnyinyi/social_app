@@ -1,112 +1,273 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  Linking,
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+// Sample Book Data
+const BOOKS = [
+  {
+    id: "1",
+    title: "The Noble Truths",
+    description: "A comprehensive guide to the Four Noble Truths.",
+    content: `
+      THE FOUR NOBLE TRUTHS
+      
+      The Truth of Suffering (Dukkha)
+      ...
+      The Truth of the Cause of Suffering (Samudaya)
+      ...
+      The Truth of the End of Suffering (Nirodha)
+      ...
+      The Truth of the Path (Magga)
+      ...
+      (This is a placeholder for the book content. In a real app, this could be a PDF or longer text.)
+    `,
+  },
+  {
+    id: "2",
+    title: "Mindfulness of Breathing",
+    description: "Instructions on Anapanasati meditation.",
+    content: `
+      MINDFULNESS OF BREATHING
+      
+      Breathing in long, he discerns, 'I am breathing in long'; or breathing out long, he discerns, 'I am breathing out long.'
+      ...
+    `,
+  },
+];
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+  const [selectedBook, setSelectedBook] = useState<{
+    id: string;
+    title: string;
+    content: string;
+  } | null>(null);
+
+  const handleRead = (book: (typeof BOOKS)[0]) => {
+    setSelectedBook(book);
+  };
+
+  const handleRequestDownload = () => {
+    Alert.alert(
+      "Request Download",
+      "Please email us to request a copy of this book.",
+      [
+        {
+          text: "Email Request",
+          onPress: () =>
+            Linking.openURL(
+              "mailto:htoomyatnyinyi@gmail.com?subject=Book Download Request"
+            ),
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      <View style={styles.header}>
+        <Text
+          style={[
+            styles.title,
+            { color: theme.primary, fontFamily: Fonts.rounded },
+          ]}
+        >
+          Dhamma Library
+        </Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.listContent}>
+        {BOOKS.map((book) => (
+          <View
+            key={book.id}
+            style={[styles.bookCard, { backgroundColor: theme.surface }]}
+          >
+            <View style={styles.bookInfo}>
+              <IconSymbol name="book.fill" size={40} color={theme.secondary} />
+              <View style={styles.textContainer}>
+                <Text style={[styles.bookTitle, { color: theme.text }]}>
+                  {book.title}
+                </Text>
+                <Text style={[styles.bookDesc, { color: theme.icon }]}>
+                  {book.description}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[
+                  styles.readButton,
+                  { backgroundColor: theme.secondary },
+                ]}
+                onPress={() => handleRead(book)}
+              >
+                <Text style={styles.buttonText}>Read Now</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.requestButton, { borderColor: theme.icon }]}
+                onPress={handleRequestDownload}
+              >
+                <Text style={[styles.requestText, { color: theme.icon }]}>
+                  Request Download
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Reading Modal */}
+      <Modal
+        visible={!!selectedBook}
+        animationType="slide"
+        onRequestClose={() => setSelectedBook(null)}
+      >
+        <SafeAreaView
+          style={[styles.modalContainer, { backgroundColor: theme.background }]}
+        >
+          <View style={[styles.modalHeader, { borderBottomColor: theme.icon }]}>
+            <TouchableOpacity
+              onPress={() => setSelectedBook(null)}
+              style={styles.closeButton}
+            >
+              <Text
+                style={{
+                  color: theme.secondary,
+                  fontSize: 18,
+                  fontWeight: "600",
+                }}
+              >
+                Done
+              </Text>
+            </TouchableOpacity>
+            <Text
+              style={[styles.modalTitle, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {selectedBook?.title}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <Text style={[styles.bookText, { color: theme.text }]}>
+              {selectedBook?.content}
+            </Text>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  header: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  listContent: {
+    padding: 20,
+    gap: 20,
+  },
+  bookCard: {
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bookInfo: {
+    flexDirection: "row",
+    gap: 15,
+    marginBottom: 15,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  bookTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  bookDesc: {
+    fontSize: 14,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "flex-end",
+  },
+  readButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  requestButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  requestText: {
+    fontSize: 14,
+  },
+  modalContainer: {
+    flex: 1,
+    paddingTop: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 0.5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  closeButton: {
+    padding: 5,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  bookText: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 50,
   },
 });
