@@ -16,7 +16,7 @@ const initialState: TimerState = {
   // Simpler: Count UP from 0. Bell rings at interval % currentTime == 0.
   // Or Count DOWN? User said "every half or 1 hour ring". Usually implies a long session.
   // Let's implement Counting UP for flexibility, ringing every X minutes.
-  interval: 30,
+  interval: 1,
   isRunning: false,
   isFinished: false,
 };

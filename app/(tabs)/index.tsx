@@ -66,7 +66,7 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => !isRunning && dispatch(setIntervalTime(30))}
               >
-                1m
+                30m
               </Text>
               <Text style={{ color: theme.icon }}> | </Text>
               <Text
