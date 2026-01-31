@@ -10,6 +10,7 @@ export const chatApi = api.injectEndpoints({
       query: () => "/chat/public",
       providesTags: ["Chat"],
     }),
+
     createChatRoom: builder.mutation({
       query: (userIds) => ({
         url: "/chat/rooms",
@@ -21,4 +22,8 @@ export const chatApi = api.injectEndpoints({
   }),
 });
 
-export const { useGetChatRoomsQuery, useCreateChatRoomMutation } = chatApi;
+export const {
+  useGetChatRoomsQuery,
+  useCreateChatRoomMutation,
+  useGetPublicChatQuery,
+} = chatApi;
