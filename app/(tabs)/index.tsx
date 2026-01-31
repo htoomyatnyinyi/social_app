@@ -1,76 +1,94 @@
-import React from "react";
+import React, { useState } from "react";
+import { View, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
+  Card,
+  Button,
+  Icon,
+  List,
+  WhiteSpace,
+  WingBlank,
+  Tabs,
+} from "@ant-design/react-native";
 import { useGetPostsQuery, useLikePostMutation } from "../../store/postApi";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function FeedScreen() {
-  const { data: posts, isLoading, error, refetch } = useGetPostsQuery({});
+  const [activeTab, setActiveTab] = useState("public");
+  const { data: posts, isLoading, refetch } = useGetPostsQuery(activeTab);
   const [likePost] = useLikePostMutation();
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  const tabs = [
+    { title: "Public Feed", key: "public" },
+    { title: "Private Feed", key: "private" },
+  ];
 
-  if (error) {
+  if (isLoading && !posts) {
     return (
       <View style={styles.center}>
-        <Text>Error loading posts</Text>
+        <ActivityIndicator size="large" color="#108ee9" />
       </View>
     );
   }
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.postCard}>
-      <View style={styles.header}>
-        <Text style={styles.authorName}>
-          {item.author?.name || "Anonymous"}
-        </Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-      </View>
-      <Text style={styles.content}>{item.content}</Text>
-      <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={() => likePost(item.id)}
-          style={styles.actionButton}
-        >
-          <Ionicons name="heart-outline" size={20} color="red" />
-          <Text style={styles.actionText}>{item._count.likes}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={20} color="blue" />
-          <Text style={styles.actionText}>{item._count.comments}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="share-social-outline" size={20} color="green" />
-          <Text style={styles.actionText}>{item._count.shares}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <WingBlank size="lg">
+      <WhiteSpace size="lg" />
+      <Card>
+        <Card.Header
+          title={item.author?.name || "Anonymous"}
+          thumbStyle={{ width: 30, height: 30 }}
+          extra={new Date(item.createdAt).toLocaleDateString()}
+        />
+        <Card.Body>
+          <View style={{ padding: 16 }}>
+            <List.Item wrap>{item.content}</List.Item>
+          </View>
+        </Card.Body>
+        <Card.Footer
+          content={
+            <Button
+              type="ghost"
+              size="small"
+              onPress={() => likePost(item.id)}
+              style={styles.actionButton}
+            >
+              <Icon name="heart" color="red" size="xs" />{" "}
+              {item._count?.likes || 0}
+            </Button>
+          }
+          extra={
+            <View style={{ flexDirection: "row" }}>
+              <Button type="ghost" size="small" style={styles.actionButton}>
+                <Icon name="message" size="xs" /> {item._count?.comments || 0}
+              </Button>
+              <Button type="ghost" size="small" style={styles.actionButton}>
+                <Icon name="share-alt" size="xs" /> {item._count?.shares || 0}
+              </Button>
+            </View>
+          }
+        />
+      </Card>
+    </WingBlank>
   );
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        refreshing={isLoading}
-        onRefresh={refetch}
-        contentContainerStyle={styles.list}
-      />
+      <Tabs
+        tabs={tabs}
+        onChange={(tab) => {
+          setActiveTab(tab.key);
+          refetch();
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={posts}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            refreshing={isLoading}
+            onRefresh={refetch}
+          />
+        </View>
+      </Tabs>
     </View>
   );
 }
@@ -78,58 +96,15 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f5f5f9",
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  list: {
-    padding: 10,
-  },
-  postCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  authorName: {
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  timestamp: {
-    color: "#888",
-    fontSize: 12,
-  },
-  content: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 15,
-  },
-  footer: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    paddingTop: 10,
-  },
   actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 20,
-  },
-  actionText: {
-    marginLeft: 5,
-    color: "#555",
+    borderWidth: 0,
+    paddingHorizontal: 10,
   },
 });

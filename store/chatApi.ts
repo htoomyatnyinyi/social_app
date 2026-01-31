@@ -6,6 +6,10 @@ export const chatApi = api.injectEndpoints({
       query: (userId) => `/chat/rooms?userId=${userId}`,
       providesTags: ["Chat"],
     }),
+    getPublicChat: builder.query({
+      query: () => "/chat/public",
+      providesTags: ["Chat"],
+    }),
     createChatRoom: builder.mutation({
       query: (userIds) => ({
         url: "/chat/rooms",

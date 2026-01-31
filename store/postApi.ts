@@ -3,7 +3,7 @@ import { api } from "./api";
 export const postApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getPosts: builder.query({
-      query: () => "/posts",
+      query: (type = "public") => `/posts?type=${type}`,
       providesTags: ["Post"],
     }),
     createPost: builder.mutation({

@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   FlatList,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Text,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
+import { List, InputItem, Button, WingBlank } from "@ant-design/react-native";
+
+import { API_URL } from "../../store/api";
 
 export default function ChatScreen() {
-  const { chatId, userId, receiverId } = useLocalSearchParams();
+  const { chatId, userId, receiverId, title } = useLocalSearchParams();
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [ws, setWs] = useState<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket(
-      `ws://localhost:8080/chat/ws?chatId=${chatId}`,
-    );
+    const wsUrl = API_URL.replace("http", "ws");
+    const socket = new WebSocket(`${wsUrl}/chat/ws?chatId=${chatId}`);
 
     socket.onopen = () => {
       console.log("Connected to chat");
@@ -53,39 +53,48 @@ export default function ChatScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.senderId === userId ? styles.myMessage : styles.otherMessage,
-      ]}
-    >
-      <Text style={styles.messageText}>{item.content}</Text>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={100}
     >
+      <Stack.Screen options={{ title: (title as string) || "Chat" }} />
       <FlatList
         data={messages}
-        renderItem={renderItem}
+        renderItem={({ item }) => (
+          <WingBlank size="md" style={{ marginVertical: 5 }}>
+            <List.Item
+              extra={item.senderId === userId ? "Me" : "Them"}
+              multipleLine
+              align="top"
+              style={{
+                borderRadius: 10,
+                backgroundColor:
+                  item.senderId === userId ? "#e6f7ff" : "#f5f5f5",
+              }}
+            >
+              <Text>{item.content}</Text>
+            </List.Item>
+          </WingBlank>
+        )}
         keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.messageList}
       />
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
+        <InputItem
           value={inputText}
-          onChangeText={setInputText}
+          onChange={(text) => setInputText(text)}
           placeholder="Type a message..."
+          style={{ flex: 1 }}
         />
-        <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+        <Button
+          type="primary"
+          onPress={sendMessage}
+          style={{ marginLeft: 10, borderRadius: 20 }}
+          size="small"
+        >
+          Send
+        </Button>
       </View>
     </KeyboardAvoidingView>
   );
@@ -96,49 +105,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  messageList: {
-    padding: 10,
-  },
-  messageContainer: {
-    maxWidth: "80%",
-    padding: 10,
-    borderRadius: 15,
-    marginBottom: 10,
-  },
-  myMessage: {
-    alignSelf: "flex-end",
-    backgroundColor: "#007AFF",
-  },
-  otherMessage: {
-    alignSelf: "flex-start",
-    backgroundColor: "#E5E5EA",
-  },
-  messageText: {
-    color: "#fff",
-  },
   inputContainer: {
     flexDirection: "row",
     padding: 10,
+    alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: "#eee",
   },
-  input: {
-    flex: 1,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginRight: 10,
+  myMessage: {
+    alignSelf: "flex-end",
   },
-  sendButton: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+  otherMessage: {
+    alignSelf: "flex-start",
   },
 });
