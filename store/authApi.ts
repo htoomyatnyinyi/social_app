@@ -16,7 +16,11 @@ export const authApi = api.injectEndpoints({
         body: userData,
       }),
     }),
+    searchUsers: builder.query({
+      query: (search) => `/auth/users?search=${search}`,
+    }),
   }),
 });
 
-export const { useSigninMutation, useSignupMutation } = authApi;
+export const { useSigninMutation, useSignupMutation, useSearchUsersQuery } =
+  authApi;

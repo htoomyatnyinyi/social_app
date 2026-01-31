@@ -19,6 +19,10 @@ export const chatApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Chat"],
     }),
+    getMessages: builder.query({
+      query: (chatId) => `/chat/messages/${chatId}`,
+      providesTags: ["Message"],
+    }),
   }),
 });
 
@@ -26,4 +30,5 @@ export const {
   useGetChatRoomsQuery,
   useCreateChatRoomMutation,
   useGetPublicChatQuery,
+  useGetMessagesQuery,
 } = chatApi;
