@@ -1,13 +1,16 @@
 import { configureStore } from "@reduxjs/toolkit";
-import timerReducer from "./timerSlice";
-import audioReducer from "./audioSlice";
+import { setupListeners } from "@reduxjs/toolkit/query";
+import { api } from "./api";
 
 export const store = configureStore({
   reducer: {
-    timer: timerReducer,
-    audio: audioReducer,
+    [api.reducerPath]: api.reducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(api.middleware),
 });
+
+setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

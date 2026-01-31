@@ -1,174 +1,135 @@
 import React from "react";
-import { StyleSheet, View, Switch, Text, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useSelector, useDispatch } from "react-redux";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
+import { useGetPostsQuery, useLikePostMutation } from "../../store/postApi";
+import { Ionicons } from "@expo/vector-icons";
 
-import MeditationTimer from "@/components/MeditationTimer";
-import AudioController from "@/components/AudioController";
-import { RootState } from "@/store/store";
-import { toggleDhammaAudio, setVolume } from "@/store/audioSlice";
-import { setIntervalTime } from "@/store/timerSlice";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+export default function FeedScreen() {
+  const { data: posts, isLoading, error, refetch } = useGetPostsQuery({});
+  const [likePost] = useLikePostMutation();
 
-export default function HomeScreen() {
-  const dispatch = useDispatch();
-  const { enableDhammaAudio, volume } = useSelector(
-    (state: RootState) => state.audio
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text>Error loading posts</Text>
+      </View>
+    );
+  }
+
+  const renderItem = ({ item }: { item: any }) => (
+    <View style={styles.postCard}>
+      <View style={styles.header}>
+        <Text style={styles.authorName}>
+          {item.author?.name || "Anonymous"}
+        </Text>
+        <Text style={styles.timestamp}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+      </View>
+      <Text style={styles.content}>{item.content}</Text>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          onPress={() => likePost(item.id)}
+          style={styles.actionButton}
+        >
+          <Ionicons name="heart-outline" size={20} color="red" />
+          <Text style={styles.actionText}>{item._count.likes}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <Ionicons name="chatbubble-outline" size={20} color="blue" />
+          <Text style={styles.actionText}>{item._count.comments}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <Ionicons name="share-social-outline" size={20} color="green" />
+          <Text style={styles.actionText}>{item._count.shares}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
-  const { interval, isRunning } = useSelector(
-    (state: RootState) => state.timer
-  );
-
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
-    >
-      <AudioController />
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.primary }]}>
-            Noble Truth
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.icon }]}>
-            Find your inner peace
-          </Text>
-        </View>
-
-        <View style={styles.timerContainer}>
-          <MeditationTimer />
-        </View>
-
-        <View
-          style={[styles.settingsContainer, { backgroundColor: theme.surface }]}
-        >
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Settings
-          </Text>
-
-          {/* Interval Setting */}
-          <View style={styles.settingRow}>
-            <Text style={[styles.settingLabel, { color: theme.text }]}>
-              Bell Interval
-            </Text>
-            <View style={styles.intervalToggle}>
-              <Text
-                style={[
-                  styles.intervalOption,
-                  interval === 1 && {
-                    color: theme.secondary,
-                    fontWeight: "bold",
-                  },
-                ]}
-                onPress={() => !isRunning && dispatch(setIntervalTime(30))}
-              >
-                30m
-              </Text>
-              <Text style={{ color: theme.icon }}> | </Text>
-              <Text
-                style={[
-                  styles.intervalOption,
-                  interval === 60 && {
-                    color: theme.secondary,
-                    fontWeight: "bold",
-                  },
-                ]}
-                onPress={() => !isRunning && dispatch(setIntervalTime(60))}
-              >
-                1h
-              </Text>
-            </View>
-          </View>
-
-          {/* Dhamma Audio Setting */}
-          <View style={styles.settingRow}>
-            <View>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>
-                Dhamma Audio
-              </Text>
-              <Text style={[styles.settingDescription, { color: theme.icon }]}>
-                Play guiding audio
-              </Text>
-            </View>
-            <Switch
-              value={enableDhammaAudio}
-              onValueChange={() => dispatch(toggleDhammaAudio())}
-              trackColor={{ false: theme.icon, true: theme.secondary }}
-              thumbColor={"#fff"}
-            />
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <FlatList
+        data={posts}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        refreshing={isLoading}
+        onRefresh={refetch}
+        contentContainerStyle={styles.list}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f5f5f5",
   },
-  scrollContent: {
-    padding: 24,
-    minHeight: "100%",
-  },
-  header: {
-    marginTop: 20,
-    marginBottom: 40,
+  center: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "300",
-    letterSpacing: 1,
+  list: {
+    padding: 10,
   },
-  subtitle: {
-    fontSize: 14,
-    marginTop: 8,
-    fontStyle: "italic",
-  },
-  timerContainer: {
-    alignItems: "center",
-    marginBottom: 50,
-  },
-  settingsContainer: {
-    padding: 20,
-    borderRadius: 16,
-    gap: 20,
-    // Soft shadow
+  postCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
-  },
-  settingRow: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    marginBottom: 10,
   },
-  settingLabel: {
+  authorName: {
+    fontWeight: "bold",
     fontSize: 16,
-    fontWeight: "500",
   },
-  settingDescription: {
+  timestamp: {
+    color: "#888",
     fontSize: 12,
   },
-  intervalToggle: {
+  content: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 15,
+  },
+  footer: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    paddingTop: 10,
+  },
+  actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    marginRight: 20,
   },
-  intervalOption: {
-    fontSize: 16,
-    padding: 5,
+  actionText: {
+    marginLeft: 5,
+    color: "#555",
   },
 });
