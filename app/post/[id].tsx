@@ -22,6 +22,7 @@ import {
   useRepostPostMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
+import { useFollowUserMutation } from "@/store/profileApi";
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -31,6 +32,9 @@ export default function PostDetailScreen() {
   const [commentContent, setCommentContent] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyTargetName, setReplyTargetName] = useState<string | null>(null);
+
+  // 1. Call hook at TOP LEVEL of the component
+  const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
   const { data: post, isLoading: isPostLoading } = useGetPostQuery(id);
   const {
@@ -56,6 +60,22 @@ export default function PostDetailScreen() {
       setReplyTargetName(null);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleFollowUser = async (userId: string) => {
+    if (!userId) return;
+
+    console.log(userId);
+
+    try {
+      // 2. Call the trigger function here (not the hook!)
+      await followUser({ userId }); // or .mutate({ userId }) if sync style
+      console.log("Follow successful");
+      // toast.success("Followed!") or whatever
+    } catch (err) {
+      console.error("Follow failed", err);
+      // toast.error(...)
     }
   };
 
@@ -181,8 +201,19 @@ export default function PostDetailScreen() {
                     @{post?.author?.name?.toLowerCase().replace(/\s/g, "")}
                   </Text>
                 </View>
-                <TouchableOpacity className="ml-auto p-2 border border-gray-200 rounded-full px-4 py-1">
+                {/* <TouchableOpacity
+                  className="ml-auto p-2 border border-gray-200 rounded-full px-4 py-1"
+                  onPress={() => followUser(post?.author?.id)}
+                >
                   <Text className="font-bold text-sm">Follow</Text>
+                </TouchableOpacity> */}
+
+                <TouchableOpacity
+                  className="ml-auto p-2 border border-gray-200 rounded-full px-4 py-1"
+                  onPress={() => handleFollowUser(post?.author?.id)}
+                  disabled={isFollowing}
+                >
+                  <Text>{isFollowing ? "Following..." : "Follow"}</Text>
                 </TouchableOpacity>
               </View>
 
