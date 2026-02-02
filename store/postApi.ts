@@ -3,7 +3,7 @@ import { api } from "./api";
 export const postApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getPosts: builder.query({
-      query: () => "/posts",
+      query: (type = "public") => `/posts?type=${type}`,
       providesTags: ["Post"],
     }),
     createPost: builder.mutation({
@@ -21,11 +21,26 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+    repostPost: builder.mutation({
+      query: (id) => ({
+        url: `/posts/${id}/repost`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Post"],
+    }),
+    getPost: builder.query({
+      query: (id) => `/posts/${id}`,
+      providesTags: ["Post"],
+    }),
+    getComments: builder.query({
+      query: (id) => `/posts/${id}/comments`,
+      providesTags: ["Post"],
+    }),
     commentPost: builder.mutation({
-      query: ({ id, content }) => ({
+      query: ({ id, content, parentId }) => ({
         url: `/posts/${id}/comment`,
         method: "POST",
-        body: { content },
+        body: { content, parentId },
       }),
       invalidatesTags: ["Post"],
     }),
@@ -36,5 +51,8 @@ export const {
   useGetPostsQuery,
   useCreatePostMutation,
   useLikePostMutation,
+  useRepostPostMutation,
+  useGetPostQuery,
+  useGetCommentsQuery,
   useCommentPostMutation,
 } = postApi;
