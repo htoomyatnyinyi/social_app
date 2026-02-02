@@ -13,6 +13,7 @@ import {
   useGetProfileQuery,
   useFollowUserMutation,
 } from "../../store/profileApi";
+import { useCreateChatRoomMutation } from "../../store/chatApi";
 import { useSelector } from "react-redux";
 
 export default function UserProfileScreen() {
@@ -22,6 +23,7 @@ export default function UserProfileScreen() {
 
   const { data: profile, isLoading } = useGetProfileQuery(id);
   const [followUser] = useFollowUserMutation();
+  const [createChatRoom] = useCreateChatRoomMutation();
 
   if (isLoading) {
     return (
@@ -41,6 +43,16 @@ export default function UserProfileScreen() {
       await followUser(id).unwrap();
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleMessage = async () => {
+    try {
+      const room = await createChatRoom(id as string).unwrap();
+      router.push(`/chat/${room.id}`);
+    } catch (e) {
+      console.error(e);
+      alert("Follow required to start a chat");
     }
   };
 
@@ -70,16 +82,24 @@ export default function UserProfileScreen() {
             className="w-24 h-24 rounded-full border-4 border-white"
           />
           {!isMe && (
-            <TouchableOpacity
-              onPress={handleFollow}
-              className={`px-6 py-2 rounded-full mb-1 ${profile.isFollowing ? "border border-gray-300" : "bg-black"}`}
-            >
-              <Text
-                className={`font-bold ${profile.isFollowing ? "text-black" : "text-white"}`}
+            <View className="flex-row mb-1">
+              <TouchableOpacity
+                onPress={handleMessage}
+                className="mr-2 border border-gray-300 p-2 rounded-full"
               >
-                {profile.isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
+                <Ionicons name="mail-outline" size={20} color="black" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleFollow}
+                className={`px-6 py-2 rounded-full ${profile.isFollowing ? "border border-gray-300" : "bg-black"}`}
+              >
+                <Text
+                  className={`font-bold ${profile.isFollowing ? "text-black" : "text-white"}`}
+                >
+                  {profile.isFollowing ? "Following" : "Follow"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 

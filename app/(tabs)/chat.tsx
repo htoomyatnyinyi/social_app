@@ -28,7 +28,7 @@ export default function ChatListScreen() {
     isLoading,
     refetch,
     isFetching,
-  } = useGetChatRoomsQuery(user?.id);
+  } = useGetChatRoomsQuery({});
   const { data: publicRoom } = useGetPublicChatQuery({});
   const { data: searchedUsers } = useSearchUsersQuery(search, {
     skip: !search,
@@ -37,14 +37,12 @@ export default function ChatListScreen() {
 
   const handleStartChat = async (otherUserId: string) => {
     try {
-      const room = await createChatRoom([user.id, otherUserId]).unwrap();
+      const room = await createChatRoom(otherUserId).unwrap();
       setSearch("");
-      router.push({
-        pathname: "/chat/[chatId]",
-        params: { chatId: room.id, title: "Chat" },
-      });
+      router.push(`/chat/${room.id}?title=Chat`);
     } catch (e) {
       console.error(e);
+      alert("Follow required to start a chat");
     }
   };
 
@@ -55,10 +53,7 @@ export default function ChatListScreen() {
     return (
       <TouchableOpacity
         onPress={() =>
-          router.push({
-            pathname: "/chat/[chatId]",
-            params: { chatId: item.id, title: otherUser?.name || "Chat" },
-          })
+          router.push(`/chat/${item.id}?title=${otherUser?.name || "Chat"}`)
         }
         className="flex-row p-4 border-b border-gray-100 items-center active:bg-gray-50 bg-white"
       >
@@ -130,10 +125,7 @@ export default function ChatListScreen() {
       {publicRoom && !search && (
         <TouchableOpacity
           onPress={() =>
-            router.push({
-              pathname: "/chat/[chatId]",
-              params: { chatId: publicRoom?.id, title: "Public Chat" },
-            })
+            router.push(`/chat/${publicRoom?.id}?title=Public Chat`)
           }
           className="flex-row p-4 border-b border-gray-100 items-center bg-sky-50"
         >

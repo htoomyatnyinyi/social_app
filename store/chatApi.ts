@@ -3,7 +3,7 @@ import { api } from "./api";
 export const chatApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getChatRooms: builder.query({
-      query: (userId) => `/chat/rooms?userId=${userId}`,
+      query: () => "/chat/rooms",
       providesTags: ["Chat"],
     }),
     getPublicChat: builder.query({
@@ -12,10 +12,10 @@ export const chatApi = api.injectEndpoints({
     }),
 
     createChatRoom: builder.mutation({
-      query: (userIds) => ({
+      query: (targetUserId) => ({
         url: "/chat/rooms",
         method: "POST",
-        body: { userIds },
+        body: { targetUserId },
       }),
       invalidatesTags: ["Chat"],
     }),
