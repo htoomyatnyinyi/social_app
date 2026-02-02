@@ -66,8 +66,6 @@ export default function PostDetailScreen() {
   const handleFollowUser = async (userId: string) => {
     if (!userId) return;
 
-    console.log(userId);
-
     try {
       // 2. Call the trigger function here (not the hook!)
       await followUser({ userId }); // or .mutate({ userId }) if sync style

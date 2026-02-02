@@ -25,6 +25,7 @@ export default function TabLayout() {
           fontWeight: "bold",
           fontSize: 18,
         },
+        headerShown: true,
       }}
     >
       <Tabs.Screen
@@ -38,10 +39,10 @@ export default function TabLayout() {
               color={color}
             />
           ),
-          headerTitle: () => (
-            <Ionicons name="logo-twitter" size={24} color="#1d9bf0" />
-          ),
-          headerTitleAlign: "center",
+          // headerTitle: () => (
+          //   <Ionicons name="logo-twitter" size={24} color="#aaaaa" />
+          // ),
+          // headerTitleAlign: "center",
         }}
       />
       <Tabs.Screen
