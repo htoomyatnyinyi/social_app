@@ -102,7 +102,7 @@ export default function UserProfileScreen() {
       <TouchableOpacity
         onPress={() => router.push(`/post/${displayItem.id}`)}
         activeOpacity={0.9}
-        className="p-4 border-b border-gray-100 bg-white"
+        className="p-4 border-b border-gray-100 bg-green-500"
       >
         <View className="flex-row">
           <View className="mr-3">
@@ -281,9 +281,9 @@ export default function UserProfileScreen() {
 
   const data =
     activeTab === "posts" ? userPosts : activeTab === "likes" ? userLikes : [];
-  console.log(data, "profile data ");
+  // console.log(data, "profile data ");
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <FlatList
         data={data}
         ListHeaderComponent={Header}
@@ -305,6 +305,6 @@ export default function UserProfileScreen() {
           )
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
