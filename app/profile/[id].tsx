@@ -218,7 +218,8 @@ export default function UserProfileScreen() {
             {profile.name}
           </Text>
           <Text className="text-gray-500 text-[15px]">
-            @{profile.name.toLowerCase().replace(/\s/g, "")}
+            {/* @{profile.name.toLowerCase().replace(/\s/g, "")} */}
+            {profile.username}
           </Text>
         </View>
 
@@ -280,7 +281,7 @@ export default function UserProfileScreen() {
 
   const data =
     activeTab === "posts" ? userPosts : activeTab === "likes" ? userLikes : [];
-
+  console.log(data, "profile data ");
   return (
     <SafeAreaView className="flex-1 bg-white">
       <FlatList

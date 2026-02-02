@@ -22,6 +22,7 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
 
   const [signup, { isLoading: isSignupLoading }] = useSignupMutation();
@@ -31,7 +32,7 @@ export default function AuthScreen() {
 
   const handleAuth = async () => {
     setError("");
-    if (!email || !password || (activeTab === 1 && !name)) {
+    if (!email || !password || (activeTab === 1 && (!name || !username))) {
       setError("Please fill in all fields");
       return;
     }
@@ -42,7 +43,7 @@ export default function AuthScreen() {
         dispatch(setCredentials({ user: res.user, token: res.token }));
         router.replace("/(tabs)");
       } else {
-        const res = await signup({ email, password, name }).unwrap();
+        const res = await signup({ email, password, name, username }).unwrap();
         dispatch(setCredentials({ user: res.user, token: res.token }));
         router.replace("/(tabs)");
       }
@@ -84,18 +85,33 @@ export default function AuthScreen() {
 
           <View className="space-y-4">
             {activeTab === 1 && (
-              <View className="mb-4">
-                <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 focus:border-[#1d9bf0] flex-row items-center">
-                  <Ionicons name="person-outline" size={20} color="#6B7280" />
-                  <TextInput
-                    placeholder="Full Name"
-                    placeholderTextColor="#9CA3AF"
-                    className="flex-1 ml-3 text-lg text-gray-900"
-                    value={name}
-                    onChangeText={setName}
-                  />
+              <>
+                <View className="mb-4">
+                  <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 focus:border-[#1d9bf0] flex-row items-center">
+                    <Ionicons name="person-outline" size={20} color="#6B7280" />
+                    <TextInput
+                      placeholder="Full Name"
+                      placeholderTextColor="#9CA3AF"
+                      className="flex-1 ml-3 text-lg text-gray-900"
+                      value={name}
+                      onChangeText={setName}
+                    />
+                  </View>
                 </View>
-              </View>
+                <View className="mb-4">
+                  <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 focus:border-[#1d9bf0] flex-row items-center">
+                    <Ionicons name="at-outline" size={20} color="#6B7280" />
+                    <TextInput
+                      placeholder="Username"
+                      placeholderTextColor="#9CA3AF"
+                      autoCapitalize="none"
+                      className="flex-1 ml-3 text-lg text-gray-900"
+                      value={username}
+                      onChangeText={setUsername}
+                    />
+                  </View>
+                </View>
+              </>
             )}
 
             <View className="mb-4">

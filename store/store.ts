@@ -1,16 +1,44 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from "redux-persist";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "./api";
 import authReducer from "./authSlice";
 
-export const store = configureStore({
-  reducer: {
-    [api.reducerPath]: api.reducer,
-    auth: authReducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(api.middleware),
+const persistConfig = {
+  key: "root",
+  version: 1,
+  storage: AsyncStorage,
+  whitelist: ["auth"], // Only persist the auth slice
+};
+
+const rootReducer = combineReducers({
+  [api.reducerPath]: api.reducer,
+  auth: authReducer,
 });
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
+    }).concat(api.middleware),
+});
+
+export const persistor = persistStore(store);
 
 setupListeners(store.dispatch);
 
