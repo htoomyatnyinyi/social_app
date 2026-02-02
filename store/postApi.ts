@@ -28,6 +28,10 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+    getPost: builder.query({
+      query: (id) => `/posts/${id}`,
+      providesTags: ["Post"],
+    }),
     getComments: builder.query({
       query: (id) => `/posts/${id}/comments`,
       providesTags: ["Post"],
@@ -48,6 +52,7 @@ export const {
   useCreatePostMutation,
   useLikePostMutation,
   useRepostPostMutation,
+  useGetPostQuery,
   useGetCommentsQuery,
   useCommentPostMutation,
 } = postApi;

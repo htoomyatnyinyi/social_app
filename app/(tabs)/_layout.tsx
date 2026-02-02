@@ -7,6 +7,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: "#1d9bf0",
         tabBarInactiveTintColor: "#6B7280",
+        // headerShown: false,
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: "#f3f4f6",

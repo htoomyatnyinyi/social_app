@@ -89,9 +89,9 @@ export default function FeedScreen() {
         className="p-4 border-b border-gray-100 bg-white"
       >
         {isRepost && (
-          <View className="flex-row items-center mb-2 ml-6">
-            <Ionicons name="repeat" size={14} color="#6B7280" />
-            <Text className="text-gray-500 text-xs font-bold ml-1">
+          <View className="flex-row items-center mb-2 ml-10">
+            <Ionicons name="repeat" size={16} color="#6B7280" />
+            <Text className="text-gray-500 text-[13px] font-bold ml-2">
               {item.author?.name} reposted
             </Text>
           </View>
@@ -106,22 +106,29 @@ export default function FeedScreen() {
                 source={{
                   uri:
                     displayItem.author?.image ||
-                    "https://via.placeholder.com/40",
+                    "https://via.placeholder.com/48",
                 }}
-                className="w-12 h-12 rounded-full"
+                className="w-12 h-12 rounded-full bg-gray-100"
               />
             </TouchableOpacity>
           </View>
 
           <View className="flex-1">
-            <View className="flex-row items-center mb-1">
-              <Text className="font-bold text-[15px] mr-1" numberOfLines={1}>
+            <View className="flex-row items-center mb-0.5">
+              <Text
+                className="font-bold text-[15px] text-gray-900"
+                numberOfLines={1}
+              >
                 {displayItem.author?.name || "Anonymous"}
               </Text>
-              <Text className="text-gray-500 text-[14px]">
-                · {new Date(displayItem.createdAt).toLocaleDateString()}
+              <Text className="text-gray-500 text-[14px] ml-1">
+                @{displayItem.author?.name?.toLowerCase().replace(/\s/g, "")} ·{" "}
+                {new Date(displayItem.createdAt).toLocaleDateString()}
               </Text>
-              <TouchableOpacity className="ml-auto">
+              <TouchableOpacity
+                className="ml-auto p-1"
+                onPressIn={(e) => e.stopPropagation()}
+              >
                 <Ionicons
                   name="ellipsis-horizontal"
                   size={16}
@@ -130,14 +137,14 @@ export default function FeedScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text className="text-[15px] leading-5 text-black mb-3">
+            <Text className="text-[15px] leading-[22px] text-gray-800 mb-3">
               {displayItem.content}
             </Text>
 
             {displayItem.image && (
               <Image
                 source={{ uri: displayItem.image }}
-                className="w-full h-48 rounded-2xl mb-3"
+                className="w-full h-56 rounded-2xl mb-3 border border-gray-100"
                 resizeMode="cover"
               />
             )}
@@ -149,9 +156,10 @@ export default function FeedScreen() {
                   setSelectedPostId(displayItem.id);
                   setIsCommenting(true);
                 }}
+                onPressIn={(e) => e.stopPropagation()}
               >
                 <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />
-                <Text className="text-gray-500 text-xs ml-1">
+                <Text className="text-gray-500 text-xs ml-1.5">
                   {displayItem._count?.comments || 0}
                 </Text>
               </TouchableOpacity>
@@ -159,14 +167,15 @@ export default function FeedScreen() {
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => handleRepost(displayItem.id)}
+                onPressIn={(e) => e.stopPropagation()}
               >
                 <Ionicons
                   name="repeat-outline"
-                  size={18}
+                  size={20}
                   color={item.isRepost ? "#00BA7C" : "#6B7280"}
                 />
                 <Text
-                  className={`text-xs ml-1 ${item.isRepost ? "text-[#00BA7C]" : "text-gray-500"}`}
+                  className={`text-xs ml-1.5 ${item.isRepost ? "text-[#00BA7C]" : "text-gray-500"}`}
                 >
                   {displayItem._count?.reposts || 0}
                 </Text>
@@ -175,6 +184,7 @@ export default function FeedScreen() {
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => likePost(displayItem.id)}
+                onPressIn={(e) => e.stopPropagation()}
               >
                 {(() => {
                   const hasLiked = displayItem.likes?.some(
@@ -184,11 +194,11 @@ export default function FeedScreen() {
                     <>
                       <Ionicons
                         name={hasLiked ? "heart" : "heart-outline"}
-                        size={18}
+                        size={19}
                         color={hasLiked ? "#F91880" : "#6B7280"}
                       />
                       <Text
-                        className={`text-xs ml-1 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
                       >
                         {displayItem._count?.likes || 0}
                       </Text>
@@ -197,31 +207,40 @@ export default function FeedScreen() {
                 })()}
               </TouchableOpacity>
 
-              <TouchableOpacity className="flex-row items-center">
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPressIn={(e) => e.stopPropagation()}
+              >
                 <Ionicons
                   name="stats-chart-outline"
-                  size={18}
+                  size={17}
                   color="#6B7280"
                 />
-                <Text className="text-gray-500 text-xs ml-1">
+                <Text className="text-gray-500 text-xs ml-1.5">
                   {displayItem._count?.shares || 0}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
+              <TouchableOpacity
+                className="p-1"
+                onPressIn={(e) => e.stopPropagation()}
+              >
                 <Ionicons name="share-outline" size={18} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
             {/* Comment Preview */}
             {displayItem.comments?.length > 0 && (
-              <View className="mt-3 bg-gray-50 p-2 rounded-xl">
+              <View className="mt-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
                 {displayItem.comments.slice(0, 2).map((comment: any) => (
-                  <View key={comment.id} className="flex-row mb-1">
-                    <Text className="font-bold text-xs" numberOfLines={1}>
-                      {comment.user?.name}:{" "}
+                  <View key={comment.id} className="flex-row mb-1.5 last:mb-0">
+                    <Text
+                      className="font-bold text-[13px] text-gray-900"
+                      numberOfLines={1}
+                    >
+                      {comment.user?.name}{" "}
                     </Text>
-                    <Text className="text-xs text-gray-700 flex-1">
+                    <Text className="text-[13px] text-gray-600 flex-1 leading-4">
                       {comment.content}
                     </Text>
                   </View>
@@ -236,13 +255,27 @@ export default function FeedScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <View className="flex-row border-b border-gray-100 pt-2">
+      {/* Premium Header */}
+      <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
+        <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
+          <Image
+            source={{ uri: user?.image || "https://via.placeholder.com/32" }}
+            className="w-8 h-8 rounded-full"
+          />
+        </TouchableOpacity>
+        <Ionicons name="logo-twitter" size={24} color="#1d9bf0" />
+        <TouchableOpacity>
+          <Ionicons name="sparkles-outline" size={20} color="black" />
+        </TouchableOpacity>
+      </View>
+
+      <View className="flex-row border-b border-gray-100">
         <TouchableOpacity
           onPress={() => setActiveTab("public")}
-          className="flex-1 items-center pb-3"
+          className="flex-1 items-center pt-3 pb-3"
         >
           <Text
-            className={`font-semibold ${activeTab === "public" ? "text-black" : "text-gray-500"}`}
+            className={`text-[15px] font-bold ${activeTab === "public" ? "text-gray-900" : "text-gray-500"}`}
           >
             For you
           </Text>
@@ -252,10 +285,10 @@ export default function FeedScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setActiveTab("private")}
-          className="flex-1 items-center pb-3"
+          className="flex-1 items-center pt-3 pb-3"
         >
           <Text
-            className={`font-semibold ${activeTab === "private" ? "text-black" : "text-gray-500"}`}
+            className={`text-[15px] font-bold ${activeTab === "private" ? "text-gray-900" : "text-gray-500"}`}
           >
             Following
           </Text>
@@ -277,41 +310,54 @@ export default function FeedScreen() {
           />
         }
         contentContainerStyle={{ paddingBottom: 100 }}
+        ListEmptyComponent={
+          !isLoading && (
+            <View className="items-center justify-center p-10 mt-10">
+              <Text className="text-gray-400 text-center text-lg font-medium">
+                No posts to show right now.
+              </Text>
+            </View>
+          )
+        }
       />
 
-      {!isComposing && (
+      {/* Floating Action Button */}
+      {!isComposing && !isCommenting && (
         <TouchableOpacity
           onPress={() => setIsComposing(true)}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-lg"
-          style={{ elevation: 5 }}
+          className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40"
+          style={{ elevation: 8 }}
         >
           <Ionicons name="add" size={32} color="white" />
         </TouchableOpacity>
       )}
 
+      {/* Compose Post Modal-like View */}
       {isComposing && (
-        <View className="absolute inset-0 bg-white z-50">
-          <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
+        <View className="absolute inset-0 bg-white z-[100]">
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50">
             <TouchableOpacity onPress={() => setIsComposing(false)}>
-              <Text className="text-[17px]">Cancel</Text>
+              <Text className="text-[17px] text-gray-800">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleCreatePost}
-              className={`px-4 py-1.5 rounded-full ${newPostContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
+              disabled={!newPostContent.trim()}
+              className={`px-6 py-2 rounded-full ${newPostContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
             >
-              <Text className="text-white font-bold">Post</Text>
+              <Text className="text-white font-bold text-[15px]">Post</Text>
             </TouchableOpacity>
           </View>
           <View className="flex-row p-4">
             <Image
-              source={{ uri: "https://via.placeholder.com/40" }}
-              className="w-10 h-10 rounded-full mr-3"
+              source={{ uri: user?.image || "https://via.placeholder.com/40" }}
+              className="w-11 h-11 rounded-full mr-3"
             />
             <TextInput
               autoFocus
               multiline
               placeholder="What's happening?"
-              className="flex-1 text-[19px] pt-1"
+              placeholderTextColor="#9CA3AF"
+              className="flex-1 text-[19px] leading-6 pt-1 text-gray-900"
               value={newPostContent}
               onChangeText={setNewPostContent}
               textAlignVertical="top"
@@ -319,29 +365,33 @@ export default function FeedScreen() {
           </View>
         </View>
       )}
+
+      {/* Compose Reply Modal-like View */}
       {isCommenting && (
-        <View className="absolute inset-0 bg-white z-50">
-          <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
+        <View className="absolute inset-0 bg-white z-[100]">
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50">
             <TouchableOpacity onPress={() => setIsCommenting(false)}>
-              <Text className="text-[17px]">Cancel</Text>
+              <Text className="text-[17px] text-gray-800">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleComment}
-              className={`px-4 py-1.5 rounded-full ${commentContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
+              disabled={!commentContent.trim()}
+              className={`px-6 py-2 rounded-full ${commentContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
             >
-              <Text className="text-white font-bold">Reply</Text>
+              <Text className="text-white font-bold text-[15px]">Reply</Text>
             </TouchableOpacity>
           </View>
           <View className="flex-row p-4">
             <Image
               source={{ uri: user?.image || "https://via.placeholder.com/40" }}
-              className="w-10 h-10 rounded-full mr-3"
+              className="w-11 h-11 rounded-full mr-3"
             />
             <TextInput
               autoFocus
               multiline
               placeholder="Post your reply"
-              className="flex-1 text-[19px] pt-1"
+              placeholderTextColor="#9CA3AF"
+              className="flex-1 text-[19px] leading-6 pt-1 text-gray-900"
               value={commentContent}
               onChangeText={setCommentContent}
               textAlignVertical="top"

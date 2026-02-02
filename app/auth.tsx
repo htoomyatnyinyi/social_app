@@ -4,15 +4,18 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSignupMutation, useSigninMutation } from "../store/authApi";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../store/authSlice";
 import { useRouter } from "expo-router";
+
+const { width } = Dimensions.get("window");
 
 export default function AuthScreen() {
   const [activeTab, setActiveTab] = useState(0); // 0: Sign In, 1: Sign Up
@@ -28,6 +31,11 @@ export default function AuthScreen() {
 
   const handleAuth = async () => {
     setError("");
+    if (!email || !password || (activeTab === 1 && !name)) {
+      setError("Please fill in all fields");
+      return;
+    }
+
     try {
       if (activeTab === 0) {
         const res = await signin({ email, password }).unwrap();
@@ -39,91 +47,123 @@ export default function AuthScreen() {
         router.replace("/(tabs)");
       }
     } catch (err: any) {
-      setError(err.data?.message || "Authentication failed");
+      setError(err.data?.message || "Authentication failed. Please try again.");
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
-    >
-      <View className="px-8 justify-center flex-1">
-        <View className="items-center mb-10">
-          <Ionicons name="logo-twitter" size={50} color="#1d9bf0" />
-        </View>
-
-        <Text className="text-3xl font-bold mb-8">
-          {activeTab === 0 ? "Log in to X" : "Join X today"}
-        </Text>
-
-        {error ? (
-          <View className="bg-red-50 p-3 rounded-lg mb-4">
-            <Text className="text-red-500 text-center font-medium">
-              {error}
-            </Text>
+    <SafeAreaView className="flex-1 bg-white">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        <View className="px-8 flex-1 justify-center">
+          <View className="items-center mb-12">
+            <View className="w-16 h-16 bg-[#1d9bf0] rounded-2xl items-center justify-center shadow-xl shadow-sky-500/50">
+              <Ionicons name="logo-twitter" size={40} color="white" />
+            </View>
           </View>
-        ) : null}
 
-        {activeTab === 1 && (
-          <View className="mb-4">
-            <TextInput
-              placeholder="Name"
-              className="border border-gray-300 rounded-lg px-4 py-3 text-lg focus:border-sky-500"
-              value={name}
-              onChangeText={setName}
-            />
-          </View>
-        )}
-
-        <View className="mb-4">
-          <TextInput
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            className="border border-gray-300 rounded-lg px-4 py-3 text-lg focus:border-sky-500"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-
-        <View className="mb-8">
-          <TextInput
-            placeholder="Password"
-            secureTextEntry
-            className="border border-gray-300 rounded-lg px-4 py-3 text-lg focus:border-sky-500"
-            value={password}
-            onChangeText={setPassword}
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={handleAuth}
-          disabled={isSignupLoading || isSigninLoading}
-          className={`bg-black py-4 rounded-full items-center mb-6 ${
-            isSignupLoading || isSigninLoading ? "opacity-70" : ""
-          }`}
-        >
-          <Text className="text-white font-bold text-lg">
-            {activeTab === 0 ? "Log In" : "Create account"}
+          <Text className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
+            {activeTab === 0 ? "Welcome back" : "Create account"}
           </Text>
-        </TouchableOpacity>
-
-        <View className="flex-row justify-center">
-          <Text className="text-gray-500 text-base">
+          <Text className="text-gray-500 text-lg mb-10">
             {activeTab === 0
-              ? "Don't have an account? "
-              : "Already have an account? "}
+              ? "See what's happening in the world right now."
+              : "Join the conversation and stay connected."}
           </Text>
+
+          {error ? (
+            <View className="bg-red-50 border border-red-100 p-4 rounded-2xl mb-6 flex-row items-center">
+              <Ionicons name="alert-circle" size={20} color="#EF4444" />
+              <Text className="text-red-600 ml-2 font-medium flex-1">
+                {error}
+              </Text>
+            </View>
+          ) : null}
+
+          <View className="space-y-4">
+            {activeTab === 1 && (
+              <View className="mb-4">
+                <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 focus:border-[#1d9bf0] flex-row items-center">
+                  <Ionicons name="person-outline" size={20} color="#6B7280" />
+                  <TextInput
+                    placeholder="Full Name"
+                    placeholderTextColor="#9CA3AF"
+                    className="flex-1 ml-3 text-lg text-gray-900"
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+              </View>
+            )}
+
+            <View className="mb-4">
+              <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 flex-row items-center">
+                <Ionicons name="mail-outline" size={20} color="#6B7280" />
+                <TextInput
+                  placeholder="Email address"
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  className="flex-1 ml-3 text-lg text-gray-900"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+            </View>
+
+            <View className="mb-8">
+              <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 flex-row items-center">
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color="#6B7280"
+                />
+                <TextInput
+                  placeholder="Password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry
+                  className="flex-1 ml-3 text-lg text-gray-900"
+                  value={password}
+                  onChangeText={setPassword}
+                />
+              </View>
+            </View>
+          </View>
+
           <TouchableOpacity
-            onPress={() => setActiveTab(activeTab === 0 ? 1 : 0)}
+            onPress={handleAuth}
+            disabled={isSignupLoading || isSigninLoading}
+            activeOpacity={0.8}
+            className={`py-4 rounded-2xl items-center shadow-lg shadow-sky-500/30 ${
+              isSignupLoading || isSigninLoading ? "bg-sky-400" : "bg-[#1d9bf0]"
+            }`}
           >
-            <Text className="text-sky-500 font-bold text-base">
-              {activeTab === 0 ? "Sign up" : "Log in"}
+            <Text className="text-white font-bold text-xl">
+              {activeTab === 0 ? "Sign In" : "Get Started"}
             </Text>
           </TouchableOpacity>
+
+          <View className="flex-row justify-center mt-8">
+            <Text className="text-gray-500 text-base">
+              {activeTab === 0
+                ? "New to the platform? "
+                : "Already have an account? "}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setActiveTab(activeTab === 0 ? 1 : 0);
+                setError("");
+              }}
+            >
+              <Text className="text-[#1d9bf0] font-bold text-base">
+                {activeTab === 0 ? "Sign up" : "Log in"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

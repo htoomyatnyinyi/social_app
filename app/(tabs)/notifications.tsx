@@ -74,10 +74,11 @@ export default function NotificationsScreen() {
     return (
       <TouchableOpacity
         onPress={() => handleNotificationPress(item)}
-        className={`flex-row p-4 border-b border-gray-100 items-start ${item.read ? "bg-white" : "bg-sky-50"}`}
+        activeOpacity={0.8}
+        className={`flex-row p-4 border-b border-gray-50 items-start ${item.read ? "bg-white" : "bg-sky-50/50"}`}
       >
-        <View className="mr-3 mt-1">
-          <Ionicons name={config.icon as any} size={24} color={config.color} />
+        <View className="mr-3 pt-1">
+          <Ionicons name={config.icon as any} size={26} color={config.color} />
         </View>
 
         <View className="flex-1">
@@ -87,46 +88,76 @@ export default function NotificationsScreen() {
             >
               <Image
                 source={{
-                  uri: item.issuer.image || "https://via.placeholder.com/40",
+                  uri: item.issuer.image || "https://via.placeholder.com/48",
                 }}
-                className="w-10 h-10 rounded-full mr-2"
+                className="w-10 h-10 rounded-full mr-2 bg-gray-100"
               />
             </TouchableOpacity>
           </View>
 
-          <Text className="text-[15px] text-gray-900">
-            <Text className="font-bold">{item.issuer.name}</Text> {config.text}
+          <Text className="text-[15px] text-gray-900 leading-5">
+            <Text className="font-extrabold">{item.issuer.name}</Text>{" "}
+            {config.text}
           </Text>
 
           {item.post && (
-            <Text className="text-gray-500 text-sm mt-1" numberOfLines={2}>
+            <Text
+              className="text-gray-500 text-[14px] mt-2 leading-4"
+              numberOfLines={2}
+            >
               {item.post.content}
             </Text>
           )}
 
           {item.comment && (
-            <Text
-              className="text-gray-500 text-sm mt-1 italic"
-              numberOfLines={2}
-            >
-              "{item.comment.content}"
-            </Text>
+            <View className="mt-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
+              <Text
+                className="text-gray-600 text-[13px] leading-4"
+                numberOfLines={2}
+              >
+                "{item.comment.content}"
+              </Text>
+            </View>
           )}
 
-          <Text className="text-gray-400 text-xs mt-2">
-            {new Date(item.createdAt).toLocaleDateString()}
+          <Text className="text-gray-400 text-xs mt-3">
+            {new Date(item.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}{" "}
+            ·{" "}
+            {new Date(item.createdAt).toLocaleDateString([], {
+              month: "short",
+              day: "numeric",
+            })}
           </Text>
         </View>
+        {!item.read && (
+          <View className="w-2 h-2 bg-[#1d9bf0] rounded-full mt-2" />
+        )}
       </TouchableOpacity>
     );
   };
 
   return (
     <View className="flex-1 bg-white">
-      <View className="flex-row justify-between items-center p-4 border-b border-gray-100">
-        <Text className="text-xl font-bold">Notifications</Text>
-        <TouchableOpacity onPress={() => markAllAsRead({})}>
-          <Text className="text-sky-500 font-medium">Mark all as read</Text>
+      {/* Header */}
+      <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-50">
+        <Text className="text-xl font-extrabold text-gray-900">
+          Notifications
+        </Text>
+        <TouchableOpacity onPress={() => markAllAsRead({})} className="p-1">
+          <Ionicons name="settings-outline" size={20} color="black" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Tabs Placeholder */}
+      <View className="flex-row border-b border-gray-50">
+        <TouchableOpacity className="flex-1 items-center py-3 border-b-4 border-[#1d9bf0]">
+          <Text className="font-bold text-[15px] text-gray-900">All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="flex-1 items-center py-3">
+          <Text className="font-bold text-[15px] text-gray-500">Mentions</Text>
         </TouchableOpacity>
       </View>
 
@@ -140,16 +171,27 @@ export default function NotificationsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <NotificationItem item={item} />}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={refetch}
+              tintColor="#1D9BF0"
+            />
           }
           ListEmptyComponent={
             <View className="items-center justify-center mt-20 px-10">
-              <Text className="text-xl font-bold text-center mb-2">
-                No notifications yet
+              <View className="w-24 h-24 bg-gray-50 rounded-full items-center justify-center mb-6">
+                <Ionicons
+                  name="notifications-off-outline"
+                  size={48}
+                  color="#D1D5DB"
+                />
+              </View>
+              <Text className="text-2xl font-extrabold text-center mb-2 text-gray-900">
+                Nothing to see yet
               </Text>
-              <Text className="text-gray-500 text-center">
-                When people interact with your posts or follow you, you'll see
-                it here.
+              <Text className="text-gray-500 text-center text-lg leading-6">
+                From likes to reposts and a whole lot more, this is where all
+                the action happens.
               </Text>
             </View>
           }

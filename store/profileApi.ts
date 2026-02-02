@@ -29,6 +29,14 @@ export const profileApi = api.injectEndpoints({
       query: (id) => `/profile/${id}/following`,
       providesTags: ["User"],
     }),
+    getUserPosts: builder.query({
+      query: (id) => `/profile/${id}/posts`,
+      providesTags: ["Post"],
+    }),
+    getUserLikes: builder.query({
+      query: (id) => `/profile/${id}/likes`,
+      providesTags: ["Post"],
+    }),
   }),
 });
 
@@ -38,4 +46,6 @@ export const {
   useFollowUserMutation,
   useGetFollowersQuery,
   useGetFollowingQuery,
+  useGetUserPostsQuery,
+  useGetUserLikesQuery,
 } = profileApi;
