@@ -8,6 +8,7 @@ import {
   FlatList,
   RefreshControl,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -22,6 +23,7 @@ import { useSelector } from "react-redux";
 import {
   useLikePostMutation,
   useRepostPostMutation,
+  useDeletePostMutation,
 } from "../../store/postApi";
 
 export default function UserProfileScreen() {
@@ -56,6 +58,25 @@ export default function UserProfileScreen() {
   const [createChatRoom] = useCreateChatRoomMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deletePost] = useDeletePostMutation();
+
+  const handleDeletePost = (postId: string) => {
+    Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deletePost(postId).unwrap();
+          } catch (error) {
+            console.error("Failed to delete post:", error);
+            Alert.alert("Error", "Failed to delete post");
+          }
+        },
+      },
+    ]);
+  };
 
   if (isProfileLoading) {
     return (
@@ -157,6 +178,13 @@ export default function UserProfileScreen() {
                 </Text>
               </TouchableOpacity>
               <Ionicons name="share-outline" size={18} color="#6B7280" />
+              {isMe && (
+                <TouchableOpacity
+                  onPress={() => handleDeletePost(displayItem.id)}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -167,7 +195,7 @@ export default function UserProfileScreen() {
   const Header = () => (
     <View className="bg-white">
       {/* Header Bar */}
-      <View className="flex-row items-center px-4 py-2 bg-white/90">
+      <View className="flex-row items-center px-4 py-2 bg-red-500">
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
@@ -179,6 +207,12 @@ export default function UserProfileScreen() {
             {profile._count?.posts || 0} posts
           </Text>
         </View>
+        <View className="flex-1" />
+        {isMe && (
+          <TouchableOpacity onPress={() => router.push("/settings")}>
+            <Ionicons name="settings-outline" size={24} color="black" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Banner */}
