@@ -79,6 +79,7 @@ export default function UpdateProfileScreen() {
       return;
     }
 
+    // console.log(base64Image, "base64Image");
     try {
       const updatedUser = await updateProfile({
         name,
