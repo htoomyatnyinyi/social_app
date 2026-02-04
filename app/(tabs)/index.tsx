@@ -17,7 +17,7 @@ import {
   useCommentPostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -65,6 +65,48 @@ export default function FeedScreen() {
   const PostCard = ({ item }: { item: any }) => {
     const isRepost = item.isRepost && item.originalPost;
     const displayItem = isRepost ? item.originalPost : item;
+
+    // ###
+
+    const [localLikeCount, setLocalLikeCount] = useState(
+      item._count?.likes || 0,
+    );
+    const [hasLiked, setHasLiked] = useState(
+      item.likes?.some((l: any) => l.userId === user?.id),
+    );
+
+    const [likePost] = useLikePostMutation();
+    const user = useSelector((state: any) => state.auth.user);
+
+    const handleLike = async () => {
+      const previousLikeCount = localLikeCount;
+      const previousLikedState = hasLiked;
+
+      // 1. Immediately update UI
+      setHasLiked(!hasLiked);
+      setLocalLikeCount(
+        previousLikedState ? previousLikeCount - 1 : previousLikeCount + 1,
+      );
+
+      try {
+        // 2. Make API call
+        // await likePost(item.id).unwrap();
+        await likePost({
+          postId: item.id,
+          // Pass current state for optimistic update
+          currentLikes: item._count?.likes || 0,
+          currentlyLiked: item.likes?.some((l: any) => l.userId === user?.id),
+        }).unwrap();
+      } catch (error) {
+        // 3. Revert on error
+        setHasLiked(previousLikedState);
+        setLocalLikeCount(previousLikeCount);
+
+        // Show error toast
+        alert("Failed to like post");
+        console.error("Like failed:", error);
+      }
+    };
 
     return (
       <TouchableOpacity
@@ -164,7 +206,7 @@ export default function FeedScreen() {
                   {displayItem._count?.reposts || 0}
                 </Text>
               </TouchableOpacity>
-
+              {/* 
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => likePost(displayItem.id)}
@@ -189,6 +231,23 @@ export default function FeedScreen() {
                     </>
                   );
                 })()}
+              </TouchableOpacity> */}
+
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={handleLike}
+                onPressIn={(e) => e.stopPropagation()}
+              >
+                <Ionicons
+                  name={hasLiked ? "heart" : "heart-outline"}
+                  size={19}
+                  color={hasLiked ? "#F91880" : "#6B7280"}
+                />
+                <Text
+                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                >
+                  {localLikeCount}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
