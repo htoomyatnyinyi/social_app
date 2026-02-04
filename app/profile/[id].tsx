@@ -23,13 +23,15 @@ import {
   useLikePostMutation,
   useRepostPostMutation,
   useDeletePostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UserProfileScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, tab } = useLocalSearchParams();
   const router = useRouter();
-  const currentUser = useSelector((state: any) => state.auth.user);
-  const [activeTab, setActiveTab] = useState("posts");
+  const user = useSelector((state: any) => state.auth.user);
+  const [activeTab, setActiveTab] = useState((tab as string) || "posts");
 
   const {
     data: profile,
@@ -58,6 +60,7 @@ export default function UserProfileScreen() {
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
   const [deletePost] = useDeletePostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleDeletePost = (postId: string) => {
     Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
@@ -88,7 +91,7 @@ export default function UserProfileScreen() {
   if (!profile)
     return <Text className="text-center mt-10">User not found</Text>;
 
-  const isMe = currentUser?.id === id;
+  const isMe = user?.id === id;
 
   const handleFollow = async () => {
     try {
@@ -122,7 +125,7 @@ export default function UserProfileScreen() {
       <TouchableOpacity
         onPress={() => router.push(`/post/${displayItem.id}`)}
         activeOpacity={0.9}
-        className="p-4 border-b border-gray-100 bg-green-500"
+        className="p-4 border-b border-gray-100 bg-white"
       >
         <View className="flex-row">
           <View className="mr-3">
@@ -164,19 +167,45 @@ export default function UserProfileScreen() {
                   {displayItem._count?.comments || 0}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => repostPost(displayItem.id)}>
+              <TouchableOpacity
+                onPress={() => repostPost({ id: displayItem.id })}
+              >
                 <Ionicons name="repeat-outline" size={20} color="#6B7280" />
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => likePost(displayItem.id)}
+                onPress={() => likePost({ postId: displayItem.id })}
               >
-                <Ionicons name="heart-outline" size={18} color="#6B7280" />
-                <Text className="text-gray-500 text-xs ml-1.5">
-                  {displayItem._count?.likes || 0}
-                </Text>
+                {(() => {
+                  const hasLiked = displayItem.likes?.some(
+                    (l: any) => l.userId === user?.id,
+                  );
+                  return (
+                    <>
+                      <Ionicons
+                        name={hasLiked ? "heart" : "heart-outline"}
+                        size={18}
+                        color={hasLiked ? "#F91880" : "#6B7280"}
+                      />
+                      <Text
+                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                      >
+                        {displayItem._count?.likes || 0}
+                      </Text>
+                    </>
+                  );
+                })()}
               </TouchableOpacity>
-              <Ionicons name="share-outline" size={18} color="#6B7280" />
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={18}
+                  color="#6B7280"
+                />
+                <Text className="text-gray-500 text-xs ml-1.5">
+                  {displayItem.views || 0}
+                </Text>
+              </View>
               {isMe && (
                 <TouchableOpacity
                   onPress={() => handleDeletePost(displayItem.id)}
@@ -192,9 +221,9 @@ export default function UserProfileScreen() {
   };
 
   const Header = () => (
-    <View className="bg-white">
+    <SafeAreaView className="bg-white">
       {/* Header Bar */}
-      <View className="flex-row items-center px-4 py-2 bg-red-500">
+      <View className="flex-row items-center px-4 py-2">
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
@@ -325,7 +354,7 @@ export default function UserProfileScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   const data =

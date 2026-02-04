@@ -39,10 +39,21 @@ export default function TabLayout() {
               color={color}
             />
           ),
-          // headerTitle: () => (
-          //   <Ionicons name="logo-twitter" size={24} color="#aaaaa" />
-          // ),
-          // headerTitleAlign: "center",
+          headerShown: false, // Often Home has custom header
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: "Explore",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "search" : "search-outline"}
+              size={26}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen

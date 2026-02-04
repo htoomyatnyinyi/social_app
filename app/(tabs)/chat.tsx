@@ -18,6 +18,7 @@ import {
   useCreateChatRoomMutation,
 } from "../../store/chatApi";
 import { useSearchUsersQuery } from "../../store/authApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChatListScreen() {
   const router = useRouter();
@@ -95,7 +96,7 @@ export default function ChatListScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       {/* <View className="px-4 py-3 flex-row items-center border-b border-gray-50">
         <Text className="text-xl font-extrabold text-gray-900">Messages</Text>
@@ -193,25 +194,39 @@ export default function ChatListScreen() {
             )}
           </>
         }
+        // ListEmptyComponent={
+        //   !isLoading && (
+        //     <View className="items-center justify-center mt-20 px-10">
+        //       <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-6">
+        //         <Ionicons
+        //           name="mail-unread-outline"
+        //           size={40}
+        //           color="#D1D5DB"
+        //         />
+        //       </View>
+        //       <Text className="text-2xl font-extrabold text-center mb-2 text-gray-900">
+        //         Inbox Zero
+        //       </Text>
+        //       <Text className="text-gray-500 text-center text-lg leading-6">
+        //         Private messages are here. Search for users to start a safe
+        //         conversation.
+        //       </Text>
+        //     </View>
+        //   )
+        // }
         ListEmptyComponent={
-          !isLoading && (
-            <View className="items-center justify-center mt-20 px-10">
-              <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-6">
-                <Ionicons
-                  name="mail-unread-outline"
-                  size={40}
-                  color="#D1D5DB"
-                />
-              </View>
-              <Text className="text-2xl font-extrabold text-center mb-2 text-gray-900">
-                Inbox Zero
-              </Text>
-              <Text className="text-gray-500 text-center text-lg leading-6">
-                Private messages are here. Search for users to start a safe
-                conversation.
-              </Text>
+          <View className="items-center justify-center mt-20 px-10">
+            <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-6">
+              <Ionicons name="mail-unread-outline" size={40} color="#D1D5DB" />
             </View>
-          )
+            <Text className="text-2xl font-extrabold text-center mb-2 text-gray-900">
+              Inbox Zero
+            </Text>
+            <Text className="text-gray-500 text-center text-lg leading-6">
+              Private messages are here. Search for users to start a safe
+              conversation.
+            </Text>
+          </View>
         }
       />
 
@@ -223,6 +238,6 @@ export default function ChatListScreen() {
       >
         <Ionicons name="mail-outline" size={28} color="white" />
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
