@@ -1,21 +1,17 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
+import { useDeleteAccountMutation } from "../../store/settingsApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.auth.user);
+  const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -34,15 +30,28 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
-      "Are you sure? This action cannot be undone.",
+      "Are you sure? This action cannot be undone. All your data will be permanently removed.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            // Implement delete account logic here
-            Alert.alert("Coming Soon", "This feature is coming soon.");
+          onPress: async () => {
+            try {
+              await deleteAccount({}).unwrap();
+              dispatch(logout());
+              router.replace("/auth");
+              Alert.alert(
+                "Account Deleted",
+                "Your account has been successfully deleted.",
+              );
+            } catch (error) {
+              console.error("Delete account error:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete account. Please try again.",
+              );
+            }
           },
         },
       ],
@@ -61,7 +70,7 @@ export default function SettingsScreen() {
         {
           icon: "lock-closed-outline",
           label: "Change Password",
-          onPress: () => Alert.alert("Coming Soon"),
+          onPress: () => router.push("/settings/change-password"),
         },
         {
           icon: "heart-outline",
@@ -96,12 +105,12 @@ export default function SettingsScreen() {
         {
           icon: "document-text-outline",
           label: "Terms of Service",
-          onPress: () => Alert.alert("Coming Soon"),
+          onPress: () => router.push("/settings/terms"),
         },
         {
           icon: "shield-checkmark-outline",
           label: "Privacy Policy",
-          onPress: () => Alert.alert("Coming Soon"),
+          onPress: () => router.push("/settings/privacy"),
         },
       ],
     },
@@ -154,12 +163,15 @@ export default function SettingsScreen() {
 
           <TouchableOpacity onPress={handleDeleteAccount} className="mt-6 mx-4">
             <Text className="text-center text-red-500 text-sm">
-              Delete Account
+              {isDeleting ? "Deleting Account..." : "Delete Account"}
             </Text>
           </TouchableOpacity>
 
           <Text className="text-center text-gray-400 text-xs mt-8">
-            Version 1.0.0
+            Version 2.3.9
+          </Text>
+          <Text className="text-center text-gray-400 text-xs mt-2">
+            Develop By Oassi Co., Ltd.
           </Text>
         </View>
       </ScrollView>

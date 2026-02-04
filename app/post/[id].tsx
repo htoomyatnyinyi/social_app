@@ -10,7 +10,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +22,7 @@ import {
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -92,7 +92,7 @@ export default function PostDetailScreen() {
     item: any;
     isReply?: boolean;
   }) => (
-    <View
+    <SafeAreaView
       className={`bg-white ${isReply ? "ml-12" : "border-b border-gray-50"}`}
     >
       <View className="flex-row p-4">
@@ -160,7 +160,7 @@ export default function PostDetailScreen() {
       {item.replies?.map((reply: any) => (
         <CommentItem key={reply.id} item={reply} isReply={true} />
       ))}
-    </View>
+    </SafeAreaView>
   );
 
   return (
@@ -292,7 +292,8 @@ export default function PostDetailScreen() {
         />
 
         {/* Reply Input */}
-        <View edges={["bottom"]}>
+        <View>
+          {/* <View edges={["bottom"]}> */}
           {replyToId && (
             <View className="px-4 py-2 bg-gray-50 flex-row justify-between items-center border-t border-gray-100">
               <Text className="text-gray-500 text-sm">

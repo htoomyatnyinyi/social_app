@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  SafeAreaView,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -262,18 +261,34 @@ export default function UserProfileScreen() {
         </Text>
 
         <View className="flex-row mt-4 mb-6">
-          <View className="flex-row mr-5">
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/profile/following",
+                params: { userId: profile.id },
+              })
+            }
+            className="flex-row mr-5"
+          >
             <Text className="font-bold text-gray-900">
               {profile._count?.following || 0}
             </Text>
             <Text className="text-gray-500 ml-1">Following</Text>
-          </View>
-          <View className="flex-row">
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/profile/followers",
+                params: { userId: profile.id },
+              })
+            }
+            className="flex-row"
+          >
             <Text className="font-bold text-gray-900">
               {profile._count?.followers || 0}
             </Text>
             <Text className="text-gray-500 ml-1">Followers</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -330,13 +345,18 @@ export default function UserProfileScreen() {
             tintColor="#1d9bf0"
           />
         }
+        // ListEmptyComponent={
+        //   !isProfileLoading &&
+        //   !isPostsLoading && (
+        //     <View className="items-center py-10 opacity-50">
+        //       <Text className="text-lg font-bold">No {activeTab} yet</Text>
+        //     </View>
+        //   )
+        // }
         ListEmptyComponent={
-          !isProfileLoading &&
-          !isPostsLoading && (
-            <View className="items-center py-10 opacity-50">
-              <Text className="text-lg font-bold">No {activeTab} yet</Text>
-            </View>
-          )
+          <View className="items-center py-10 opacity-50">
+            <Text className="text-lg font-bold">No {activeTab} yet</Text>
+          </View>
         }
       />
     </View>
