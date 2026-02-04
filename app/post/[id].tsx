@@ -273,12 +273,27 @@ export default function PostDetailScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center"
-                  onPress={() => likePost(post.id)}
+                  onPress={() => likePost({ postId: post.id })}
                 >
-                  <Ionicons name="heart-outline" size={22} color="#6B7280" />
-                  <Text className="text-gray-500 ml-1">
-                    {post?._count?.likes || 0}
-                  </Text>
+                  {(() => {
+                    const hasLiked = post?.likes?.some(
+                      (l: any) => l.userId === user?.id,
+                    );
+                    return (
+                      <>
+                        <Ionicons
+                          name={hasLiked ? "heart" : "heart-outline"}
+                          size={22}
+                          color={hasLiked ? "#F91880" : "#6B7280"}
+                        />
+                        <Text
+                          className={`ml-1 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                        >
+                          {post?._count?.likes || 0}
+                        </Text>
+                      </>
+                    );
+                  })()}
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-row items-center">
                   <Ionicons name="bookmark-outline" size={22} color="#6B7280" />

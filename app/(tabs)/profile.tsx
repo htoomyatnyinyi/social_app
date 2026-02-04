@@ -129,12 +129,27 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => likePost(displayItem.id)}
+                onPress={() => likePost({ postId: displayItem.id })}
               >
-                <Ionicons name="heart-outline" size={18} color="#6B7280" />
-                <Text className="text-gray-500 text-xs ml-1.5">
-                  {displayItem._count?.likes || 0}
-                </Text>
+                {(() => {
+                  const hasLiked = displayItem.likes?.some(
+                    (l: any) => l.userId === user?.id,
+                  );
+                  return (
+                    <>
+                      <Ionicons
+                        name={hasLiked ? "heart" : "heart-outline"}
+                        size={18}
+                        color={hasLiked ? "#F91880" : "#6B7280"}
+                      />
+                      <Text
+                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                      >
+                        {displayItem._count?.likes || 0}
+                      </Text>
+                    </>
+                  );
+                })()}
               </TouchableOpacity>
               <Ionicons name="share-outline" size={18} color="#6B7280" />
             </View>

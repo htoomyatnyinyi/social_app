@@ -68,41 +68,12 @@ export default function FeedScreen() {
 
     // ###
 
-    const [localLikeCount, setLocalLikeCount] = useState(
-      item._count?.likes || 0,
-    );
-    const [hasLiked, setHasLiked] = useState(
-      item.likes?.some((l: any) => l.userId === user?.id),
-    );
-
     const [likePost] = useLikePostMutation();
-    const user = useSelector((state: any) => state.auth.user);
 
     const handleLike = async () => {
-      const previousLikeCount = localLikeCount;
-      const previousLikedState = hasLiked;
-
-      // 1. Immediately update UI
-      setHasLiked(!hasLiked);
-      setLocalLikeCount(
-        previousLikedState ? previousLikeCount - 1 : previousLikeCount + 1,
-      );
-
       try {
-        // 2. Make API call
-        // await likePost(item.id).unwrap();
-        await likePost({
-          postId: item.id,
-          // Pass current state for optimistic update
-          currentLikes: item._count?.likes || 0,
-          currentlyLiked: item.likes?.some((l: any) => l.userId === user?.id),
-        }).unwrap();
+        await likePost({ postId: displayItem.id }).unwrap();
       } catch (error) {
-        // 3. Revert on error
-        setHasLiked(previousLikedState);
-        setLocalLikeCount(previousLikeCount);
-
-        // Show error toast
         alert("Failed to like post");
         console.error("Like failed:", error);
       }
@@ -238,16 +209,25 @@ export default function FeedScreen() {
                 onPress={handleLike}
                 onPressIn={(e) => e.stopPropagation()}
               >
-                <Ionicons
-                  name={hasLiked ? "heart" : "heart-outline"}
-                  size={19}
-                  color={hasLiked ? "#F91880" : "#6B7280"}
-                />
-                <Text
-                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
-                >
-                  {localLikeCount}
-                </Text>
+                {(() => {
+                  const hasLiked = displayItem.likes?.some(
+                    (l: any) => l.userId === user?.id,
+                  );
+                  return (
+                    <>
+                      <Ionicons
+                        name={hasLiked ? "heart" : "heart-outline"}
+                        size={19}
+                        color={hasLiked ? "#F91880" : "#6B7280"}
+                      />
+                      <Text
+                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                      >
+                        {displayItem._count?.likes || 0}
+                      </Text>
+                    </>
+                  );
+                })()}
               </TouchableOpacity>
 
               <TouchableOpacity
