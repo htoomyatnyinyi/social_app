@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  SafeAreaView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -22,6 +22,7 @@ import { useSelector } from "react-redux";
 import {
   useLikePostMutation,
   useRepostPostMutation,
+  useDeletePostMutation,
 } from "../../store/postApi";
 
 export default function UserProfileScreen() {
@@ -56,6 +57,25 @@ export default function UserProfileScreen() {
   const [createChatRoom] = useCreateChatRoomMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deletePost] = useDeletePostMutation();
+
+  const handleDeletePost = (postId: string) => {
+    Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deletePost(postId).unwrap();
+          } catch (error) {
+            console.error("Failed to delete post:", error);
+            Alert.alert("Error", "Failed to delete post");
+          }
+        },
+      },
+    ]);
+  };
 
   if (isProfileLoading) {
     return (
@@ -102,7 +122,7 @@ export default function UserProfileScreen() {
       <TouchableOpacity
         onPress={() => router.push(`/post/${displayItem.id}`)}
         activeOpacity={0.9}
-        className="p-4 border-b border-gray-100 bg-white"
+        className="p-4 border-b border-gray-100 bg-green-500"
       >
         <View className="flex-row">
           <View className="mr-3">
@@ -157,6 +177,13 @@ export default function UserProfileScreen() {
                 </Text>
               </TouchableOpacity>
               <Ionicons name="share-outline" size={18} color="#6B7280" />
+              {isMe && (
+                <TouchableOpacity
+                  onPress={() => handleDeletePost(displayItem.id)}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -167,7 +194,7 @@ export default function UserProfileScreen() {
   const Header = () => (
     <View className="bg-white">
       {/* Header Bar */}
-      <View className="flex-row items-center px-4 py-2 bg-white/90">
+      <View className="flex-row items-center px-4 py-2 bg-red-500">
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
@@ -179,6 +206,12 @@ export default function UserProfileScreen() {
             {profile._count?.posts || 0} posts
           </Text>
         </View>
+        <View className="flex-1" />
+        {isMe && (
+          <TouchableOpacity onPress={() => router.push("/settings")}>
+            <Ionicons name="settings-outline" size={24} color="black" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Banner */}
@@ -228,18 +261,34 @@ export default function UserProfileScreen() {
         </Text>
 
         <View className="flex-row mt-4 mb-6">
-          <View className="flex-row mr-5">
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/profile/following",
+                params: { userId: profile.id },
+              })
+            }
+            className="flex-row mr-5"
+          >
             <Text className="font-bold text-gray-900">
               {profile._count?.following || 0}
             </Text>
             <Text className="text-gray-500 ml-1">Following</Text>
-          </View>
-          <View className="flex-row">
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/profile/followers",
+                params: { userId: profile.id },
+              })
+            }
+            className="flex-row"
+          >
             <Text className="font-bold text-gray-900">
               {profile._count?.followers || 0}
             </Text>
             <Text className="text-gray-500 ml-1">Followers</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -281,9 +330,9 @@ export default function UserProfileScreen() {
 
   const data =
     activeTab === "posts" ? userPosts : activeTab === "likes" ? userLikes : [];
-  console.log(data, "profile data ");
+  // console.log(data, "profile data ");
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <FlatList
         data={data}
         ListHeaderComponent={Header}
@@ -296,15 +345,20 @@ export default function UserProfileScreen() {
             tintColor="#1d9bf0"
           />
         }
+        // ListEmptyComponent={
+        //   !isProfileLoading &&
+        //   !isPostsLoading && (
+        //     <View className="items-center py-10 opacity-50">
+        //       <Text className="text-lg font-bold">No {activeTab} yet</Text>
+        //     </View>
+        //   )
+        // }
         ListEmptyComponent={
-          !isProfileLoading &&
-          !isPostsLoading && (
-            <View className="items-center py-10 opacity-50">
-              <Text className="text-lg font-bold">No {activeTab} yet</Text>
-            </View>
-          )
+          <View className="items-center py-10 opacity-50">
+            <Text className="text-lg font-bold">No {activeTab} yet</Text>
+          </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }

@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export const API_URL = "http://localhost:8080"; // Replace with your IP for physical devices
+// export const API_URL = "http://localhost:8080"; // Replace with your IP for physical devices
+export const API_URL = "http://192.168.1.245:8080"; // Replace with your IP for physical devices
 // export const API_URL = "http://192.168.1.143:8080"; // Replace with your IP for physical devices
 
 export const api = createApi({
