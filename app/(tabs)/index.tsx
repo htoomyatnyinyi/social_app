@@ -17,7 +17,7 @@ import {
   useCommentPostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -63,8 +63,41 @@ export default function FeedScreen() {
   };
 
   const PostCard = ({ item }: { item: any }) => {
+    const dispatch = useDispatch();
+    const [localLikeCount, setLocalLikeCount] = useState(
+      item._count?.likes || 0,
+    );
+    const [hasLiked, setHasLiked] = useState(
+      item.likes?.some((l: any) => l.userId === user?.id),
+    );
+
+    // ####
+
     const isRepost = item.isRepost && item.originalPost;
     const displayItem = isRepost ? item.originalPost : item;
+
+    const handleLike = async () => {
+      const previousLikeCount = localLikeCount;
+      const previousLikedState = hasLiked;
+
+      // 1. Immediately update UI
+      setHasLiked(!hasLiked);
+      setLocalLikeCount(
+        previousLikedState ? previousLikeCount - 1 : previousLikeCount + 1,
+      );
+
+      try {
+        // 2. Make API call
+        await likePost(item.id).unwrap();
+      } catch (error) {
+        // 3. Revert on error
+        setHasLiked(previousLikedState);
+        setLocalLikeCount(previousLikeCount);
+
+        // Show error toast
+        alert("Failed to like post");
+      }
+    };
 
     return (
       <TouchableOpacity
@@ -165,7 +198,7 @@ export default function FeedScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => likePost(displayItem.id)}
                 onPressIn={(e) => e.stopPropagation()}
@@ -189,6 +222,22 @@ export default function FeedScreen() {
                     </>
                   );
                 })()}
+              </TouchableOpacity> */}
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={handleLike}
+                onPressIn={(e) => e.stopPropagation()}
+              >
+                <Ionicons
+                  name={hasLiked ? "heart" : "heart-outline"}
+                  size={19}
+                  color={hasLiked ? "#F91880" : "#6B7280"}
+                />
+                <Text
+                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                >
+                  {localLikeCount}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -299,19 +348,15 @@ export default function FeedScreen() {
         ListEmptyComponent={
           <View className="items-center justify-center p-10 mt-10">
             <Text className="text-gray-400 text-center text-lg font-medium">
-              No posts to show right now.
+              {activeTab === "private"
+                ? "No posts from people you follow."
+                : "No posts to show right now."}
+            </Text>
+            <Text className="text-gray-400 text-center mt-2">
+              {posts ? "Data loaded but empty" : "No data returned"}
             </Text>
           </View>
         }
-        // ListEmptyComponent={
-        //   !isLoading && (
-        //     <View className="items-center justify-center p-10 mt-10">
-        //       <Text className="text-gray-400 text-center text-lg font-medium">
-        //         No posts to show right now.
-        //       </Text>
-        //     </View>
-        //   )
-        // }
       />
 
       {/* Floating Action Button */}
