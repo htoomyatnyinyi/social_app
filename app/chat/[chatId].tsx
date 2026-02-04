@@ -111,7 +111,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -202,6 +202,6 @@ export default function ChatScreen() {
           </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }

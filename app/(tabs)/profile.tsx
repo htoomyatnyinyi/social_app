@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
@@ -23,6 +22,7 @@ import {
   useLikePostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const user = useSelector((state: any) => state.auth.user);
@@ -160,12 +160,22 @@ export default function ProfileScreen() {
             className="w-24 h-24 rounded-full border-4 border-white bg-gray-100"
           />
           <View className="flex-row items-center mb-1">
+            <TouchableOpacity onPress={() => router.push("/settings")}>
+              <Ionicons
+                name="settings-outline"
+                size={20}
+                color="#6B7280"
+                className="mr-2"
+              />
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => router.push("/profile/update")}
               className="border border-gray-300 px-4 py-2 rounded-full mr-2"
             >
               <Text className="font-bold text-gray-900">Edit profile</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               onPress={handleLogout}
               className="w-10 h-10 border border-gray-300 items-center justify-center rounded-full"
@@ -270,17 +280,26 @@ export default function ProfileScreen() {
             tintColor="#1d9bf0"
           />
         }
+        // ListEmptyComponent={
+        //   !isProfileLoading &&
+        //   !isPostsLoading && (
+        //     <View className="items-center py-10 opacity-50">
+        //       <Text className="text-lg font-bold">No {activeTab} yet</Text>
+        //       <Text className="text-center px-10 mt-1">
+        //         When you {activeTab === "posts" ? "post content" : "like posts"}
+        //         , it will appear here.
+        //       </Text>
+        //     </View>
+        //   )
+        // }
         ListEmptyComponent={
-          !isProfileLoading &&
-          !isPostsLoading && (
-            <View className="items-center py-10 opacity-50">
-              <Text className="text-lg font-bold">No {activeTab} yet</Text>
-              <Text className="text-center px-10 mt-1">
-                When you {activeTab === "posts" ? "post content" : "like posts"}
-                , it will appear here.
-              </Text>
-            </View>
-          )
+          <View className="items-center py-10 opacity-50">
+            <Text className="text-lg font-bold">No {activeTab} yet</Text>
+            <Text className="text-center px-10 mt-1">
+              When you {activeTab === "posts" ? "post content" : "like posts"},
+              it will appear here.
+            </Text>
+          </View>
         }
       />
     </SafeAreaView>

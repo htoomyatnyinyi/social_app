@@ -10,7 +10,11 @@ export default function RootLayout() {
   return (
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <Stack />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        />
       </PersistGate>
     </ReduxProvider>
   );

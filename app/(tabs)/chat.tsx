@@ -97,12 +97,12 @@ export default function ChatListScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="px-4 py-3 flex-row items-center border-b border-gray-50">
+      {/* <View className="px-4 py-3 flex-row items-center border-b border-gray-50">
         <Text className="text-xl font-extrabold text-gray-900">Messages</Text>
         <TouchableOpacity className="ml-auto">
           <Ionicons name="settings-outline" size={22} color="black" />
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* Search Bar */}
       <View className="px-4 py-3">
@@ -216,7 +216,9 @@ export default function ChatListScreen() {
       />
 
       <TouchableOpacity
-        onPress={() => {}} // Could open a full search modal
+        onPress={() => {
+          router.push("/chat/new");
+        }} // Could open a full search modal
         className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40"
       >
         <Ionicons name="mail-outline" size={28} color="white" />

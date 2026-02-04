@@ -256,7 +256,7 @@ export default function FeedScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Premium Header */}
-      <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
+      {/* <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
         <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
           <Image
             source={{ uri: user?.image || "https://via.placeholder.com/32" }}
@@ -267,7 +267,7 @@ export default function FeedScreen() {
         <TouchableOpacity>
           <Ionicons name="sparkles-outline" size={20} color="black" />
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <View className="flex-row border-b border-gray-100">
         <TouchableOpacity

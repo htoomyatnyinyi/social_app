@@ -44,6 +44,13 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+    deletePost: builder.mutation({
+      query: (id) => ({
+        url: `/posts/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Post"],
+    }),
   }),
 });
 
@@ -55,4 +62,5 @@ export const {
   useGetPostQuery,
   useGetCommentsQuery,
   useCommentPostMutation,
+  useDeletePostMutation,
 } = postApi;

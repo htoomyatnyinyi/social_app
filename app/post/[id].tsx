@@ -10,7 +10,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +21,8 @@ import {
   useRepostPostMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
+import { useFollowUserMutation } from "@/store/profileApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -31,6 +32,9 @@ export default function PostDetailScreen() {
   const [commentContent, setCommentContent] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyTargetName, setReplyTargetName] = useState<string | null>(null);
+
+  // 1. Call hook at TOP LEVEL of the component
+  const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
   const { data: post, isLoading: isPostLoading } = useGetPostQuery(id);
   const {
@@ -59,6 +63,20 @@ export default function PostDetailScreen() {
     }
   };
 
+  const handleFollowUser = async (userId: string) => {
+    if (!userId) return;
+
+    try {
+      // 2. Call the trigger function here (not the hook!)
+      await followUser({ userId }); // or .mutate({ userId }) if sync style
+      console.log("Follow successful");
+      // toast.success("Followed!") or whatever
+    } catch (err) {
+      console.error("Follow failed", err);
+      // toast.error(...)
+    }
+  };
+
   if (isPostLoading || isCommentsLoading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
@@ -74,7 +92,7 @@ export default function PostDetailScreen() {
     item: any;
     isReply?: boolean;
   }) => (
-    <View
+    <SafeAreaView
       className={`bg-white ${isReply ? "ml-12" : "border-b border-gray-50"}`}
     >
       <View className="flex-row p-4">
@@ -142,7 +160,7 @@ export default function PostDetailScreen() {
       {item.replies?.map((reply: any) => (
         <CommentItem key={reply.id} item={reply} isReply={true} />
       ))}
-    </View>
+    </SafeAreaView>
   );
 
   return (
@@ -181,8 +199,19 @@ export default function PostDetailScreen() {
                     @{post?.author?.name?.toLowerCase().replace(/\s/g, "")}
                   </Text>
                 </View>
-                <TouchableOpacity className="ml-auto p-2 border border-gray-200 rounded-full px-4 py-1">
+                {/* <TouchableOpacity
+                  className="ml-auto p-2 border border-gray-200 rounded-full px-4 py-1"
+                  onPress={() => followUser(post?.author?.id)}
+                >
                   <Text className="font-bold text-sm">Follow</Text>
+                </TouchableOpacity> */}
+
+                <TouchableOpacity
+                  className="ml-auto p-2 border border-gray-200 rounded-full px-4 py-1"
+                  onPress={() => handleFollowUser(post?.author?.id)}
+                  disabled={isFollowing}
+                >
+                  <Text>{isFollowing ? "Following..." : "Follow"}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -263,7 +292,8 @@ export default function PostDetailScreen() {
         />
 
         {/* Reply Input */}
-        <View edges={["bottom"]}>
+        <View>
+          {/* <View edges={["bottom"]}> */}
           {replyToId && (
             <View className="px-4 py-2 bg-gray-50 flex-row justify-between items-center border-t border-gray-100">
               <Text className="text-gray-500 text-sm">

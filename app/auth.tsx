@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import { useSignupMutation, useSigninMutation } from "../store/authApi";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../store/authSlice";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
