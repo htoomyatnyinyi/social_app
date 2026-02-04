@@ -106,7 +106,75 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content, parentId },
       }),
-      invalidatesTags: ["Post"],
+      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+        // Optimistically increment comment count
+        const updateCache = (type: string) => {
+          return dispatch(
+            postApi.util.updateQueryData("getPosts", type, (draft) => {
+              const post = draft.find((p: any) => p.id === id);
+              if (post) {
+                post._count.comments += 1;
+              }
+            }),
+          );
+        };
+
+        const patchPublic = updateCache("public");
+        const patchPrivate = updateCache("private");
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", id, (draft: any) => {
+            if (draft) {
+              draft._count.comments += 1;
+            }
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchPublic.undo();
+          patchPrivate.undo();
+          patchPost.undo();
+        }
+      },
+    }),
+
+    incrementViewCount: builder.mutation({
+      query: ({ postId }) => ({
+        url: `/posts/${postId}/view`,
+        method: "POST",
+      }),
+      async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
+        // Optimistically increment view/share count
+        const updateCache = (type: string) => {
+          return dispatch(
+            postApi.util.updateQueryData("getPosts", type, (draft) => {
+              const post = draft.find((p: any) => p.id === postId);
+              if (post) {
+                post.views = (post.views || 0) + 1;
+              }
+            }),
+          );
+        };
+
+        const patchPublic = updateCache("public");
+        const patchPrivate = updateCache("private");
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
+            if (draft) {
+              draft.views = (draft.views || 0) + 1;
+            }
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Silently fail for view counts - they're not critical
+          // Keep the optimistic update even if backend fails
+          console.log("View count increment failed, keeping optimistic update");
+        }
+      },
     }),
     deletePost: builder.mutation({
       query: (id) => ({
@@ -127,4 +195,5 @@ export const {
   useGetCommentsQuery,
   useCommentPostMutation,
   useDeletePostMutation,
+  useIncrementViewCountMutation,
 } = postApi;

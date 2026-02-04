@@ -16,6 +16,7 @@ import {
   useCreatePostMutation,
   useCommentPostMutation,
   useRepostPostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
@@ -39,6 +40,7 @@ export default function FeedScreen() {
   const [likePost] = useLikePostMutation();
   const [commentPost] = useCommentPostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleRepost = async (id: string) => {
     try {
@@ -230,19 +232,16 @@ export default function FeedScreen() {
                 })()}
               </TouchableOpacity>
 
-              <TouchableOpacity
-                className="flex-row items-center"
-                onPressIn={(e) => e.stopPropagation()}
-              >
+              <View className="flex-row items-center">
                 <Ionicons
                   name="stats-chart-outline"
                   size={17}
                   color="#6B7280"
                 />
                 <Text className="text-gray-500 text-xs ml-1.5">
-                  {displayItem._count?.shares || 0}
+                  {displayItem.views || 0}
                 </Text>
-              </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
                 className="p-1"

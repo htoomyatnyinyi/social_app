@@ -23,6 +23,7 @@ import {
   useLikePostMutation,
   useRepostPostMutation,
   useDeletePostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -59,6 +60,7 @@ export default function UserProfileScreen() {
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
   const [deletePost] = useDeletePostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleDeletePost = (postId: string) => {
     Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
@@ -194,7 +196,16 @@ export default function UserProfileScreen() {
                   );
                 })()}
               </TouchableOpacity>
-              <Ionicons name="share-outline" size={18} color="#6B7280" />
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={18}
+                  color="#6B7280"
+                />
+                <Text className="text-gray-500 text-xs ml-1.5">
+                  {displayItem.views || 0}
+                </Text>
+              </View>
               {isMe && (
                 <TouchableOpacity
                   onPress={() => handleDeletePost(displayItem.id)}

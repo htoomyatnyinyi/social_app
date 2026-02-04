@@ -21,6 +21,7 @@ import {
 import {
   useLikePostMutation,
   useRepostPostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -56,6 +57,7 @@ export default function ProfileScreen() {
 
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -151,7 +153,16 @@ export default function ProfileScreen() {
                   );
                 })()}
               </TouchableOpacity>
-              <Ionicons name="share-outline" size={18} color="#6B7280" />
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={18}
+                  color="#6B7280"
+                />
+                <Text className="text-gray-500 text-xs ml-1.5">
+                  {displayItem.views || 0}
+                </Text>
+              </View>
             </View>
           </View>
         </View>

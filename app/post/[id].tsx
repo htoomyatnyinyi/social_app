@@ -19,6 +19,7 @@ import {
   useCommentPostMutation,
   useLikePostMutation,
   useRepostPostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
@@ -46,6 +47,13 @@ export default function PostDetailScreen() {
   const [commentPost] = useCommentPostMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
+
+  React.useEffect(() => {
+    if (id) {
+      incrementViewCount({ postId: id as string });
+    }
+  }, [id]);
 
   const handleSendComment = async () => {
     if (!commentContent.trim()) return;
@@ -295,6 +303,14 @@ export default function PostDetailScreen() {
                     );
                   })()}
                 </TouchableOpacity>
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name="stats-chart-outline"
+                    size={22}
+                    color="#6B7280"
+                  />
+                  <Text className="text-gray-500 ml-1">{post?.views || 0}</Text>
+                </View>
                 <TouchableOpacity className="flex-row items-center">
                   <Ionicons name="bookmark-outline" size={22} color="#6B7280" />
                 </TouchableOpacity>
