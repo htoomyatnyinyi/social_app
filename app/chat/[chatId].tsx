@@ -168,7 +168,8 @@ export default function ChatScreen() {
         />
 
         {/* Input Area */}
-        <SafeAreaView edges={["bottom"]}>
+        <SafeAreaView>
+          {/* <SafeAreaView edges={["bottom"]}> */}
           <View className="flex-row items-center p-3 border-t border-gray-50 bg-white">
             <TouchableOpacity className="p-2">
               <Ionicons name="camera-outline" size={26} color="#1d9bf0" />

@@ -75,7 +75,11 @@ export default function SettingsScreen() {
         {
           icon: "heart-outline",
           label: "Liked Posts",
-          onPress: () => Alert.alert("Coming Soon"),
+          onPress: () =>
+            router.push({
+              pathname: `/profile/${user.id}`,
+              params: { tab: "likes" },
+            }),
         },
       ],
     },

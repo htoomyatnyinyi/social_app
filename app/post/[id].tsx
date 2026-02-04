@@ -19,6 +19,7 @@ import {
   useCommentPostMutation,
   useLikePostMutation,
   useRepostPostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
@@ -46,6 +47,13 @@ export default function PostDetailScreen() {
   const [commentPost] = useCommentPostMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
+
+  React.useEffect(() => {
+    if (id) {
+      incrementViewCount({ postId: id as string });
+    }
+  }, [id]);
 
   const handleSendComment = async () => {
     if (!commentContent.trim()) return;
@@ -68,7 +76,7 @@ export default function PostDetailScreen() {
 
     try {
       // 2. Call the trigger function here (not the hook!)
-      await followUser({ userId }); // or .mutate({ userId }) if sync style
+      await followUser(userId); // Use the trigger function with ID string
       console.log("Follow successful");
       // toast.success("Followed!") or whatever
     } catch (err) {
@@ -110,7 +118,7 @@ export default function PostDetailScreen() {
                 · {new Date(item.createdAt).toLocaleDateString()}
               </Text>
             </View>
-            <TouchableOpacity p-1>
+            <TouchableOpacity className="p-1">
               <Ionicons name="ellipsis-horizontal" size={14} color="#6B7280" />
             </TouchableOpacity>
           </View>
@@ -264,7 +272,7 @@ export default function PostDetailScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center"
-                  onPress={() => repostPost(post.id)}
+                  onPress={() => repostPost({ id: post.id })}
                 >
                   <Ionicons name="repeat-outline" size={24} color="#6B7280" />
                   <Text className="text-gray-500 ml-1">
@@ -273,13 +281,36 @@ export default function PostDetailScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center"
-                  onPress={() => likePost(post.id)}
+                  onPress={() => likePost({ postId: post.id })}
                 >
-                  <Ionicons name="heart-outline" size={22} color="#6B7280" />
-                  <Text className="text-gray-500 ml-1">
-                    {post?._count?.likes || 0}
-                  </Text>
+                  {(() => {
+                    const hasLiked = post?.likes?.some(
+                      (l: any) => l.userId === user?.id,
+                    );
+                    return (
+                      <>
+                        <Ionicons
+                          name={hasLiked ? "heart" : "heart-outline"}
+                          size={22}
+                          color={hasLiked ? "#F91880" : "#6B7280"}
+                        />
+                        <Text
+                          className={`ml-1 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                        >
+                          {post?._count?.likes || 0}
+                        </Text>
+                      </>
+                    );
+                  })()}
                 </TouchableOpacity>
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name="stats-chart-outline"
+                    size={22}
+                    color="#6B7280"
+                  />
+                  <Text className="text-gray-500 ml-1">{post?.views || 0}</Text>
+                </View>
                 <TouchableOpacity className="flex-row items-center">
                   <Ionicons name="bookmark-outline" size={22} color="#6B7280" />
                 </TouchableOpacity>

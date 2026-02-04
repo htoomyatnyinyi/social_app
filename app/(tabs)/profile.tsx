@@ -21,6 +21,7 @@ import {
 import {
   useLikePostMutation,
   useRepostPostMutation,
+  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -56,6 +57,7 @@ export default function ProfileScreen() {
 
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -122,19 +124,45 @@ export default function ProfileScreen() {
                   {displayItem._count?.comments || 0}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => repostPost(displayItem.id)}>
+              <TouchableOpacity
+                onPress={() => repostPost({ id: displayItem.id })}
+              >
                 <Ionicons name="repeat-outline" size={20} color="#6B7280" />
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => likePost(displayItem.id)}
+                onPress={() => likePost({ postId: displayItem.id })}
               >
-                <Ionicons name="heart-outline" size={18} color="#6B7280" />
-                <Text className="text-gray-500 text-xs ml-1.5">
-                  {displayItem._count?.likes || 0}
-                </Text>
+                {(() => {
+                  const hasLiked = displayItem.likes?.some(
+                    (l: any) => l.userId === user?.id,
+                  );
+                  return (
+                    <>
+                      <Ionicons
+                        name={hasLiked ? "heart" : "heart-outline"}
+                        size={18}
+                        color={hasLiked ? "#F91880" : "#6B7280"}
+                      />
+                      <Text
+                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                      >
+                        {displayItem._count?.likes || 0}
+                      </Text>
+                    </>
+                  );
+                })()}
               </TouchableOpacity>
-              <Ionicons name="share-outline" size={18} color="#6B7280" />
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={18}
+                  color="#6B7280"
+                />
+                <Text className="text-gray-500 text-xs ml-1.5">
+                  {displayItem.views || 0}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
