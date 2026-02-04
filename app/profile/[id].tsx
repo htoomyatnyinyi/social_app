@@ -24,12 +24,13 @@ import {
   useRepostPostMutation,
   useDeletePostMutation,
 } from "../../store/postApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UserProfileScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, tab } = useLocalSearchParams();
   const router = useRouter();
-  const currentUser = useSelector((state: any) => state.auth.user);
-  const [activeTab, setActiveTab] = useState("posts");
+  const user = useSelector((state: any) => state.auth.user);
+  const [activeTab, setActiveTab] = useState((tab as string) || "posts");
 
   const {
     data: profile,
@@ -88,7 +89,7 @@ export default function UserProfileScreen() {
   if (!profile)
     return <Text className="text-center mt-10">User not found</Text>;
 
-  const isMe = currentUser?.id === id;
+  const isMe = user?.id === id;
 
   const handleFollow = async () => {
     try {
@@ -122,7 +123,7 @@ export default function UserProfileScreen() {
       <TouchableOpacity
         onPress={() => router.push(`/post/${displayItem.id}`)}
         activeOpacity={0.9}
-        className="p-4 border-b border-gray-100 bg-green-500"
+        className="p-4 border-b border-gray-100 bg-white"
       >
         <View className="flex-row">
           <View className="mr-3">
@@ -164,7 +165,9 @@ export default function UserProfileScreen() {
                   {displayItem._count?.comments || 0}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => repostPost(displayItem.id)}>
+              <TouchableOpacity
+                onPress={() => repostPost({ id: displayItem.id })}
+              >
                 <Ionicons name="repeat-outline" size={20} color="#6B7280" />
               </TouchableOpacity>
               <TouchableOpacity
@@ -192,9 +195,9 @@ export default function UserProfileScreen() {
   };
 
   const Header = () => (
-    <View className="bg-white">
+    <SafeAreaView className="bg-white">
       {/* Header Bar */}
-      <View className="flex-row items-center px-4 py-2 bg-red-500">
+      <View className="flex-row items-center px-4 py-2">
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
@@ -325,7 +328,7 @@ export default function UserProfileScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   const data =

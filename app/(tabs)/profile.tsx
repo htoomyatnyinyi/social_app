@@ -122,7 +122,9 @@ export default function ProfileScreen() {
                   {displayItem._count?.comments || 0}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => repostPost(displayItem.id)}>
+              <TouchableOpacity
+                onPress={() => repostPost({ id: displayItem.id })}
+              >
                 <Ionicons name="repeat-outline" size={20} color="#6B7280" />
               </TouchableOpacity>
               <TouchableOpacity

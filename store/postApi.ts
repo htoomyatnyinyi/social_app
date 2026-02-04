@@ -22,9 +22,10 @@ export const postApi = api.injectEndpoints({
       invalidatesTags: ["Post"],
     }),
     repostPost: builder.mutation({
-      query: (id) => ({
+      query: ({ id, content, image }) => ({
         url: `/posts/${id}/repost`,
         method: "POST",
+        body: { content, image },
       }),
       invalidatesTags: ["Post"],
     }),

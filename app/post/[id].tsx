@@ -68,7 +68,7 @@ export default function PostDetailScreen() {
 
     try {
       // 2. Call the trigger function here (not the hook!)
-      await followUser({ userId }); // or .mutate({ userId }) if sync style
+      await followUser(userId); // Use the trigger function with ID string
       console.log("Follow successful");
       // toast.success("Followed!") or whatever
     } catch (err) {
@@ -110,7 +110,7 @@ export default function PostDetailScreen() {
                 · {new Date(item.createdAt).toLocaleDateString()}
               </Text>
             </View>
-            <TouchableOpacity p-1>
+            <TouchableOpacity className="p-1">
               <Ionicons name="ellipsis-horizontal" size={14} color="#6B7280" />
             </TouchableOpacity>
           </View>
@@ -264,7 +264,7 @@ export default function PostDetailScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-row items-center"
-                  onPress={() => repostPost(post.id)}
+                  onPress={() => repostPost({ id: post.id })}
                 >
                   <Ionicons name="repeat-outline" size={24} color="#6B7280" />
                   <Text className="text-gray-500 ml-1">

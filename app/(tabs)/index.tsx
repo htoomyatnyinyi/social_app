@@ -19,13 +19,12 @@ import {
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FeedScreen() {
   const [activeTab, setActiveTab] = useState("public");
-  const [newPostContent, setNewPostContent] = useState("");
   const [commentContent, setCommentContent] = useState("");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [isComposing, setIsComposing] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
 
   const user = useSelector((state: any) => state.auth.user);
@@ -38,27 +37,12 @@ export default function FeedScreen() {
     isFetching,
   } = useGetPostsQuery(activeTab);
   const [likePost] = useLikePostMutation();
-  const [createPost] = useCreatePostMutation();
   const [commentPost] = useCommentPostMutation();
   const [repostPost] = useRepostPostMutation();
 
-  const handleCreatePost = async () => {
-    if (!newPostContent.trim()) return;
-    try {
-      await createPost({
-        content: newPostContent,
-        isPublic: activeTab === "public",
-      }).unwrap();
-      setNewPostContent("");
-      setIsComposing(false);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleRepost = async (id: string) => {
     try {
-      await repostPost(id).unwrap();
+      await repostPost({ id }).unwrap();
     } catch (e) {
       console.error(e);
     }
@@ -254,20 +238,22 @@ export default function FeedScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1">
       {/* Premium Header */}
-      {/* <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
+      <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
         <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
           <Image
             source={{ uri: user?.image || "https://via.placeholder.com/32" }}
             className="w-8 h-8 rounded-full"
           />
         </TouchableOpacity>
-        <Ionicons name="logo-twitter" size={24} color="#1d9bf0" />
+        {/* <Ionicons name="logo-twitter" size={24} color="#1d9bf0" /> */}
+        <Text className="text-[24px] font-bold">Oasis</Text>
         <TouchableOpacity>
+          {/* MCP Call Here */}
           <Ionicons name="sparkles-outline" size={20} color="black" />
         </TouchableOpacity>
-      </View> */}
+      </View>
 
       <View className="flex-row border-b border-gray-100">
         <TouchableOpacity
@@ -311,59 +297,32 @@ export default function FeedScreen() {
         }
         contentContainerStyle={{ paddingBottom: 100 }}
         ListEmptyComponent={
-          !isLoading && (
-            <View className="items-center justify-center p-10 mt-10">
-              <Text className="text-gray-400 text-center text-lg font-medium">
-                No posts to show right now.
-              </Text>
-            </View>
-          )
+          <View className="items-center justify-center p-10 mt-10">
+            <Text className="text-gray-400 text-center text-lg font-medium">
+              No posts to show right now.
+            </Text>
+          </View>
         }
+        // ListEmptyComponent={
+        //   !isLoading && (
+        //     <View className="items-center justify-center p-10 mt-10">
+        //       <Text className="text-gray-400 text-center text-lg font-medium">
+        //         No posts to show right now.
+        //       </Text>
+        //     </View>
+        //   )
+        // }
       />
 
       {/* Floating Action Button */}
-      {!isComposing && !isCommenting && (
+      {!isCommenting && (
         <TouchableOpacity
-          onPress={() => setIsComposing(true)}
+          onPress={() => router.push("/compose/post")}
           className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40"
           style={{ elevation: 8 }}
         >
           <Ionicons name="add" size={32} color="white" />
         </TouchableOpacity>
-      )}
-
-      {/* Compose Post Modal-like View */}
-      {isComposing && (
-        <View className="absolute inset-0 bg-white z-[100]">
-          <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50">
-            <TouchableOpacity onPress={() => setIsComposing(false)}>
-              <Text className="text-[17px] text-gray-800">Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleCreatePost}
-              disabled={!newPostContent.trim()}
-              className={`px-6 py-2 rounded-full ${newPostContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
-            >
-              <Text className="text-white font-bold text-[15px]">Post</Text>
-            </TouchableOpacity>
-          </View>
-          <View className="flex-row p-4">
-            <Image
-              source={{ uri: user?.image || "https://via.placeholder.com/40" }}
-              className="w-11 h-11 rounded-full mr-3"
-            />
-            <TextInput
-              autoFocus
-              multiline
-              placeholder="What's happening?"
-              placeholderTextColor="#9CA3AF"
-              className="flex-1 text-[19px] leading-6 pt-1 text-gray-900"
-              value={newPostContent}
-              onChangeText={setNewPostContent}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
       )}
 
       {/* Compose Reply Modal-like View */}
@@ -399,6 +358,6 @@ export default function FeedScreen() {
           </View>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
