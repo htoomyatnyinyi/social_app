@@ -24,6 +24,7 @@ import PostOptionsModal from "../../components/PostOptionsModal";
 
 export default function FeedScreen() {
   const [activeTab, setActiveTab] = useState("public");
+  const [cursor, setCursor] = useState<string | null>(null);
   const [commentContent, setCommentContent] = useState("");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isCommenting, setIsCommenting] = useState(false);
@@ -33,13 +34,21 @@ export default function FeedScreen() {
   const user = useSelector((state: any) => state.auth.user);
   const router = useRouter();
 
-  const {
-    data: posts,
-    isLoading,
-    refetch,
-    isFetching,
-  } = useGetPostsQuery(activeTab);
-  const [likePost] = useLikePostMutation();
+  // Reset cursor when tab changes
+  React.useEffect(() => {
+    setCursor(null);
+  }, [activeTab]);
+
+  const { data, isLoading, refetch, isFetching } = useGetPostsQuery({
+    type: activeTab,
+    cursor,
+  });
+
+  const posts = data?.posts || [];
+  const nextCursor = data?.nextCursor;
+
+  // const [likePost] = useLikePostMutation();
+  // const [bookmarkPost] = useBookmarkPostMutation();
   const [commentPost] = useCommentPostMutation();
   const [repostPost] = useRepostPostMutation();
 
@@ -73,6 +82,17 @@ export default function FeedScreen() {
   const closeOptions = () => {
     setOptionsModalVisible(false);
     setPostForOptions(null);
+  };
+
+  const loadMore = () => {
+    if (nextCursor && !isFetching) {
+      setCursor(nextCursor);
+    }
+  };
+
+  const onRefresh = () => {
+    setCursor(null);
+    refetch();
   };
 
   const PostCard = ({ item }: { item: any }) => {
@@ -359,28 +379,30 @@ export default function FeedScreen() {
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading || isFetching}
-            onRefresh={refetch}
+            refreshing={isLoading && !cursor}
+            onRefresh={onRefresh}
             tintColor="#1d9bf0"
           />
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetching && cursor ? (
+            <View className="py-4">
+              <ActivityIndicator color="#1d9bf0" />
+            </View>
+          ) : null
+        }
         contentContainerStyle={{ paddingBottom: 100 }}
         ListEmptyComponent={
-          <View className="items-center justify-center p-10 mt-10">
-            <Text className="text-gray-400 text-center text-lg font-medium">
-              No posts to show right now.
-            </Text>
-          </View>
+          !isLoading && (
+            <View className="items-center justify-center p-10 mt-10">
+              <Text className="text-gray-400 text-center text-lg font-medium">
+                No posts to show right now.
+              </Text>
+            </View>
+          )
         }
-        // ListEmptyComponent={
-        //   !isLoading && (
-        //     <View className="items-center justify-center p-10 mt-10">
-        //       <Text className="text-gray-400 text-center text-lg font-medium">
-        //         No posts to show right now.
-        //       </Text>
-        //     </View>
-        //   )
-        // }
       />
 
       {/* Floating Action Button */}
