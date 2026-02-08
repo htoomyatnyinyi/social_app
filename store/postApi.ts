@@ -6,6 +6,10 @@ export const postApi = api.injectEndpoints({
       query: (type) => `/posts?type=${type}`,
       providesTags: ["Post"],
     }),
+    getBookmarks: builder.query({
+      query: () => "/posts/bookmarks",
+      providesTags: ["Post"],
+    }),
     createPost: builder.mutation({
       query: (newPost) => ({
         url: "/posts",
@@ -84,6 +88,14 @@ export const postApi = api.injectEndpoints({
       },
     }),
 
+    bookmarkPost: builder.mutation({
+      query: (id) => ({
+        url: `/posts/${id}/bookmark`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Post"], // Simplified invalidation for now
+    }),
+
     repostPost: builder.mutation({
       query: ({ id, content, image }) => ({
         url: `/posts/${id}/repost`,
@@ -106,9 +118,15 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content, parentId },
       }),
-      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
-        // Optimistically increment comment count
-        const updateCache = (type: string) => {
+      async onQueryStarted(
+        { id, content, parentId },
+        { dispatch, queryFulfilled, getState },
+      ) {
+        const user = (getState() as any).auth.user;
+        const tempId = Date.now().toString();
+
+        // 1. Optimistically increment comment count in post lists/detail
+        const updateCount = (type: string) => {
           return dispatch(
             postApi.util.updateQueryData("getPosts", type, (draft) => {
               const post = draft.find((p: any) => p.id === id);
@@ -119,8 +137,8 @@ export const postApi = api.injectEndpoints({
           );
         };
 
-        const patchPublic = updateCache("public");
-        const patchPrivate = updateCache("private");
+        const patchPublic = updateCount("public");
+        const patchPrivate = updateCount("private");
         const patchPost = dispatch(
           postApi.util.updateQueryData("getPost", id, (draft: any) => {
             if (draft) {
@@ -129,12 +147,63 @@ export const postApi = api.injectEndpoints({
           }),
         );
 
+        // 2. Optimistically add the comment to the comments list
+        const patchComments = dispatch(
+          postApi.util.updateQueryData(
+            "getComments" as any,
+            id as any,
+            (draft: any) => {
+              if (draft && !parentId) {
+                // Only add to top-level comments if parentId is null
+                draft.unshift({
+                  id: tempId,
+                  content,
+                  userId: user.id,
+                  postId: id,
+                  parentId: null,
+                  createdAt: new Date().toISOString(),
+                  user: {
+                    id: user.id,
+                    name: user.name,
+                    username: user.username,
+                    image: user.image,
+                  },
+                  replies: [],
+                });
+              } else if (draft && parentId) {
+                // If it's a reply, find the parent and add to its replies
+                const parent = draft.find((c: any) => c.id === parentId);
+                if (parent) {
+                  parent.replies = [
+                    ...(parent.replies || []),
+                    {
+                      id: tempId,
+                      content,
+                      userId: user.id,
+                      postId: id,
+                      parentId,
+                      createdAt: new Date().toISOString(),
+                      user: {
+                        id: user.id,
+                        name: user.name,
+                        username: user.username,
+                        image: user.image,
+                      },
+                    },
+                  ];
+                }
+              }
+            },
+          ),
+        );
+
         try {
           await queryFulfilled;
         } catch {
           patchPublic.undo();
           patchPrivate.undo();
           patchPost.undo();
+          patchComments.undo();
         }
       },
     }),
@@ -157,9 +226,9 @@ export const postApi = api.injectEndpoints({
           );
         };
 
-        const patchPublic = updateCache("public");
-        const patchPrivate = updateCache("private");
-        const patchPost = dispatch(
+        updateCache("public");
+        updateCache("private");
+        dispatch(
           postApi.util.updateQueryData("getPost", postId, (draft: any) => {
             if (draft) {
               draft.views = (draft.views || 0) + 1;
@@ -196,4 +265,6 @@ export const {
   useCommentPostMutation,
   useDeletePostMutation,
   useIncrementViewCountMutation,
+  useBookmarkPostMutation,
+  useGetBookmarksQuery,
 } = postApi;

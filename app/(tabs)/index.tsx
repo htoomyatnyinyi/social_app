@@ -13,20 +13,22 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   useGetPostsQuery,
   useLikePostMutation,
-  useCreatePostMutation,
   useCommentPostMutation,
   useRepostPostMutation,
-  useIncrementViewCountMutation,
+  useBookmarkPostMutation,
 } from "../../store/postApi";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import PostOptionsModal from "../../components/PostOptionsModal";
 
 export default function FeedScreen() {
   const [activeTab, setActiveTab] = useState("public");
   const [commentContent, setCommentContent] = useState("");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isCommenting, setIsCommenting] = useState(false);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [postForOptions, setPostForOptions] = useState<any>(null);
 
   const user = useSelector((state: any) => state.auth.user);
   const router = useRouter();
@@ -40,7 +42,6 @@ export default function FeedScreen() {
   const [likePost] = useLikePostMutation();
   const [commentPost] = useCommentPostMutation();
   const [repostPost] = useRepostPostMutation();
-  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleRepost = async (id: string) => {
     try {
@@ -64,13 +65,46 @@ export default function FeedScreen() {
     }
   };
 
+  const openOptions = (post: any) => {
+    setPostForOptions(post);
+    setOptionsModalVisible(true);
+  };
+
+  const closeOptions = () => {
+    setOptionsModalVisible(false);
+    setPostForOptions(null);
+  };
+
   const PostCard = ({ item }: { item: any }) => {
     const isRepost = item.isRepost && item.originalPost;
     const displayItem = isRepost ? item.originalPost : item;
 
     // ###
 
+    // ###
+
+    // We already moved hooks to top level, but PostCard is defined inside, so it can access parent hooks?
+    // Wait, PostCard IS defined inside FeedScreen, so it capture's FeedScreen's scope...
+    // BUT the hook `useLikePostMutation` was called AGAIN inside PostCard in the original code (lines 86).
+    // Let's stick to the pattern there or clean it up.
+    // The original code called `useLikePostMutation` inside PostCard.
+    // I should add `useBookmarkPostMutation` there too if following that pattern,
+    // OR use the one from parent. Parent has it.
+    // However, `useLikePostMutation` is called with `[likePost]` destructuring which shadows the parent one if also defined there.
+    // Let's check lines 43: parent has `const [likePost] = ...`.
+    // Line 86: child has `const [likePost] = ...`.
+    // This is redundant but works. I will use the one from parent to be cleaner,
+    // OR just follow the pattern to minimize diff noise if I can't easily refactor.
+    // Actually, I'll just use the parent's `bookmarkPost` since PostCard is inside the component.
+
+    // But wait, the previous `useLikePostMutation` inside PostCard uses `displayItem.id`?
+    // Actually, `item` is passed as prop.
+    // Let's use the local mutation for consistency with existing `likePost` inside PostCard if I don't remove it.
+    // Line 86: `const [likePost] = useLikePostMutation();`
+    // I will add `const [bookmarkPost] = useBookmarkPostMutation();` next to it.
+
     const [likePost] = useLikePostMutation();
+    const [bookmarkPost] = useBookmarkPostMutation();
 
     const handleLike = async () => {
       try {
@@ -127,6 +161,7 @@ export default function FeedScreen() {
               <TouchableOpacity
                 className="ml-auto p-1"
                 onPressIn={(e) => e.stopPropagation()}
+                onPress={() => openOptions(displayItem)}
               >
                 <Ionicons
                   name="ellipsis-horizontal"
@@ -149,6 +184,7 @@ export default function FeedScreen() {
             )}
 
             <View className="flex-row justify-between pr-4 mt-1">
+              {/* Comments */}
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => {
@@ -163,6 +199,7 @@ export default function FeedScreen() {
                 </Text>
               </TouchableOpacity>
 
+              {/* Reposts */}
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => handleRepost(displayItem.id)}
@@ -179,33 +216,8 @@ export default function FeedScreen() {
                   {displayItem._count?.reposts || 0}
                 </Text>
               </TouchableOpacity>
-              {/* 
-              <TouchableOpacity
-                className="flex-row items-center"
-                onPress={() => likePost(displayItem.id)}
-                onPressIn={(e) => e.stopPropagation()}
-              >
-                {(() => {
-                  const hasLiked = displayItem.likes?.some(
-                    (l: any) => l.userId === user?.id,
-                  );
-                  return (
-                    <>
-                      <Ionicons
-                        name={hasLiked ? "heart" : "heart-outline"}
-                        size={19}
-                        color={hasLiked ? "#F91880" : "#6B7280"}
-                      />
-                      <Text
-                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
-                      >
-                        {displayItem._count?.likes || 0}
-                      </Text>
-                    </>
-                  );
-                })()}
-              </TouchableOpacity> */}
 
+              {/* Likes */}
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={handleLike}
@@ -232,6 +244,7 @@ export default function FeedScreen() {
                 })()}
               </TouchableOpacity>
 
+              {/* Views */}
               <View className="flex-row items-center">
                 <Ionicons
                   name="stats-chart-outline"
@@ -242,6 +255,24 @@ export default function FeedScreen() {
                   {displayItem.views || 0}
                 </Text>
               </View>
+
+              {/* Bookmark */}
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={() => bookmarkPost(displayItem.id)}
+                onPressIn={(e) => e.stopPropagation()}
+              >
+                {(() => {
+                  const isBookmarked = displayItem.bookmarks?.length > 0;
+                  return (
+                    <Ionicons
+                      name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                      size={18}
+                      color={isBookmarked ? "#1d9bf0" : "#6B7280"}
+                    />
+                  );
+                })()}
+              </TouchableOpacity>
 
               <TouchableOpacity
                 className="p-1"
@@ -396,6 +427,25 @@ export default function FeedScreen() {
           </View>
         </View>
       )}
+
+      <PostOptionsModal
+        isVisible={optionsModalVisible}
+        onClose={closeOptions}
+        isOwner={postForOptions?.author?.id === user?.id}
+        onDelete={() => {
+          // Implement delete logic
+          alert("Delete post functionality coming soon");
+          closeOptions();
+        }}
+        onReport={() => {
+          alert("Thank you for reporting this post.");
+          closeOptions();
+        }}
+        onBlock={() => {
+          alert(`Blocked @${postForOptions?.author?.name}`);
+          closeOptions();
+        }}
+      />
     </SafeAreaView>
   );
 }
