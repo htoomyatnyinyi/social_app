@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Image,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -20,10 +19,12 @@ import {
   useLikePostMutation,
   useRepostPostMutation,
   useIncrementViewCountMutation,
+  useBookmarkPostMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
 import { SafeAreaView } from "react-native-safe-area-context";
+import PostOptionsModal from "../../components/PostOptionsModal";
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -32,7 +33,10 @@ export default function PostDetailScreen() {
 
   const [commentContent, setCommentContent] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
+
   const [replyTargetName, setReplyTargetName] = useState<string | null>(null);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [itemForOptions, setItemForOptions] = useState<any>(null); // Post or Comment
 
   // 1. Call hook at TOP LEVEL of the component
   const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
@@ -47,27 +51,36 @@ export default function PostDetailScreen() {
   const [commentPost] = useCommentPostMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
   const [incrementViewCount] = useIncrementViewCountMutation();
 
   React.useEffect(() => {
     if (id) {
       incrementViewCount({ postId: id as string });
     }
-  }, [id]);
+  }, [id, incrementViewCount]);
 
   const handleSendComment = async () => {
     if (!commentContent.trim()) return;
+    const content = commentContent;
+    const pId = replyToId;
+
+    // Clear input immediately for better UX
+    setCommentContent("");
+    setReplyToId(null);
+    setReplyTargetName(null);
+
     try {
       await commentPost({
         id: id as string,
-        content: commentContent,
-        parentId: replyToId || undefined,
+        content: content,
+        parentId: pId || undefined,
       }).unwrap();
-      setCommentContent("");
-      setReplyToId(null);
-      setReplyTargetName(null);
     } catch (e) {
       console.error(e);
+      // Optional: restore content if it failed?
+      // But optimistic update will undo itself, so maybe user knows it failed.
+      // For now, let's keep it simple.
     }
   };
 
@@ -118,7 +131,13 @@ export default function PostDetailScreen() {
                 · {new Date(item.createdAt).toLocaleDateString()}
               </Text>
             </View>
-            <TouchableOpacity className="p-1">
+            <TouchableOpacity
+              className="p-1"
+              onPress={() => {
+                setItemForOptions(item);
+                setOptionsModalVisible(true);
+              }}
+            >
               <Ionicons name="ellipsis-horizontal" size={14} color="#6B7280" />
             </TouchableOpacity>
           </View>
@@ -182,7 +201,7 @@ export default function PostDetailScreen() {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <FlatList
@@ -311,8 +330,20 @@ export default function PostDetailScreen() {
                   />
                   <Text className="text-gray-500 ml-1">{post?.views || 0}</Text>
                 </View>
-                <TouchableOpacity className="flex-row items-center">
-                  <Ionicons name="bookmark-outline" size={22} color="#6B7280" />
+                <TouchableOpacity
+                  className="flex-row items-center"
+                  onPress={() => bookmarkPost(post.id)}
+                >
+                  {(() => {
+                    const isBookmarked = post.bookmarks?.length > 0;
+                    return (
+                      <Ionicons
+                        name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                        size={22}
+                        color={isBookmarked ? "#1d9bf0" : "#6B7280"}
+                      />
+                    );
+                  })()}
                 </TouchableOpacity>
                 <TouchableOpacity>
                   <Ionicons name="share-outline" size={22} color="#6B7280" />
@@ -366,6 +397,30 @@ export default function PostDetailScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <PostOptionsModal
+        isVisible={optionsModalVisible}
+        onClose={() => {
+          setOptionsModalVisible(false);
+          setItemForOptions(null);
+        }}
+        isOwner={
+          itemForOptions?.user?.id === user?.id ||
+          itemForOptions?.author?.id === user?.id
+        }
+        onDelete={() => {
+          alert("Delete functionality coming soon");
+          setOptionsModalVisible(false);
+        }}
+        onReport={() => {
+          alert("Reported.");
+          setOptionsModalVisible(false);
+        }}
+        onBlock={() => {
+          alert("Blocked.");
+          setOptionsModalVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

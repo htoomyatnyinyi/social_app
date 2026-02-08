@@ -41,11 +41,19 @@ export default function NotificationsScreen() {
         return { icon: "person-add", color: "#00BA7C", text: "followed you" };
       case "REPOST":
         return { icon: "repeat", color: "#00BA7C", text: "reposted your post" };
+      case "QUOTE":
+        return { icon: "repeat", color: "#00BA7C", text: "quoted your post" };
       case "REPLY":
         return {
           icon: "chatbubble-ellipses",
           color: "#1D9BF0",
           text: "replied to your comment",
+        };
+      case "MENTION":
+        return {
+          icon: "at",
+          color: "#1D9BF0",
+          text: "mentioned you",
         };
       default:
         return {
@@ -115,7 +123,7 @@ export default function NotificationsScreen() {
                 className="text-gray-600 text-[13px] leading-4"
                 numberOfLines={2}
               >
-                "{item.comment.content}"
+                &quot;{item.comment.content}&quot;
               </Text>
             </View>
           )}
