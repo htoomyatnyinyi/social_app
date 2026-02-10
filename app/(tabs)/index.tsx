@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -8,84 +8,157 @@ import {
   Image,
   RefreshControl,
   TextInput,
+  ListRenderItem,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useGetPostsQuery,
   useLikePostMutation,
-  useCreatePostMutation,
   useCommentPostMutation,
   useRepostPostMutation,
-  useIncrementViewCountMutation,
+  useBookmarkPostMutation,
 } from "../../store/postApi";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import PostOptionsModal from "../../components/PostOptionsModal";
 
-export default function FeedScreen() {
-  const [activeTab, setActiveTab] = useState("public");
-  const [commentContent, setCommentContent] = useState("");
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [isCommenting, setIsCommenting] = useState(false);
+// Types
+interface User {
+  id: string;
+  name: string;
+  image?: string;
+}
 
-  const user = useSelector((state: any) => state.auth.user);
-  const router = useRouter();
+interface Comment {
+  id: string;
+  content: string;
+  user: User;
+}
 
-  const {
-    data: posts,
-    isLoading,
-    refetch,
-    isFetching,
-  } = useGetPostsQuery(activeTab);
-  const [likePost] = useLikePostMutation();
-  const [commentPost] = useCommentPostMutation();
-  const [repostPost] = useRepostPostMutation();
-  const [incrementViewCount] = useIncrementViewCountMutation();
+interface Author extends User {
+  // Extend if needed
+}
 
-  const handleRepost = async (id: string) => {
-    try {
-      await repostPost({ id }).unwrap();
-    } catch (e) {
-      console.error(e);
-    }
+interface Post {
+  id: string;
+  content: string;
+  image?: string;
+  createdAt: string;
+  author: Author;
+  isRepost?: boolean;
+  originalPost?: Post;
+  likes: Array<{ userId: string }>;
+  bookmarks: Array<{ userId: string }>;
+  comments: Comment[];
+  _count: {
+    comments: number;
+    reposts: number;
+    likes: number;
   };
+  views?: number;
+}
 
-  const handleComment = async () => {
-    if (!commentContent.trim() || !selectedPostId) return;
-    try {
-      await commentPost({
-        id: selectedPostId,
-        content: commentContent,
-      }).unwrap();
-      setCommentContent("");
-      setIsCommenting(false);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+interface PostCardProps {
+  item: Post;
+  user: User | null;
+  onPressPost: (postId: string) => void;
+  onPressProfile: (authorId: string) => void;
+  onPressOptions: (post: Post) => void;
+  onPressComment: (postId: string) => void;
+  onPressRepost: (postId: string) => void;
+  onLike: (postId: string) => Promise<void>;
+  onBookmark: (postId: string) => Promise<void>;
+}
 
-  const PostCard = ({ item }: { item: any }) => {
+// Memoized PostCard component with improved props
+const PostCard = React.memo(
+  ({
+    item,
+    user,
+    onPressPost,
+    onPressProfile,
+    onPressOptions,
+    onPressComment,
+    onPressRepost,
+    onLike,
+    onBookmark,
+  }: PostCardProps) => {
     const isRepost = item.isRepost && item.originalPost;
     const displayItem = isRepost ? item.originalPost : item;
 
-    // ###
+    // Use useMemo for derived values
+    const displayAuthor = useMemo(() => displayItem?.author, [displayItem]);
+    const displayContent = useMemo(
+      () => displayItem?.content || "",
+      [displayItem],
+    );
+    const displayImage = useMemo(() => displayItem?.image, [displayItem]);
+    const displayId = useMemo(() => displayItem?.id, [displayItem]);
+    const displayCreatedAt = useMemo(
+      () => new Date(displayItem?.createdAt).toLocaleDateString(),
+      [displayItem?.createdAt],
+    );
 
-    const [likePost] = useLikePostMutation();
-
-    const handleLike = async () => {
-      try {
-        await likePost({ postId: displayItem.id }).unwrap();
-      } catch (error) {
-        alert("Failed to like post");
-        console.error("Like failed:", error);
+    // Memoized handler functions
+    const handleLike = useCallback(() => {
+      if (displayId) {
+        onLike(displayId);
       }
-    };
+    }, [displayId, onLike]);
+
+    const handleBookmark = useCallback(() => {
+      if (displayId) {
+        onBookmark(displayId);
+      }
+    }, [displayId, onBookmark]);
+
+    const handlePressPost = useCallback(() => {
+      if (displayId) {
+        onPressPost(displayId);
+      }
+    }, [displayId, onPressPost]);
+
+    const handlePressProfile = useCallback(() => {
+      if (displayAuthor?.id) {
+        onPressProfile(displayAuthor.id);
+      }
+    }, [displayAuthor?.id, onPressProfile]);
+
+    const handlePressComment = useCallback(() => {
+      if (displayId) {
+        onPressComment(displayId);
+      }
+    }, [displayId, onPressComment]);
+
+    const handlePressRepost = useCallback(() => {
+      if (displayId) {
+        onPressRepost(displayId);
+      }
+    }, [displayId, onPressRepost]);
+
+    const handlePressOptions = useCallback(() => {
+      onPressOptions(item);
+    }, [item, onPressOptions]);
+
+    const hasLiked = useMemo(
+      () => displayItem?.likes?.some((l) => l.userId === user?.id) || false,
+      [displayItem?.likes, user?.id],
+    );
+
+    const isBookmarked = useMemo(
+      () => (displayItem?.bookmarks?.length || 0) > 0,
+      [displayItem?.bookmarks],
+    );
+
+    if (!displayItem) return null;
 
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/post/${displayItem.id}`)}
+        onPress={handlePressPost}
         activeOpacity={0.9}
         className="p-4 border-b border-gray-100 bg-white"
+        delayPressIn={50}
       >
         {isRepost && (
           <View className="flex-row items-center mb-2 ml-10">
@@ -98,16 +171,15 @@ export default function FeedScreen() {
         <View className="flex-row">
           <View className="mr-3">
             <TouchableOpacity
-              onPress={() => router.push(`/profile/${displayItem.author?.id}`)}
-              onPressIn={(e) => e.stopPropagation()}
+              onPress={handlePressProfile}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Image
                 source={{
-                  uri:
-                    displayItem.author?.image ||
-                    "https://via.placeholder.com/48",
+                  uri: displayAuthor?.image || "https://via.placeholder.com/48",
                 }}
                 className="w-12 h-12 rounded-full bg-gray-100"
+                defaultSource={{ uri: "https://via.placeholder.com/48" }}
               />
             </TouchableOpacity>
           </View>
@@ -118,15 +190,16 @@ export default function FeedScreen() {
                 className="font-bold text-[15px] text-gray-900"
                 numberOfLines={1}
               >
-                {displayItem.author?.name || "Anonymous"}
+                {displayAuthor?.name || "Anonymous"}
               </Text>
               <Text className="text-gray-500 text-[14px] ml-1">
-                @{displayItem.author?.name?.toLowerCase().replace(/\s/g, "")} ·{" "}
-                {new Date(displayItem.createdAt).toLocaleDateString()}
+                @{displayAuthor?.name?.toLowerCase().replace(/\s/g, "")} ·{" "}
+                {displayCreatedAt}
               </Text>
               <TouchableOpacity
                 className="ml-auto p-1"
-                onPressIn={(e) => e.stopPropagation()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={handlePressOptions}
               >
                 <Ionicons
                   name="ellipsis-horizontal"
@@ -137,25 +210,23 @@ export default function FeedScreen() {
             </View>
 
             <Text className="text-[15px] leading-[22px] text-gray-800 mb-3">
-              {displayItem.content}
+              {displayContent}
             </Text>
 
-            {displayItem.image && (
+            {displayImage && (
               <Image
-                source={{ uri: displayItem.image }}
+                source={{ uri: displayImage }}
                 className="w-full h-56 rounded-2xl mb-3 border border-gray-100"
                 resizeMode="cover"
+                progressiveRenderingEnabled
               />
             )}
 
             <View className="flex-row justify-between pr-4 mt-1">
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => {
-                  setSelectedPostId(displayItem.id);
-                  setIsCommenting(true);
-                }}
-                onPressIn={(e) => e.stopPropagation()}
+                onPress={handlePressComment}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />
                 <Text className="text-gray-500 text-xs ml-1.5">
@@ -165,8 +236,8 @@ export default function FeedScreen() {
 
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => handleRepost(displayItem.id)}
-                onPressIn={(e) => e.stopPropagation()}
+                onPress={handlePressRepost}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons
                   name="repeat-outline"
@@ -179,57 +250,22 @@ export default function FeedScreen() {
                   {displayItem._count?.reposts || 0}
                 </Text>
               </TouchableOpacity>
-              {/* 
-              <TouchableOpacity
-                className="flex-row items-center"
-                onPress={() => likePost(displayItem.id)}
-                onPressIn={(e) => e.stopPropagation()}
-              >
-                {(() => {
-                  const hasLiked = displayItem.likes?.some(
-                    (l: any) => l.userId === user?.id,
-                  );
-                  return (
-                    <>
-                      <Ionicons
-                        name={hasLiked ? "heart" : "heart-outline"}
-                        size={19}
-                        color={hasLiked ? "#F91880" : "#6B7280"}
-                      />
-                      <Text
-                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
-                      >
-                        {displayItem._count?.likes || 0}
-                      </Text>
-                    </>
-                  );
-                })()}
-              </TouchableOpacity> */}
 
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={handleLike}
-                onPressIn={(e) => e.stopPropagation()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                {(() => {
-                  const hasLiked = displayItem.likes?.some(
-                    (l: any) => l.userId === user?.id,
-                  );
-                  return (
-                    <>
-                      <Ionicons
-                        name={hasLiked ? "heart" : "heart-outline"}
-                        size={19}
-                        color={hasLiked ? "#F91880" : "#6B7280"}
-                      />
-                      <Text
-                        className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
-                      >
-                        {displayItem._count?.likes || 0}
-                      </Text>
-                    </>
-                  );
-                })()}
+                <Ionicons
+                  name={hasLiked ? "heart" : "heart-outline"}
+                  size={19}
+                  color={hasLiked ? "#F91880" : "#6B7280"}
+                />
+                <Text
+                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                >
+                  {displayItem._count?.likes || 0}
+                </Text>
               </TouchableOpacity>
 
               <View className="flex-row items-center">
@@ -244,23 +280,34 @@ export default function FeedScreen() {
               </View>
 
               <TouchableOpacity
+                className="flex-row items-center"
+                onPress={handleBookmark}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                  size={18}
+                  color={isBookmarked ? "#1d9bf0" : "#6B7280"}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 className="p-1"
-                onPressIn={(e) => e.stopPropagation()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="share-outline" size={18} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            {/* Comment Preview */}
             {displayItem.comments?.length > 0 && (
               <View className="mt-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                {displayItem.comments.slice(0, 2).map((comment: any) => (
+                {displayItem.comments.slice(0, 2).map((comment: Comment) => (
                   <View key={comment.id} className="flex-row mb-1.5 last:mb-0">
                     <Text
-                      className="font-bold text-[13px] text-gray-900"
+                      className="font-bold text-[13px] text-gray-900 mr-1"
                       numberOfLines={1}
                     >
-                      {comment.user?.name}{" "}
+                      {comment.user?.name}:
                     </Text>
                     <Text className="text-[13px] text-gray-600 flex-1 leading-4">
                       {comment.content}
@@ -273,107 +320,302 @@ export default function FeedScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  },
+);
+
+PostCard.displayName = "PostCard";
+
+export default function FeedScreen() {
+  const [activeTab, setActiveTab] = useState<"public" | "private">("public");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [commentContent, setCommentContent] = useState("");
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [postForOptions, setPostForOptions] = useState<Post | null>(null);
+
+  const user = useSelector((state: any) => state.auth.user);
+  const router = useRouter();
+
+  // Reset cursor when tab changes
+  useEffect(() => {
+    setCursor(null);
+  }, [activeTab]);
+
+  const { data, isLoading, refetch, isFetching } = useGetPostsQuery({
+    type: activeTab,
+    cursor,
+  });
+
+  const posts: Post[] = data?.posts || [];
+  const nextCursor = data?.nextCursor;
+
+  const [likePost] = useLikePostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
+  const [commentPost] = useCommentPostMutation();
+  const [repostPost] = useRepostPostMutation();
+
+  const handleComment = useCallback(async () => {
+    if (!commentContent.trim() || !selectedPostId) return;
+    try {
+      // Check your API for the correct parameter name
+      await commentPost({
+        postId: selectedPostId,
+        content: commentContent,
+      }).unwrap();
+      setCommentContent("");
+      setIsCommenting(false);
+      setSelectedPostId(null);
+    } catch (e) {
+      console.error("Failed to comment:", e);
+    }
+  }, [commentContent, selectedPostId, commentPost]);
+
+  const handleLike = useCallback(
+    async (postId: string) => {
+      try {
+        await likePost({ postId }).unwrap();
+      } catch (error) {
+        console.error("Like failed:", error);
+      }
+    },
+    [likePost],
+  );
+
+  const handleBookmark = useCallback(
+    async (postId: string) => {
+      try {
+        await bookmarkPost(postId);
+      } catch (error) {
+        console.error("Bookmark failed:", error);
+      }
+    },
+    [bookmarkPost],
+  );
+
+  const openOptions = useCallback((post: Post) => {
+    setPostForOptions(post);
+    setOptionsModalVisible(true);
+  }, []);
+
+  const closeOptions = useCallback(() => {
+    setOptionsModalVisible(false);
+    setPostForOptions(null);
+  }, []);
+
+  const loadMore = useCallback(() => {
+    if (nextCursor && !isFetching) {
+      setCursor(nextCursor);
+    }
+  }, [nextCursor, isFetching]);
+
+  const onRefresh = useCallback(() => {
+    setCursor(null);
+    refetch();
+  }, [refetch]);
+
+  // Memoized callbacks for PostCard
+  const handlePressPost = useCallback(
+    (postId: string) => {
+      router.push(`/post/${postId}`);
+    },
+    [router],
+  );
+
+  const handlePressProfile = useCallback(
+    (authorId: string) => {
+      router.push(`/profile/${authorId}`);
+    },
+    [router],
+  );
+
+  const handlePressComment = useCallback((postId: string) => {
+    setSelectedPostId(postId);
+    setIsCommenting(true);
+  }, []);
+
+  const handlePressRepost = useCallback(
+    async (postId: string) => {
+      try {
+        await repostPost({ id: postId }).unwrap();
+      } catch (e) {
+        console.error("Repost failed:", e);
+      }
+    },
+    [repostPost],
+  );
+
+  // Memoized renderItem
+  const renderItem: ListRenderItem<Post> = useCallback(
+    ({ item }) => (
+      <PostCard
+        item={item}
+        user={user}
+        onPressPost={handlePressPost}
+        onPressProfile={handlePressProfile}
+        onPressOptions={openOptions}
+        onPressComment={handlePressComment}
+        onPressRepost={handlePressRepost}
+        onLike={handleLike}
+        onBookmark={handleBookmark}
+      />
+    ),
+    [
+      user,
+      handlePressPost,
+      handlePressProfile,
+      openOptions,
+      handlePressComment,
+      handlePressRepost,
+      handleLike,
+      handleBookmark,
+    ],
+  );
+
+  // Memoized keyExtractor
+  const keyExtractor = useCallback((item: Post) => item.id, []);
+
+  // // Improved getItemLayout
+  // const getItemLayout = useCallback(
+  //   (data: Post[] | null | undefined, index: number) => ({
+  //     length: 200,
+  //     offset: 200 * index,
+  //     index,
+  //   }),
+  //   [],
+  // );
+
+  // Memoized list footer
+  const ListFooterComponent = useMemo(() => {
+    if (isFetching && cursor) {
+      return (
+        <View className="py-4">
+          <ActivityIndicator color="#1d9bf0" />
+        </View>
+      );
+    }
+    return null;
+  }, [isFetching, cursor]);
+
+  // Memoized list empty component
+  const ListEmptyComponent = useMemo(() => {
+    if (!isLoading) {
+      return (
+        <View className="items-center justify-center p-10 mt-10">
+          <Text className="text-gray-400 text-center text-lg font-medium">
+            No posts to show right now.
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }, [isLoading]);
+
+  // Handle comment modal dismissal
+  useEffect(() => {
+    if (!isCommenting) {
+      setSelectedPostId(null);
+      setCommentContent("");
+    }
+  }, [isCommenting]);
 
   return (
-    <SafeAreaView className="flex-1">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Premium Header */}
       <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
-        <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
+        <TouchableOpacity
+          onPress={() => router.push("/(tabs)/profile")}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Image
             source={{ uri: user?.image || "https://via.placeholder.com/32" }}
             className="w-8 h-8 rounded-full"
+            defaultSource={{ uri: "https://via.placeholder.com/32" }}
           />
         </TouchableOpacity>
-        {/* <Ionicons name="logo-twitter" size={24} color="#1d9bf0" /> */}
         <Text className="text-[24px] font-bold">Oasis</Text>
-        <TouchableOpacity>
-          {/* MCP Call Here */}
+        <TouchableOpacity
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="sparkles-outline" size={20} color="black" />
         </TouchableOpacity>
       </View>
 
+      {/* Tabs */}
       <View className="flex-row border-b border-gray-100">
-        <TouchableOpacity
-          onPress={() => setActiveTab("public")}
-          className="flex-1 items-center pt-3 pb-3"
-        >
-          <Text
-            className={`text-[15px] font-bold ${activeTab === "public" ? "text-gray-900" : "text-gray-500"}`}
+        {(["public", "private"] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => setActiveTab(tab)}
+            className="flex-1 items-center pt-3 pb-3"
+            activeOpacity={0.7}
           >
-            For you
-          </Text>
-          {activeTab === "public" && (
-            <View className="absolute bottom-0 w-14 h-1 bg-[#1d9bf0] rounded-full" />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab("private")}
-          className="flex-1 items-center pt-3 pb-3"
-        >
-          <Text
-            className={`text-[15px] font-bold ${activeTab === "private" ? "text-gray-900" : "text-gray-500"}`}
-          >
-            Following
-          </Text>
-          {activeTab === "private" && (
-            <View className="absolute bottom-0 w-16 h-1 bg-[#1d9bf0] rounded-full" />
-          )}
-        </TouchableOpacity>
+            <Text
+              className={`text-[15px] font-bold ${activeTab === tab ? "text-gray-900" : "text-gray-500"}`}
+            >
+              {tab === "public" ? "For you" : "Following"}
+            </Text>
+            {activeTab === tab && (
+              <View className="absolute bottom-0 w-14 h-1 bg-[#1d9bf0] rounded-full" />
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
+      {/* Posts List */}
       <FlatList
         data={posts}
-        renderItem={({ item }) => <PostCard item={item} />}
-        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        // getItemLayout={getItemLayout}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        initialNumToRender={6}
+        updateCellsBatchingPeriod={30}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading || isFetching}
-            onRefresh={refetch}
+            refreshing={isLoading && !cursor}
+            onRefresh={onRefresh}
             tintColor="#1d9bf0"
+            colors={["#1d9bf0"]}
           />
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={ListFooterComponent}
         contentContainerStyle={{ paddingBottom: 100 }}
-        ListEmptyComponent={
-          <View className="items-center justify-center p-10 mt-10">
-            <Text className="text-gray-400 text-center text-lg font-medium">
-              No posts to show right now.
-            </Text>
-          </View>
-        }
-        // ListEmptyComponent={
-        //   !isLoading && (
-        //     <View className="items-center justify-center p-10 mt-10">
-        //       <Text className="text-gray-400 text-center text-lg font-medium">
-        //         No posts to show right now.
-        //       </Text>
-        //     </View>
-        //   )
-        // }
+        ListEmptyComponent={ListEmptyComponent}
+        showsVerticalScrollIndicator={false}
       />
 
       {/* Floating Action Button */}
       {!isCommenting && (
         <TouchableOpacity
           onPress={() => router.push("/compose/post")}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40"
+          className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40 active:opacity-90"
           style={{ elevation: 8 }}
+          activeOpacity={0.8}
         >
           <Ionicons name="add" size={32} color="white" />
         </TouchableOpacity>
       )}
 
-      {/* Compose Reply Modal-like View */}
+      {/* Compose Reply Modal */}
       {isCommenting && (
         <View className="absolute inset-0 bg-white z-[100]">
           <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50">
-            <TouchableOpacity onPress={() => setIsCommenting(false)}>
+            <TouchableOpacity
+              onPress={() => setIsCommenting(false)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text className="text-[17px] text-gray-800">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleComment}
               disabled={!commentContent.trim()}
               className={`px-6 py-2 rounded-full ${commentContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
+              activeOpacity={0.8}
             >
               <Text className="text-white font-bold text-[15px]">Reply</Text>
             </TouchableOpacity>
@@ -382,6 +624,7 @@ export default function FeedScreen() {
             <Image
               source={{ uri: user?.image || "https://via.placeholder.com/40" }}
               className="w-11 h-11 rounded-full mr-3"
+              defaultSource={{ uri: "https://via.placeholder.com/40" }}
             />
             <TextInput
               autoFocus
@@ -392,10 +635,548 @@ export default function FeedScreen() {
               value={commentContent}
               onChangeText={setCommentContent}
               textAlignVertical="top"
+              maxLength={280}
+              returnKeyType="done"
+              blurOnSubmit={true}
             />
           </View>
         </View>
       )}
+
+      <PostOptionsModal
+        isVisible={optionsModalVisible}
+        onClose={closeOptions}
+        isOwner={postForOptions?.author?.id === user?.id}
+        onDelete={() => {
+          // Implement delete logic
+          alert("Delete post functionality coming soon");
+          closeOptions();
+        }}
+        onReport={() => {
+          alert("Thank you for reporting this post.");
+          closeOptions();
+        }}
+        onBlock={() => {
+          alert(`Blocked @${postForOptions?.author?.name}`);
+          closeOptions();
+        }}
+      />
     </SafeAreaView>
   );
 }
+// import React, { useState, useMemo, useCallback } from "react";
+// import {
+//   View,
+//   FlatList,
+//   ActivityIndicator,
+//   Text,
+//   TouchableOpacity,
+//   Image,
+//   RefreshControl,
+//   TextInput,
+// } from "react-native";
+// import { Ionicons } from "@expo/vector-icons";
+// import {
+//   useGetPostsQuery,
+//   useLikePostMutation,
+//   useCommentPostMutation,
+//   useRepostPostMutation,
+//   useBookmarkPostMutation,
+// } from "../../store/postApi";
+// import { useSelector } from "react-redux";
+// import { useRouter } from "expo-router";
+// import { SafeAreaView } from "react-native-safe-area-context";
+// import PostOptionsModal from "../../components/PostOptionsModal";
+
+// // Memoized PostCard component for better performance
+// const PostCard = React.memo(
+//   ({
+//     item,
+//     user,
+//     onPressPost,
+//     onPressProfile,
+//     onPressOptions,
+//     onPressComment,
+//     onPressRepost,
+//   }: any) => {
+//     const [likePost] = useLikePostMutation();
+//     const [bookmarkPost] = useBookmarkPostMutation();
+
+//     const isRepost = item.isRepost && item.originalPost;
+//     const displayItem = isRepost ? item.originalPost : item;
+
+//     const handleLike = useCallback(async () => {
+//       try {
+//         await likePost({ postId: displayItem.id }).unwrap();
+//       } catch (error) {
+//         console.error("Like failed:", error);
+//       }
+//     }, [displayItem.id, likePost]);
+
+//     const handleBookmark = useCallback(async () => {
+//       try {
+//         await bookmarkPost(displayItem.id);
+//       } catch (error) {
+//         console.error("Bookmark failed:", error);
+//       }
+//     }, [displayItem.id, bookmarkPost]);
+
+//     const hasLiked = useMemo(
+//       () => displayItem.likes?.some((l: any) => l.userId === user?.id),
+//       [displayItem.likes, user?.id],
+//     );
+
+//     const isBookmarked = useMemo(
+//       () => displayItem.bookmarks?.length > 0,
+//       [displayItem.bookmarks],
+//     );
+
+//     return (
+//       <TouchableOpacity
+//         onPress={() => onPressPost(displayItem.id)}
+//         activeOpacity={0.9}
+//         className="p-4 border-b border-gray-100 bg-white"
+//       >
+//         {isRepost && (
+//           <View className="flex-row items-center mb-2 ml-10">
+//             <Ionicons name="repeat" size={16} color="#6B7280" />
+//             <Text className="text-gray-500 text-[13px] font-bold ml-2">
+//               {item.author?.name} reposted
+//             </Text>
+//           </View>
+//         )}
+//         <View className="flex-row">
+//           <View className="mr-3">
+//             <TouchableOpacity
+//               onPress={() => onPressProfile(displayItem.author?.id)}
+//               onPressIn={(e) => e.stopPropagation()}
+//             >
+//               <Image
+//                 source={{
+//                   uri:
+//                     displayItem.author?.image ||
+//                     "https://via.placeholder.com/48",
+//                 }}
+//                 className="w-12 h-12 rounded-full bg-gray-100"
+//               />
+//             </TouchableOpacity>
+//           </View>
+
+//           <View className="flex-1">
+//             <View className="flex-row items-center mb-0.5">
+//               <Text
+//                 className="font-bold text-[15px] text-gray-900"
+//                 numberOfLines={1}
+//               >
+//                 {displayItem.author?.name || "Anonymous"}
+//               </Text>
+//               <Text className="text-gray-500 text-[14px] ml-1">
+//                 @{displayItem.author?.name?.toLowerCase().replace(/\s/g, "")} ·{" "}
+//                 {new Date(displayItem.createdAt).toLocaleDateString()}
+//               </Text>
+//               <TouchableOpacity
+//                 className="ml-auto p-1"
+//                 onPressIn={(e) => e.stopPropagation()}
+//                 onPress={() => onPressOptions(displayItem)}
+//               >
+//                 <Ionicons
+//                   name="ellipsis-horizontal"
+//                   size={16}
+//                   color="#6B7280"
+//                 />
+//               </TouchableOpacity>
+//             </View>
+
+//             <Text className="text-[15px] leading-[22px] text-gray-800 mb-3">
+//               {displayItem.content}
+//             </Text>
+
+//             {displayItem.image && (
+//               <Image
+//                 source={{ uri: displayItem.image }}
+//                 className="w-full h-56 rounded-2xl mb-3 border border-gray-100"
+//                 resizeMode="cover"
+//               />
+//             )}
+
+//             <View className="flex-row justify-between pr-4 mt-1">
+//               <TouchableOpacity
+//                 className="flex-row items-center"
+//                 onPress={() => onPressComment(displayItem.id)}
+//                 onPressIn={(e) => e.stopPropagation()}
+//               >
+//                 <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />
+//                 <Text className="text-gray-500 text-xs ml-1.5">
+//                   {displayItem._count?.comments || 0}
+//                 </Text>
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 className="flex-row items-center"
+//                 onPress={() => onPressRepost(displayItem.id)}
+//                 onPressIn={(e) => e.stopPropagation()}
+//               >
+//                 <Ionicons
+//                   name="repeat-outline"
+//                   size={20}
+//                   color={item.isRepost ? "#00BA7C" : "#6B7280"}
+//                 />
+//                 <Text
+//                   className={`text-xs ml-1.5 ${item.isRepost ? "text-[#00BA7C]" : "text-gray-500"}`}
+//                 >
+//                   {displayItem._count?.reposts || 0}
+//                 </Text>
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 className="flex-row items-center"
+//                 onPress={handleLike}
+//                 onPressIn={(e) => e.stopPropagation()}
+//               >
+//                 <Ionicons
+//                   name={hasLiked ? "heart" : "heart-outline"}
+//                   size={19}
+//                   color={hasLiked ? "#F91880" : "#6B7280"}
+//                 />
+//                 <Text
+//                   className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+//                 >
+//                   {displayItem._count?.likes || 0}
+//                 </Text>
+//               </TouchableOpacity>
+
+//               <View className="flex-row items-center">
+//                 <Ionicons
+//                   name="stats-chart-outline"
+//                   size={17}
+//                   color="#6B7280"
+//                 />
+//                 <Text className="text-gray-500 text-xs ml-1.5">
+//                   {displayItem.views || 0}
+//                 </Text>
+//               </View>
+
+//               <TouchableOpacity
+//                 className="flex-row items-center"
+//                 onPress={handleBookmark}
+//                 onPressIn={(e) => e.stopPropagation()}
+//               >
+//                 <Ionicons
+//                   name={isBookmarked ? "bookmark" : "bookmark-outline"}
+//                   size={18}
+//                   color={isBookmarked ? "#1d9bf0" : "#6B7280"}
+//                 />
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 className="p-1"
+//                 onPressIn={(e) => e.stopPropagation()}
+//               >
+//                 <Ionicons name="share-outline" size={18} color="#6B7280" />
+//               </TouchableOpacity>
+//             </View>
+
+//             {displayItem.comments?.length > 0 && (
+//               <View className="mt-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+//                 {displayItem.comments.slice(0, 2).map((comment: any) => (
+//                   <View key={comment.id} className="flex-row mb-1.5 last:mb-0">
+//                     <Text
+//                       className="font-bold text-[13px] text-gray-900"
+//                       numberOfLines={1}
+//                     >
+//                       {comment.user?.name}{" "}
+//                     </Text>
+//                     <Text className="text-[13px] text-gray-600 flex-1 leading-4">
+//                       {comment.content}
+//                     </Text>
+//                   </View>
+//                 ))}
+//               </View>
+//             )}
+//           </View>
+//         </View>
+//       </TouchableOpacity>
+//     );
+//   },
+// );
+
+// export default function FeedScreen() {
+//   const [activeTab, setActiveTab] = useState("public");
+//   const [cursor, setCursor] = useState<string | null>(null);
+//   const [commentContent, setCommentContent] = useState("");
+//   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+//   const [isCommenting, setIsCommenting] = useState(false);
+//   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+//   const [postForOptions, setPostForOptions] = useState<any>(null);
+
+//   const user = useSelector((state: any) => state.auth.user);
+//   const router = useRouter();
+
+//   // Reset cursor when tab changes
+//   React.useEffect(() => {
+//     setCursor(null);
+//   }, [activeTab]);
+
+//   const { data, isLoading, refetch, isFetching } = useGetPostsQuery({
+//     type: activeTab,
+//     cursor,
+//   });
+
+//   const posts = data?.posts || [];
+//   const nextCursor = data?.nextCursor;
+
+//   // const [likePost] = useLikePostMutation();
+//   // const [bookmarkPost] = useBookmarkPostMutation();
+//   const [commentPost] = useCommentPostMutation();
+//   const [repostPost] = useRepostPostMutation();
+
+//   const handleComment = async () => {
+//     if (!commentContent.trim() || !selectedPostId) return;
+//     try {
+//       await commentPost({
+//         id: selectedPostId,
+//         content: commentContent,
+//       }).unwrap();
+//       setCommentContent("");
+//       setIsCommenting(false);
+//     } catch (e) {
+//       console.error(e);
+//     }
+//   };
+
+//   const openOptions = (post: any) => {
+//     setPostForOptions(post);
+//     setOptionsModalVisible(true);
+//   };
+
+//   const closeOptions = () => {
+//     setOptionsModalVisible(false);
+//     setPostForOptions(null);
+//   };
+
+//   const loadMore = () => {
+//     if (nextCursor && !isFetching) {
+//       setCursor(nextCursor);
+//     }
+//   };
+
+//   const onRefresh = () => {
+//     setCursor(null);
+//     refetch();
+//   };
+
+//   // Memoized callbacks for PostCard
+//   const handlePressPost = useCallback(
+//     (postId: string) => {
+//       router.push(`/post/${postId}`);
+//     },
+//     [router],
+//   );
+
+//   const handlePressProfile = useCallback(
+//     (authorId: string) => {
+//       router.push(`/profile/${authorId}`);
+//     },
+//     [router],
+//   );
+
+//   const handlePressComment = useCallback((postId: string) => {
+//     setSelectedPostId(postId);
+//     setIsCommenting(true);
+//   }, []);
+
+//   const handlePressRepost = useCallback(
+//     async (postId: string) => {
+//       try {
+//         await repostPost({ id: postId }).unwrap();
+//       } catch (e) {
+//         console.error(e);
+//       }
+//     },
+//     [repostPost],
+//   );
+
+//   // Memoized renderItem
+//   const renderItem = useCallback(
+//     ({ item }: { item: any }) => (
+//       <PostCard
+//         item={item}
+//         user={user}
+//         onPressPost={handlePressPost}
+//         onPressProfile={handlePressProfile}
+//         onPressOptions={openOptions}
+//         onPressComment={handlePressComment}
+//         onPressRepost={handlePressRepost}
+//       />
+//     ),
+//     [
+//       user,
+//       handlePressPost,
+//       handlePressProfile,
+//       handlePressComment,
+//       handlePressRepost,
+//     ],
+//   );
+
+//   // Memoized keyExtractor
+//   const keyExtractor = useCallback((item: any) => item.id, []);
+
+//   // getItemLayout for better scroll performance
+//   const getItemLayout = useCallback(
+//     (data: any, index: number) => ({
+//       length: 200, // Approximate height of each post
+//       offset: 200 * index,
+//       index,
+//     }),
+//     [],
+//   );
+
+//   return (
+//     <SafeAreaView className="flex-1">
+//       {/* Premium Header */}
+//       <View className="px-4 py-2 flex-row items-center justify-between border-b border-gray-50">
+//         <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
+//           <Image
+//             source={{ uri: user?.image || "https://via.placeholder.com/32" }}
+//             className="w-8 h-8 rounded-full"
+//           />
+//         </TouchableOpacity>
+//         <Text className="text-[24px] font-bold">Oasis</Text>
+//         <TouchableOpacity>
+//           <Ionicons name="sparkles-outline" size={20} color="black" />
+//         </TouchableOpacity>
+//       </View>
+
+//       <View className="flex-row border-b border-gray-100">
+//         <TouchableOpacity
+//           onPress={() => setActiveTab("public")}
+//           className="flex-1 items-center pt-3 pb-3"
+//         >
+//           <Text
+//             className={`text-[15px] font-bold ${activeTab === "public" ? "text-gray-900" : "text-gray-500"}`}
+//           >
+//             For you
+//           </Text>
+//           {activeTab === "public" && (
+//             <View className="absolute bottom-0 w-14 h-1 bg-[#1d9bf0] rounded-full" />
+//           )}
+//         </TouchableOpacity>
+//         <TouchableOpacity
+//           onPress={() => setActiveTab("private")}
+//           className="flex-1 items-center pt-3 pb-3"
+//         >
+//           <Text
+//             className={`text-[15px] font-bold ${activeTab === "private" ? "text-gray-900" : "text-gray-500"}`}
+//           >
+//             Following
+//           </Text>
+//           {activeTab === "private" && (
+//             <View className="absolute bottom-0 w-16 h-1 bg-[#1d9bf0] rounded-full" />
+//           )}
+//         </TouchableOpacity>
+//       </View>
+
+//       <FlatList
+//         data={posts}
+//         renderItem={renderItem}
+//         keyExtractor={keyExtractor}
+//         getItemLayout={getItemLayout}
+//         removeClippedSubviews={true}
+//         maxToRenderPerBatch={10}
+//         windowSize={5}
+//         initialNumToRender={5}
+//         updateCellsBatchingPeriod={50}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={isLoading && !cursor}
+//             onRefresh={onRefresh}
+//             tintColor="#1d9bf0"
+//           />
+//         }
+//         onEndReached={loadMore}
+//         onEndReachedThreshold={0.5}
+//         ListFooterComponent={
+//           isFetching && cursor ? (
+//             <View className="py-4">
+//               <ActivityIndicator color="#1d9bf0" />
+//             </View>
+//           ) : null
+//         }
+//         contentContainerStyle={{ paddingBottom: 100 }}
+//         ListEmptyComponent={
+//           !isLoading && (
+//             <View className="items-center justify-center p-10 mt-10">
+//               <Text className="text-gray-400 text-center text-lg font-medium">
+//                 No posts to show right now.
+//               </Text>
+//             </View>
+//           )
+//         }
+//       />
+
+//       {/* Floating Action Button */}
+//       {!isCommenting && (
+//         <TouchableOpacity
+//           onPress={() => router.push("/compose/post")}
+//           className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40"
+//           style={{ elevation: 8 }}
+//         >
+//           <Ionicons name="add" size={32} color="white" />
+//         </TouchableOpacity>
+//       )}
+
+//       {/* Compose Reply Modal-like View */}
+//       {isCommenting && (
+//         <View className="absolute inset-0 bg-white z-[100]">
+//           <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50">
+//             <TouchableOpacity onPress={() => setIsCommenting(false)}>
+//               <Text className="text-[17px] text-gray-800">Cancel</Text>
+//             </TouchableOpacity>
+//             <TouchableOpacity
+//               onPress={handleComment}
+//               disabled={!commentContent.trim()}
+//               className={`px-6 py-2 rounded-full ${commentContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"}`}
+//             >
+//               <Text className="text-white font-bold text-[15px]">Reply</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View className="flex-row p-4">
+//             <Image
+//               source={{ uri: user?.image || "https://via.placeholder.com/40" }}
+//               className="w-11 h-11 rounded-full mr-3"
+//             />
+//             <TextInput
+//               autoFocus
+//               multiline
+//               placeholder="Post your reply"
+//               placeholderTextColor="#9CA3AF"
+//               className="flex-1 text-[19px] leading-6 pt-1 text-gray-900"
+//               value={commentContent}
+//               onChangeText={setCommentContent}
+//               textAlignVertical="top"
+//             />
+//           </View>
+//         </View>
+//       )}
+
+//       <PostOptionsModal
+//         isVisible={optionsModalVisible}
+//         onClose={closeOptions}
+//         isOwner={postForOptions?.author?.id === user?.id}
+//         onDelete={() => {
+//           // Implement delete logic
+//           alert("Delete post functionality coming soon");
+//           closeOptions();
+//         }}
+//         onReport={() => {
+//           alert("Thank you for reporting this post.");
+//           closeOptions();
+//         }}
+//         onBlock={() => {
+//           alert(`Blocked @${postForOptions?.author?.name}`);
+//           closeOptions();
+//         }}
+//       />
+//     </SafeAreaView>
+//   );
+// }
