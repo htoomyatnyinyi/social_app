@@ -1,6 +1,7 @@
 import { api } from "./api";
 
 export const postApi = api.injectEndpoints({
+  overrideExisting: process.env.NODE_ENV === "development",
   endpoints: (builder) => ({
     getPosts: builder.query({
       query: ({ type, cursor }) => {
