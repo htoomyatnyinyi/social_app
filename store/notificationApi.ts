@@ -20,6 +20,10 @@ export const notificationApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Notification"],
     }),
+    getUnreadCount: builder.query({
+      query: () => "/notifications/unread-count",
+      providesTags: ["Notification"],
+    }),
   }),
 });
 
@@ -27,4 +31,5 @@ export const {
   useGetNotificationsQuery,
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
+  useGetUnreadCountQuery,
 } = notificationApi;
