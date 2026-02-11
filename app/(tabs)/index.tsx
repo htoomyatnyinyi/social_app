@@ -25,6 +25,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PostOptionsModal from "../../components/PostOptionsModal";
+// import FollowerSuggestions from "../../components/FollowerSuggestions";
 
 // Types
 interface User {
@@ -304,7 +305,7 @@ const PostCard = React.memo(
               </TouchableOpacity>
             </View>
 
-            {displayItem.comments?.length > 0 && (
+            {/* {displayItem.comments?.length > 0 && (
               <View className="mt-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
                 {displayItem.comments.slice(0, 2).map((comment: Comment) => (
                   <View key={comment.id} className="flex-row mb-1.5 last:mb-0">
@@ -320,7 +321,7 @@ const PostCard = React.memo(
                   </View>
                 ))}
               </View>
-            )}
+            )} */}
           </View>
         </View>
       </TouchableOpacity>
@@ -595,6 +596,9 @@ export default function FeedScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListEmptyComponent={ListEmptyComponent}
         showsVerticalScrollIndicator={false}
+        // ListHeaderComponent={
+        //   activeTab === "public" ? <FollowerSuggestions /> : null
+        // }
       />
 
       {/* Floating Action Button */}

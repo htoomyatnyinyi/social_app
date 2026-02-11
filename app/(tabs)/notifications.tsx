@@ -15,6 +15,7 @@ import {
   useMarkAllAsReadMutation,
   useMarkAsReadMutation,
 } from "../../store/notificationApi";
+import { useCreateChatRoomMutation } from "../../store/chatApi";
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function NotificationsScreen() {
   } = useGetNotificationsQuery({});
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [markAsRead] = useMarkAsReadMutation();
+  const [createChatRoom] = useCreateChatRoomMutation();
 
   const getNotificationConfig = (type: string) => {
     switch (type) {
@@ -55,6 +57,12 @@ export default function NotificationsScreen() {
           color: "#1D9BF0",
           text: "mentioned you",
         };
+      case "MESSAGE":
+        return {
+          icon: "mail",
+          color: "#1D9BF0",
+          text: "sent you a message",
+        };
       default:
         return {
           icon: "notifications",
@@ -67,6 +75,16 @@ export default function NotificationsScreen() {
   const handleNotificationPress = async (notification: any) => {
     if (!notification.read) {
       await markAsRead(notification.id);
+    }
+
+    if (notification.type === "MESSAGE" && notification.issuerId) {
+      try {
+        const room = await createChatRoom(notification.issuerId).unwrap();
+        router.push(`/chat/${room.id}`);
+        return;
+      } catch (e) {
+        console.error("Failed to find chat room", e);
+      }
     }
 
     if (notification.postId) {
