@@ -34,9 +34,9 @@ export default function PostOptionsModal({
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
-        <View className="flex-1 justify-end bg-black/50">
+        <View className="flex-1 justify-end">
           <TouchableWithoutFeedback>
-            <View className="bg-white rounded-t-3xl overflow-hidden">
+            <View className="bg-sky-500 rounded-t-3xl overflow-hidden">
               <View className="items-center pt-3 pb-2">
                 <View className="w-12 h-1 bg-gray-300 rounded-full" />
               </View>

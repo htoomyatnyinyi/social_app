@@ -34,24 +34,46 @@ export default function ChatScreen() {
   }, [initialMessages]);
 
   useEffect(() => {
+    if (!token || !chatId) return;
+
     const wsUrl = API_URL.replace("http", "ws");
+    const id = Array.isArray(chatId) ? chatId[0] : chatId;
     const socket = new WebSocket(
-      `${wsUrl}/chat/ws?chatId=${chatId}&token=${token || ""}`,
+      `${wsUrl}/chat/ws?chatId=${id}&token=${token || ""}`,
     );
 
+    socket.onopen = () => {
+      console.log(`Connected to chat WS for room ${id}`);
+    };
+
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "new_message") {
-        setMessages((prev) => {
-          if (prev.find((m) => m.id === data.id)) return prev;
-          return [...prev, data];
-        });
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "new_message") {
+          setMessages((prev) => {
+            if (prev.find((m) => m.id === data.id)) return prev;
+            return [...prev, data];
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing chat WS message", e);
       }
     };
 
+    socket.onerror = (e) => {
+      console.log("Chat WS error", e);
+    };
+
+    socket.onclose = () => {
+      console.log("Chat WS closed");
+    };
+
     setWs(socket);
-    return () => socket.close();
-  }, [chatId]);
+
+    return () => {
+      socket.close();
+    };
+  }, [chatId, token]);
 
   const sendMessage = () => {
     if (ws && inputText.trim()) {
@@ -111,11 +133,27 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" edges={["top", "left", "right"]}>
       <Stack.Screen
         options={{
+          headerTitle: (title as string) || "Chat",
+          headerShown: true, // Ensure the header is visible
+          headerTitleAlign: "center",
+          // headerBackTitleVisible: false,
+          headerBackTitle: "Back",
+          headerTransparent: true,
+          headerRight: () => (
+            <TouchableOpacity className="mr-4">
+              <Ionicons name="ellipsis-horizontal" size={22} color="#1d9bf0" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      {/* <Stack.Screen
+        options={{
+          headerShown: true, // Explicitly force it to show
           headerTitle: () => (
-            <View className="items-center">
+            <View className="items-center justify-center">
               <Text className="font-bold text-[17px] text-gray-900">
                 {(title as string) || "Chat"}
               </Text>
@@ -128,12 +166,15 @@ export default function ChatScreen() {
           headerShadowVisible: false,
           headerStyle: { backgroundColor: "white" },
           headerRight: () => (
-            <TouchableOpacity className="mr-4 p-2">
+            <TouchableOpacity
+              className="mr-2 p-2"
+              onPress={() => console.log("Call")}
+            >
               <Ionicons name="call-outline" size={22} color="#1d9bf0" />
             </TouchableOpacity>
           ),
         }}
-      />
+      /> */}
 
       <KeyboardAvoidingView
         className="flex-1"
@@ -168,8 +209,8 @@ export default function ChatScreen() {
         />
 
         {/* Input Area */}
-        <SafeAreaView>
-          {/* <SafeAreaView edges={["bottom"]}> */}
+        {/* <SafeAreaView> */}
+        <SafeAreaView edges={["bottom"]}>
           <View className="flex-row items-center p-3 border-t border-gray-50 bg-white">
             <TouchableOpacity className="p-2">
               <Ionicons name="camera-outline" size={26} color="#1d9bf0" />

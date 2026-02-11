@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSearchUsersQuery } from "../../store/authApi";
 import { useSelector } from "react-redux";
+import { SafeAreaView } from "react-native-safe-area-context";
+import FollowerSuggestions from "@/components/FollowerSuggestions";
+// import SafeAreaView from "react-native-safe-area-context";
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -67,6 +69,7 @@ export default function ExploreScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <UserItem item={item} />}
         contentContainerStyle={{ flexGrow: 1 }}
+        ListHeaderComponent={<FollowerSuggestions />}
         ListEmptyComponent={
           !isLoading ? (
             <View className="flex-1 items-center justify-center mt-20 px-8">

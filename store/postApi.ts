@@ -292,15 +292,46 @@ export const postApi = api.injectEndpoints({
         }
       },
     }),
+    // deletePost: builder.mutation({
+    //   query: (id) => ({
+    //     url: `/posts/${id}`,
+    //     method: "DELETE",
+    //   }),
+    //   invalidatesTags: ["Post"],
+    // }),
+
     deletePost: builder.mutation({
-      query: (id) => ({
-        url: `/posts/${id}`,
+      query: ({ id }) => ({
+        url: `/posts/${id}`, // Matches the .delete("/:id") backend route
         method: "DELETE",
       }),
+      // Optional: Invalidate tags to refresh the list automatically
       invalidatesTags: ["Post"],
     }),
     getPostsByType: builder.query({
       query: (type) => `/posts?type=${type}`,
+    }),
+    reportPost: builder.mutation({
+      query: ({ id, reason }) => ({
+        url: `/posts/${id}/report`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["Post"],
+    }),
+    blockPost: builder.mutation({
+      query: ({ id }) => ({
+        url: `/posts/${id}/block`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Post"],
+    }),
+    blockUser: builder.mutation({
+      query: ({ id }) => ({
+        url: `/profile/${id}/block`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Post"],
     }),
   }),
 });
@@ -317,4 +348,6 @@ export const {
   useIncrementViewCountMutation,
   useBookmarkPostMutation,
   useGetBookmarksQuery,
+  useBlockPostMutation,
+  useBlockUserMutation,
 } = postApi;
