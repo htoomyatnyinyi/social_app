@@ -1,7 +1,52 @@
+import React, { useEffect, useRef } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
+import { useGetUnreadCountQuery } from "../../store/notificationApi";
+import { API_URL } from "../../store/api";
 
 export default function TabLayout() {
+  const token = useSelector((state: any) => state.auth.token);
+  const { data: notificationData, refetch } = useGetUnreadCountQuery(
+    undefined,
+    {
+      pollingInterval: 15000,
+    },
+  );
+
+  useEffect(() => {
+    if (!token) return;
+
+    const wsUrl = API_URL.replace("http", "ws");
+    const socket = new WebSocket(
+      `${wsUrl}/notifications/ws?token=${token || ""}`,
+    );
+
+    socket.onopen = () => {
+      console.log("Connected to notification WS");
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "refresh") {
+          console.log("Received notification refresh signal");
+          refetch();
+        }
+      } catch (e) {
+        console.error("Error parsing notification WS message", e);
+      }
+    };
+
+    socket.onerror = (e) => {
+      console.log("Notification WS error", e);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [token, refetch]);
+
   return (
     <Tabs
       screenOptions={{
@@ -60,6 +105,8 @@ export default function TabLayout() {
         name="notifications"
         options={{
           title: "Notifications",
+          tabBarBadge:
+            notificationData?.count > 0 ? notificationData.count : undefined,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "notifications" : "notifications-outline"}
