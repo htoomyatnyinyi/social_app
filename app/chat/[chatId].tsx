@@ -67,6 +67,7 @@ export default function ChatScreen() {
     socket.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log("WS message received:", data);
         if (data.type === "new_message") {
           // Drizzle insert. The LiveQuery will automatically update the UI.
           await db
@@ -80,6 +81,7 @@ export default function ChatScreen() {
               status: "synced",
             })
             .onConflictDoNothing();
+          console.log("WS message inserted:", data.id);
         }
       } catch (e) {
         console.error("WS Message Error", e);
@@ -88,6 +90,17 @@ export default function ChatScreen() {
 
     return () => socket.close();
   }, [resolvedChatId, token]);
+
+  // 4. Robust Scroll to Bottom
+  const lastMessageId = messages?.[messages?.length - 1]?.id;
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      // Small timeout to ensure the list has rendered the new item
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages?.length, lastMessageId]);
 
   const sendMessage = async () => {
     if (!inputText.trim() || !resolvedChatId) return;
@@ -107,8 +120,12 @@ export default function ChatScreen() {
         status: "pending", // Mark as pending so we can show a clock icon
       });
 
-      // 2. Trigger Sync
-      await syncMessages(resolvedChatId as string, token);
+      console.log("Message inserted locally with tempId:", tempId);
+
+      // 2. Trigger Sync (don't await - let it happen in background)
+      syncMessages(resolvedChatId as string, token)
+        .then(() => console.log("Sync completed"))
+        .catch((e) => console.error("Sync failed", e));
 
       // If using WS directly:
       // ws.send(JSON.stringify({ ... }));
@@ -166,9 +183,15 @@ export default function ChatScreen() {
             </Text>
             {isMe && (
               <Ionicons
-                name={isPending ? "time-outline" : "checkmark-done-outline"}
+                name={
+                  isPending
+                    ? "time-outline"
+                    : item.status === "delivered"
+                      ? "checkmark-outline"
+                      : "checkmark-done-outline"
+                }
                 size={12}
-                color={isPending ? "#e0e0e0" : "white"}
+                color={isPending ? "#e0e0e0" : item.status === "delivered" ? "#87ceeb" : "#4fc3f7"}
               />
             )}
           </View>
@@ -178,7 +201,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["left", "right"]}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top", "left", "right"]}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -208,6 +231,7 @@ export default function ChatScreen() {
             <MessageBubble item={item} index={index} />
           )}
           keyExtractor={(item) => item.id}
+          extraData={messages}
           contentContainerStyle={{ paddingVertical: 20 }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
