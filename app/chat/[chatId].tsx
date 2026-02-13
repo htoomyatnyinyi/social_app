@@ -32,16 +32,27 @@ export default function ChatScreen() {
 
   // Ensure chatId is a string
   const resolvedChatId = Array.isArray(chatId) ? chatId[0] : chatId;
+  
+  const [messages, setMessages] = useState<typeof messagesTable.$inferSelect[]>([]);
+  
+  const fetchMessages = async () => {
+    if (!resolvedChatId) return;
+    try {
+      const msgs = await db
+        .select()
+        .from(messagesTable)
+        .where(eq(messagesTable.chatId, resolvedChatId))
+        .orderBy(asc(messagesTable.createdAt));
+      setMessages(msgs);
+    } catch (e) {
+      console.error("Failed to fetch messages", e);
+    }
+  };
 
-  // 1. FIX: Correct useLiveQuery usage
-  // useLiveQuery returns the array of data directly.
-  const { data: messages } = useLiveQuery(
-    db
-      .select()
-      .from(messagesTable)
-      .where(eq(messagesTable.chatId, resolvedChatId as string))
-      .orderBy(asc(messagesTable.createdAt)),
-  );
+  // Initial fetch
+  useEffect(() => {
+    fetchMessages();
+  }, [resolvedChatId]);
 
   const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList>(null);
@@ -49,7 +60,9 @@ export default function ChatScreen() {
   // 2. Initial Sync
   useEffect(() => {
     if (resolvedChatId && token) {
-      syncMessages(resolvedChatId as string, token); // Uncomment when sync service is ready
+      syncMessages(resolvedChatId as string, token).then(() => {
+        fetchMessages(); // Refresh after initial sync
+      });
     }
   }, [resolvedChatId, token]);
 
@@ -69,19 +82,19 @@ export default function ChatScreen() {
         const data = JSON.parse(event.data);
         console.log("WS message received:", data);
         if (data.type === "new_message") {
-          // Drizzle insert. The LiveQuery will automatically update the UI.
           await db
             .insert(messagesTable)
             .values({
               id: data.id,
-              chatId: resolvedChatId,
+              chatId: resolvedChatId as string,
               senderId: data.senderId,
               content: data.content,
-              createdAt: new Date(data.createdAt).getTime(), // Ensure backend sends ISO string
+              createdAt: new Date(data.createdAt).getTime(),
               status: "synced",
             })
             .onConflictDoNothing();
           console.log("WS message inserted:", data.id);
+          fetchMessages(); // Update UI after receiving message
         }
       } catch (e) {
         console.error("WS Message Error", e);
@@ -95,7 +108,6 @@ export default function ChatScreen() {
   const lastMessageId = messages?.[messages?.length - 1]?.id;
   useEffect(() => {
     if (messages && messages.length > 0) {
-      // Small timeout to ensure the list has rendered the new item
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -121,10 +133,14 @@ export default function ChatScreen() {
       });
 
       console.log("Message inserted locally with tempId:", tempId);
+      fetchMessages(); // Update UI immediately
 
       // 2. Trigger Sync (don't await - let it happen in background)
       syncMessages(resolvedChatId as string, token)
-        .then(() => console.log("Sync completed"))
+        .then(() => {
+            console.log("Sync completed");
+            fetchMessages(); // Update UI after sync to show "synced" status
+        })
         .catch((e) => console.error("Sync failed", e));
 
       // If using WS directly:
