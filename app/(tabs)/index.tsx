@@ -37,6 +37,12 @@ interface User {
   image?: string;
 }
 
+interface Comment {
+  id: string;
+  content: string;
+  user: User;
+}
+
 interface Post {
   id: string;
   content: string;
@@ -55,8 +61,8 @@ interface Post {
     quotes: number;
   };
   views?: number;
-  repostedByMe?: boolean;     // ← preferred flag (if backend provides it)
-  repostsCount?: number;      // ← optional fallback
+  repostedByMe?: boolean; // ← preferred flag (if backend provides it)
+  repostsCount?: number; // ← optional fallback
 }
 
 // ────────────────────────────────────────────────
@@ -74,6 +80,7 @@ interface PostCardProps {
   onBookmark: (postId: string) => Promise<void>;
 }
 
+// Memoized PostCard component with improved props
 const PostCard = React.memo(
   ({
     item,
@@ -87,19 +94,20 @@ const PostCard = React.memo(
     onBookmark,
   }: PostCardProps) => {
     const isRepost = !!item.isRepost || !!item.repostedByMe;
-    const displayPost = isRepost && item.originalPost ? item.originalPost : item;
+    const displayPost =
+      isRepost && item.originalPost ? item.originalPost : item;
 
     const displayAuthor = displayPost.author;
     const displayId = displayPost.id;
 
     const hasLiked = useMemo(
       () => displayPost.likes?.some((l) => l.userId === user?.id) ?? false,
-      [displayPost.likes, user?.id]
+      [displayPost.likes, user?.id],
     );
 
     const isBookmarked = useMemo(
       () => (displayPost.bookmarks?.length ?? 0) > 0,
-      [displayPost.bookmarks]
+      [displayPost.bookmarks],
     );
 
     // Prefer repostedByMe flag if available, otherwise fallback to array check
@@ -108,7 +116,7 @@ const PostCard = React.memo(
         item.repostedByMe ??
         displayPost.repostedBy?.some((r) => r.userId === user?.id) ??
         false,
-      [item.repostedByMe, displayPost.repostedBy, user?.id]
+      [item.repostedByMe, displayPost.repostedBy, user?.id],
     );
 
     const createdAtFormatted = useMemo(() => {
@@ -139,9 +147,13 @@ const PostCard = React.memo(
 
         <View className="flex-row">
           {/* Avatar */}
-          <TouchableOpacity onPress={() => displayAuthor.id && onPressProfile(displayAuthor.id)}>
+          <TouchableOpacity
+            onPress={() => displayAuthor.id && onPressProfile(displayAuthor.id)}
+          >
             <Image
-              source={{ uri: displayAuthor.image || "https://via.placeholder.com/48" }}
+              source={{
+                uri: displayAuthor.image || "https://via.placeholder.com/48",
+              }}
               className="w-12 h-12 rounded-full bg-gray-100 mr-3"
             />
           </TouchableOpacity>
@@ -149,14 +161,24 @@ const PostCard = React.memo(
           <View className="flex-1">
             {/* Name + username + time + options */}
             <View className="flex-row items-center mb-0.5">
-              <Text className="font-bold text-[15px] text-gray-900 flex-shrink" numberOfLines={1}>
+              <Text
+                className="font-bold text-[15px] text-gray-900 flex-shrink"
+                numberOfLines={1}
+              >
                 {displayAuthor.name || "User"}
               </Text>
               <Text className="text-gray-500 text-[13.5px] ml-1.5">
                 @{displayAuthor.username || "user"} · {createdAtFormatted}
               </Text>
-              <TouchableOpacity className="ml-auto p-1.5" onPress={() => onPressOptions(item)}>
-                <Ionicons name="ellipsis-horizontal" size={18} color="#6B7280" />
+              <TouchableOpacity
+                className="ml-auto p-1.5"
+                onPress={() => onPressOptions(item)}
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={18}
+                  color="#6B7280"
+                />
               </TouchableOpacity>
             </View>
 
@@ -177,7 +199,10 @@ const PostCard = React.memo(
             {/* Action row */}
             <View className="flex-row justify-between items-center pr-2 mt-1">
               {/* Comment */}
-              <TouchableOpacity className="flex-row items-center" onPress={() => onPressComment(displayId)}>
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={() => onPressComment(displayId)}
+              >
                 <Ionicons name="chatbubble-outline" size={19} color="#6B7280" />
                 <Text className="text-xs text-gray-500 ml-1.5">
                   {displayPost._count?.comments ?? 0}
@@ -185,7 +210,10 @@ const PostCard = React.memo(
               </TouchableOpacity>
 
               {/* Repost */}
-              <TouchableOpacity className="flex-row items-center" onPress={() => onPressRepost(item)}>
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={() => onPressRepost(item)}
+              >
                 <Ionicons
                   name="repeat-outline"
                   size={21}
@@ -199,7 +227,10 @@ const PostCard = React.memo(
               </TouchableOpacity>
 
               {/* Like */}
-              <TouchableOpacity className="flex-row items-center" onPress={() => onLike(displayId)}>
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={() => onLike(displayId)}
+              >
                 <Ionicons
                   name={hasLiked ? "heart" : "heart-outline"}
                   size={20}
@@ -214,7 +245,11 @@ const PostCard = React.memo(
 
               {/* Views */}
               <View className="flex-row items-center">
-                <Ionicons name="stats-chart-outline" size={18} color="#6B7280" />
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={18}
+                  color="#6B7280"
+                />
                 <Text className="text-xs text-gray-500 ml-1.5">
                   {displayPost.views ?? 0}
                 </Text>
@@ -233,7 +268,7 @@ const PostCard = React.memo(
         </View>
       </TouchableOpacity>
     );
-  }
+  },
 );
 
 PostCard.displayName = "PostCard";
@@ -242,6 +277,8 @@ PostCard.displayName = "PostCard";
 // Feed Screen
 // ────────────────────────────────────────────────
 export default function FeedScreen() {
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<"public" | "private">("public");
   const [cursor, setCursor] = useState<string | null>(null);
   const [commentContent, setCommentContent] = useState("");
@@ -251,15 +288,15 @@ export default function FeedScreen() {
   const [postForOptions, setPostForOptions] = useState<Post | null>(null);
 
   const user = useSelector((state: any) => state.auth.user);
-  const router = useRouter();
-
   const { data, isLoading, isFetching, refetch } = useGetPostsQuery(
     { type: activeTab, cursor },
-    { skip: !user }
+    { skip: !user },
   );
 
   const posts = data?.posts ?? [];
   const nextCursor = data?.nextCursor;
+
+  // console.log("posts", data);
 
   const [likePost] = useLikePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
@@ -272,28 +309,37 @@ export default function FeedScreen() {
 
   // ─── Handlers ───────────────────────────────────────
 
-  const handleLike = useCallback(async (postId: string) => {
-    try {
-      await likePost({ postId }).unwrap();
-    } catch (err) {
-      console.error("Like failed", err);
-    }
-  }, [likePost]);
+  const handleLike = useCallback(
+    async (postId: string) => {
+      try {
+        await likePost({ postId }).unwrap();
+      } catch (err) {
+        console.error("Like failed", err);
+      }
+    },
+    [likePost],
+  );
 
-  const handleBookmark = useCallback(async (postId: string) => {
-    try {
-      await bookmarkPost(postId).unwrap();
-    } catch (err) {
-      console.error("Bookmark failed", err);
-    }
-  }, [bookmarkPost]);
+  const handleBookmark = useCallback(
+    async (postId: string) => {
+      try {
+        await bookmarkPost(postId).unwrap();
+      } catch (err) {
+        console.error("Bookmark failed", err);
+      }
+    },
+    [bookmarkPost],
+  );
 
   const handleRepostAction = useCallback(
     (post: Post) => {
       const isRepostItem = !!post.isRepost;
-      const realPostId = isRepostItem && post.originalPost ? post.originalPost.id : post.id;
+      const realPostId =
+        isRepostItem && post.originalPost ? post.originalPost.id : post.id;
 
-      const alreadyReposted = post.repostedByMe ?? post.repostedBy?.some(r => r.userId === user?.id);
+      const alreadyReposted =
+        post.repostedByMe ??
+        post.repostedBy?.some((r) => r.userId === user?.id);
 
       if (alreadyReposted) {
         // Undo repost
@@ -331,20 +377,26 @@ export default function FeedScreen() {
           {
             text: "Quote",
             onPress: () => {
-              router.push({ pathname: "/compose/post", params: { quoteId: realPostId } });
+              router.push({
+                pathname: "/compose/post",
+                params: { quoteId: realPostId },
+              });
             },
           },
           { text: "Cancel", style: "cancel" },
         ]);
       }
     },
-    [user?.id, repostPost, deleteRepost, router]
+    [user?.id, repostPost, deleteRepost, router],
   );
 
   const handleCommentSubmit = useCallback(async () => {
     if (!commentContent.trim() || !selectedPostId) return;
     try {
-      await commentPost({ postId: selectedPostId, content: commentContent }).unwrap();
+      await commentPost({
+        postId: selectedPostId,
+        content: commentContent,
+      }).unwrap();
       setCommentContent("");
       setIsCommenting(false);
       setSelectedPostId(null);
@@ -352,6 +404,10 @@ export default function FeedScreen() {
       console.error("Comment failed", err);
     }
   }, [commentContent, selectedPostId, commentPost]);
+
+  const uniquePosts = Array.from(
+    new Map(posts.map((item: any) => [item.id, item])).values(),
+  );
 
   // ─── Render ─────────────────────────────────────────
 
@@ -394,12 +450,17 @@ export default function FeedScreen() {
         ))}
       </View>
 
+      {/* // Use uniquePosts in your FlatList */}
+      {/* <FlatList data={uniquePosts} ... /> */}
       <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id}
+        // data={posts}
+        data={uniquePosts}
+        // keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item?.id}-${index}`}
         renderItem={({ item }) => (
           <PostCard
-            item={item}
+            // item={item}
+            item={item as Post}
             user={user}
             onPressPost={(id) => router.push(`/post/${id}`)}
             onPressProfile={(id) => router.push(`/profile/${id}`)}
@@ -429,7 +490,9 @@ export default function FeedScreen() {
         onEndReached={() => nextCursor && setCursor(nextCursor)}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
-          isFetching && cursor ? <ActivityIndicator className="py-6" color="#1d9bf0" /> : null
+          isFetching && cursor ? (
+            <ActivityIndicator className="py-6" color="#1d9bf0" />
+          ) : null
         }
         contentContainerStyle={{ paddingBottom: 100 }}
       />
@@ -449,7 +512,9 @@ export default function FeedScreen() {
         <SafeAreaView className="absolute inset-0 bg-white z-50">
           <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
             <TouchableOpacity onPress={() => setIsCommenting(false)}>
-              <Text className="text-[17px] text-gray-700 font-medium">Cancel</Text>
+              <Text className="text-[17px] text-gray-700 font-medium">
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleCommentSubmit}
@@ -497,11 +562,42 @@ export default function FeedScreen() {
           }
         }}
         // Add onBlock, onReport, etc. as needed...
+        onReport={async () => {
+          if (!postForOptions?.id) return;
+          alert("Thank you for reporting this post.");
+          try {
+            await blockPost({
+              id: postForOptions.id, // Changed from postId to id
+              reason: "SPAM",
+            }).unwrap();
+
+            alert("Post blocked successfully");
+          } catch (error: any) {
+            console.error("Error blocking post:", error);
+            const errorMessage = error?.data?.message || "Something went wrong";
+            alert(`Failed to block: ${errorMessage}`);
+          }
+        }}
+        onBlock={async () => {
+          if (!postForOptions?.id) return;
+          try {
+            await blockUser({
+              id: postForOptions.id, // Changed from postId to id
+            }).unwrap();
+
+            alert("User blocked successfully");
+          } catch (error: any) {
+            console.error("Error blocking user:", error);
+            const errorMessage = error?.data?.message || "Something went wrong";
+            alert(`Failed to block: ${errorMessage}`);
+          }
+          alert(`Blocked @${postForOptions?.author?.name}`);
+          refetch();
+        }}
       />
     </SafeAreaView>
   );
 }
-
 
 // import React, { useState, useMemo, useCallback, useEffect } from "react";
 // import {
@@ -744,7 +840,7 @@ export default function FeedScreen() {
 //     async (post: Post) => {
 //       const displayItem = post.isRepost && post.originalPost ? post.originalPost : post;
 //       const realPostId = displayItem.id;
-      
+
 //       // Corrected logic: Check the array for existing repost
 //       const isAlreadyReposted = displayItem.repostedBy?.some((r: any) => r.userId === user?.id);
 
@@ -883,7 +979,6 @@ export default function FeedScreen() {
 //     </SafeAreaView>
 //   );
 // }
-
 
 // // import React, { useState, useMemo, useCallback, useEffect } from "react";
 // // import {
@@ -1149,8 +1244,7 @@ export default function FeedScreen() {
 // //                 </Text>
 // //               </TouchableOpacity>
 
-       
-// // {/* 
+// // {/*
 // //               <TouchableOpacity
 // //                 className="flex-row items-center"
 // //                 disabled={displayItem.repostedByMe}
@@ -1186,7 +1280,6 @@ export default function FeedScreen() {
 // //                   {displayItem.repostsCount || displayItem._count?.reposts || 0}
 // //                 </Text>
 // //               </TouchableOpacity> */}
-
 
 // //               <TouchableOpacity
 // //                 className="flex-row items-center"
@@ -1412,14 +1505,14 @@ export default function FeedScreen() {
 // //       // `item.post` in backend became `...item.post`. So `id` is overridden by `repost_...`.
 // //       // But `originalPost` is preserving `item.post`.
 // //       // So: const realPostId = post.isRepost && post.originalPost ? post.originalPost.id : post.id;
-      
+
 // //       const realPostId = post.isRepost && post.originalPost ? post.originalPost.id : post.id;
 // //       // Also need to check `post.repostedByMe` or `displayItem.repostedByMe`.
 // //       // Since `post` here is `item`, and `item` is the wrapper.
 // //       // Wrapper has `repostedByMe` set?
 // //       // Backend: `results` map -> `repostedByMe: item.post.repostedBy.length > 0`.
 // //       // So YES, wrapper has `repostedByMe`.
-      
+
 // //       if (post.repostedByMe) {
 // //           // Undo Repost
 // //           try {
