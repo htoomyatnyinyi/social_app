@@ -29,7 +29,6 @@ export const syncMessages = async (
 
     for (const msg of pendingMessages) {
       try {
-        console.log("Syncing pending message:", msg.id, msg.content);
         const response = await fetch(`${API_URL}/chat/message`, {
           method: "POST",
           headers: {
@@ -39,20 +38,11 @@ export const syncMessages = async (
           body: JSON.stringify({
             chatId,
             content: msg.content,
-            // If we have temporary ID, we might need to handle it.
-            // But server generates ID.
           }),
         });
 
         if (response.ok) {
           const serverMsg = await response.json();
-          console.log("Server response:", serverMsg.id, "for temp", msg.id);
-          // innovative: update local message ID with server ID?
-          // Or just delete local and insert server?
-          // Updating generic ID is hard because it's PK.
-          // Better: Update status to 'synced' and maybe store serverId if we had a separate field.
-          // BUT `id` is PK. If we generated a UUID locally, we can keep it if server accepts it.
-          // If server generates ID, we must replace.
           // Insert/update server message first to ensure it's in DB
           await db
             .insert(messages)
@@ -73,12 +63,9 @@ export const syncMessages = async (
               },
             });
 
-          console.log("Server message inserted/updated:", serverMsg.id);
-
           // Only delete temp message if it has a different ID
           if (msg.id !== serverMsg.id) {
             await db.delete(messages).where(eq(messages.id, msg.id));
-            console.log("Temp message deleted:", msg.id);
           }
           
           result.pushed++;
