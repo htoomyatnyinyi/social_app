@@ -72,6 +72,7 @@ export const postApi = api.injectEndpoints({
       }),
       async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
         const userId = (getState() as any).auth.user?.id;
+        if (!userId) return;
 
         // We need to update both public and private lists if they exist in cache
         const updateCache = (type: string) => {
@@ -155,7 +156,7 @@ export const postApi = api.injectEndpoints({
           }
         };
         // We'll leave optimistic update for bookmark for now as logic is "toggle" and current state might be unknown if not passed.
-        // But user asked for it. 
+        // But user asked for it.
         // We can pass `isBookmarked` status to mutation to know which way to toggle.
       },
       invalidatesTags: ["Post"],
@@ -167,29 +168,50 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content, image },
       }),
-      async onQueryStarted({ id, content }, { dispatch, queryFulfilled, getState }) {
-        if (content) return; // Don't optimistically update quotes yet as they create new posts
-        
+      async onQueryStarted(
+        { id, content },
+        { dispatch, queryFulfilled, getState },
+      ) {
+        if (content) return; // Don't optimistically update quotes
+
         const userId = (getState() as any).auth.user?.id;
-        
+        if (!userId) return;
+
         const updateCache = (draft: any) => {
           if (!draft?.posts) return;
           const post = draft.posts.find((p: any) => p.id === id);
           if (post) {
             post.repostsCount = (post.repostsCount || 0) + 1;
             post.repostedByMe = true;
-            // Also update legacy count if needed
-            if (post._count) post._count.reposts = (post._count.reposts || 0) + 1;
+            // Also update the array for UI consistency
+            if (post.repostedBy) {
+              // Avoid duplicates
+              if (!post.repostedBy.some((r: any) => r.userId === userId)) {
+                post.repostedBy.push({ userId });
+              }
+            } else {
+              post.repostedBy = [{ userId }];
+            }
+            if (post._count)
+              post._count.reposts = (post._count.reposts || 0) + 1;
           }
         };
 
         const patchGetPosts = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            updateCache,
+          ),
         );
         const patchGetFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            updateCache,
+          ),
         );
-        
+
         try {
           await queryFulfilled;
         } catch {
@@ -205,24 +227,41 @@ export const postApi = api.injectEndpoints({
         method: "DELETE",
       }),
       async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
+        const userId = (getState() as any).auth.user?.id;
+        if (!userId) return;
+
         const updateCache = (draft: any) => {
           if (!draft?.posts) return;
           const post = draft.posts.find((p: any) => p.id === id);
           if (post) {
             post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
             post.repostedByMe = false;
-            // Also update legacy
-            if (post._count) post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
+            // Remove from array
+            if (post.repostedBy) {
+              post.repostedBy = post.repostedBy.filter(
+                (r: any) => r.userId !== userId,
+              );
+            }
+            if (post._count)
+              post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
           }
         };
 
         const patchGetPosts = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            updateCache,
+          ),
         );
         const patchGetFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            updateCache,
+          ),
         );
-        
+
         try {
           await queryFulfilled;
         } catch {
@@ -241,13 +280,13 @@ export const postApi = api.injectEndpoints({
       providesTags: ["Post"],
     }),
     commentPost: builder.mutation({
-      query: ({ id, content, parentId }) => ({
-        url: `/posts/${id}/comment`,
+      query: ({ postId, content, parentId }) => ({
+        url: `/posts/${postId}/comment`,
         method: "POST",
         body: { content, parentId },
       }),
       async onQueryStarted(
-        { id, content, parentId },
+        { postId, content, parentId },
         { dispatch, queryFulfilled, getState },
       ) {
         const user = (getState() as any).auth.user;
@@ -261,7 +300,7 @@ export const postApi = api.injectEndpoints({
               { type } as any,
               (draft) => {
                 if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === id);
+                const post = draft.posts.find((p: any) => p.id === postId);
                 if (post) {
                   post._count.comments += 1;
                 }
@@ -273,18 +312,20 @@ export const postApi = api.injectEndpoints({
         const patchPublic = updateCount("public");
         const patchPrivate = updateCount("private");
         const patchPost = dispatch(
-          postApi.util.updateQueryData("getPost", id, (draft: any) => {
+          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
             if (draft) {
               draft._count.comments += 1;
             }
           }),
         );
 
+        // ... (rest of legacy optimistic update logic if needed, but the main count update is key)
+
         // 2. Optimistically add the comment to the comments list
         const patchComments = dispatch(
           postApi.util.updateQueryData(
             "getComments" as any,
-            id as any,
+            postId as any,
             (draft: any) => {
               if (draft && !parentId) {
                 // Only add to top-level comments if parentId is null
@@ -292,7 +333,7 @@ export const postApi = api.injectEndpoints({
                   id: tempId,
                   content,
                   userId: user.id,
-                  postId: id,
+                  postId: postId,
                   parentId: null,
                   createdAt: new Date().toISOString(),
                   user: {
@@ -313,7 +354,7 @@ export const postApi = api.injectEndpoints({
                       id: tempId,
                       content,
                       userId: user.id,
-                      postId: id,
+                      postId: postId,
                       parentId,
                       createdAt: new Date().toISOString(),
                       user: {
@@ -389,27 +430,37 @@ export const postApi = api.injectEndpoints({
       async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
         // Remove from Public Posts
         const patchPublic = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, (draft) => {
-            if (draft?.posts) {
-              draft.posts = draft.posts.filter((p: any) => p.id !== id && p.originalPost?.id !== id);
-            }
-          })
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter(
+                  (p: any) => p.id !== id && p.originalPost?.id !== id,
+                );
+              }
+            },
+          ),
         );
-        
+
         // Remove from Feed (handling virtual IDs "repost_ID" and plain IDs)
         const patchFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, (draft) => {
-            if (draft?.posts) {
-              draft.posts = draft.posts.filter((p: any) => {
-                // If it's a repost of this post, remove it? 
-                // Virtual ID logic: "repost_xyz". originalPost.id === id.
-                if (p.isRepost && p.originalPost?.id === id) return false;
-                // If it's the post itself
-                if (p.id === id) return false;
-                return true;
-              });
-            }
-          })
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter((p: any) => {
+                  // If it's a repost of this post, remove it?
+                  // Virtual ID logic: "repost_xyz". originalPost.id === id.
+                  if (p.isRepost && p.originalPost?.id === id) return false;
+                  // If it's the post itself
+                  if (p.id === id) return false;
+                  return true;
+                });
+              }
+            },
+          ),
         );
 
         try {
