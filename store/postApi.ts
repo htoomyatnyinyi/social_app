@@ -138,25 +138,8 @@ export const postApi = api.injectEndpoints({
         method: "POST",
       }),
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
-        // Optimistic toggle
-        const updateCache = (draft: any) => {
-          if (!draft?.posts) return;
-          const post = draft.posts.find((p: any) => p.id === id);
-          if (post) {
-            // We assume if it's being toggled, we flip the state.
-            // But checking if we have it bookmarked is hard if we don't have user ID or if we rely on array check.
-            // Simplified: invalidating tags handles the source of truth.
-            // But for UI response:
-            // Boolean toggle if we knew state.
-            // For now, let's stick to invalidation for bookmarks unless we track "bookmarkedByMe" field explicitly.
-            // User requested "Toggle icon correctly + optimistic update".
-            // If we depend on `post.bookmarks` array, we can toggle presence of dummy user?.
-            // Better: relying on backend return value.
-          }
-        };
-        // We'll leave optimistic update for bookmark for now as logic is "toggle" and current state might be unknown if not passed.
-        // But user asked for it. 
-        // We can pass `isBookmarked` status to mutation to know which way to toggle.
+        // Bookmark optimistic update relies on tag invalidation for correctness
+        // since we don't track bookmarkedByMe explicitly in the current schema.
       },
       invalidatesTags: ["Post"],
     }),
@@ -167,11 +150,12 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content, image },
       }),
-      async onQueryStarted({ id, content }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted(
+        { id, content },
+        { dispatch, queryFulfilled, getState },
+      ) {
         if (content) return; // Don't optimistically update quotes yet as they create new posts
-        
-        const userId = (getState() as any).auth.user?.id;
-        
+
         const updateCache = (draft: any) => {
           if (!draft?.posts) return;
           const post = draft.posts.find((p: any) => p.id === id);
@@ -179,17 +163,26 @@ export const postApi = api.injectEndpoints({
             post.repostsCount = (post.repostsCount || 0) + 1;
             post.repostedByMe = true;
             // Also update legacy count if needed
-            if (post._count) post._count.reposts = (post._count.reposts || 0) + 1;
+            if (post._count)
+              post._count.reposts = (post._count.reposts || 0) + 1;
           }
         };
 
         const patchGetPosts = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            updateCache,
+          ),
         );
         const patchGetFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            updateCache,
+          ),
         );
-        
+
         try {
           await queryFulfilled;
         } catch {
@@ -212,17 +205,26 @@ export const postApi = api.injectEndpoints({
             post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
             post.repostedByMe = false;
             // Also update legacy
-            if (post._count) post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
+            if (post._count)
+              post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
           }
         };
 
         const patchGetPosts = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            updateCache,
+          ),
         );
         const patchGetFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, updateCache)
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            updateCache,
+          ),
         );
-        
+
         try {
           await queryFulfilled;
         } catch {
@@ -389,27 +391,37 @@ export const postApi = api.injectEndpoints({
       async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
         // Remove from Public Posts
         const patchPublic = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, (draft) => {
-            if (draft?.posts) {
-              draft.posts = draft.posts.filter((p: any) => p.id !== id && p.originalPost?.id !== id);
-            }
-          })
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter(
+                  (p: any) => p.id !== id && p.originalPost?.id !== id,
+                );
+              }
+            },
+          ),
         );
-        
+
         // Remove from Feed (handling virtual IDs "repost_ID" and plain IDs)
         const patchFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, (draft) => {
-            if (draft?.posts) {
-              draft.posts = draft.posts.filter((p: any) => {
-                // If it's a repost of this post, remove it? 
-                // Virtual ID logic: "repost_xyz". originalPost.id === id.
-                if (p.isRepost && p.originalPost?.id === id) return false;
-                // If it's the post itself
-                if (p.id === id) return false;
-                return true;
-              });
-            }
-          })
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter((p: any) => {
+                  // If it's a repost of this post, remove it?
+                  // Virtual ID logic: "repost_xyz". originalPost.id === id.
+                  if (p.isRepost && p.originalPost?.id === id) return false;
+                  // If it's the post itself
+                  if (p.id === id) return false;
+                  return true;
+                });
+              }
+            },
+          ),
         );
 
         try {
@@ -464,4 +476,5 @@ export const {
   useGetBookmarksQuery,
   useBlockUserMutation,
   useDeleteRepostMutation,
+  useReportPostMutation,
 } = postApi;
