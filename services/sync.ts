@@ -67,7 +67,7 @@ export const syncMessages = async (
           if (msg.id !== serverMsg.id) {
             await db.delete(messages).where(eq(messages.id, msg.id));
           }
-          
+
           result.pushed++;
         }
       } catch (e) {
