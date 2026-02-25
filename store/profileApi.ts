@@ -41,6 +41,14 @@ export const profileApi = api.injectEndpoints({
       query: () => "/profile/suggestions",
       providesTags: ["Profile"],
     }),
+    getUserReplies: builder.query({
+      query: (id) => `/profile/${id}/replies`,
+      providesTags: ["Post"],
+    }),
+    getUserReposts: builder.query({
+      query: (id) => `/profile/${id}/reposts`,
+      providesTags: ["Post"],
+    }),
   }),
 });
 
@@ -53,4 +61,6 @@ export const {
   useGetUserPostsQuery,
   useGetUserLikesQuery,
   useGetSuggestionsQuery,
+  useGetUserRepliesQuery,
+  useGetUserRepostsQuery,
 } = profileApi;
