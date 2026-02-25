@@ -31,8 +31,12 @@
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export const API_URL = "http://192.168.1.44:8080"; // Replace with your IP for physical devices
+// export const API_URL = "http://192.168.1.144:8080"; // Replace with your IP for physical devices
 // export const API_URL = "http://localhost:8080"; // Replace with your IP for physical devices
+export const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "http://localhost:8080" ||
+  "http://192.168.1.144:8080";
 
 export const api = createApi({
   reducerPath: "api",
