@@ -3,59 +3,34 @@ import { api } from "./api";
 export const postApi = api.injectEndpoints({
   overrideExisting: process.env.NODE_ENV === "development",
   endpoints: (builder) => ({
-    // getPosts: builder.query({
-    //   query: ({ type, cursor }) => {
-    //     if (type === "private") {
-    //       let url = "/posts/feed";
-    //       if (cursor) url += `?cursor=${cursor}`;
-    //       return url;
-    //     }
-    //     let url = `/posts?type=${type}`;
-    //     if (cursor) url += `&cursor=${cursor}`;
-    //     return url;
-    //   },
-    //   serializeQueryArgs: ({ queryArgs }) => {
-    //     return `getPosts-${queryArgs.type}`;
-    //   },
-    //   merge: (currentCache, newItems, { arg }) => {
-    //     if (!arg.cursor) {
-    //       // Reset if no cursor (refresh)
-    //       return newItems;
-    //     }
-    //     currentCache.posts.push(...newItems.posts);
-    //     currentCache.nextCursor = newItems.nextCursor;
-    //   },
-    //   forceRefetch({ currentArg, previousArg }) {
-    //     return currentArg?.cursor !== previousArg?.cursor;
-    //   },
-    //   providesTags: ["Post"],
-    // }),
+    getPosts: builder.query({
+      query: ({ type, cursor }) => {
+        if (type === "private") {
+          let url = "/posts/feed";
+          if (cursor) url += `?cursor=${cursor}`;
+          return url;
+        }
+        let url = `/posts?type=${type}`;
+        if (cursor) url += `&cursor=${cursor}`;
+        return url;
+      },
+      serializeQueryArgs: ({ queryArgs }) => {
+        return `getPosts-${queryArgs.type}`;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) {
+          // Reset if no cursor (refresh)
+          return newItems;
+        }
+        currentCache.posts.push(...newItems.posts);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
+      providesTags: ["Post"],
+    }),
 
-    // lfaj  // // can delete if not use because this is test
-    //   // getPosts: builder.query({
-    //   //   query: ({ type, cursor }) => {
-    //   //     let url = `/posts?type=${type}`;
-    //   //     if (cursor) url += `&cursor=${cursor}`;
-    //   //     return url;
-    //   //   },
-    //   //   serializeQueryArgs: ({ queryArgs }) => {
-    //   //     return `getPosts-${queryArgs.type}`;
-    //   //   },
-    //   //   merge: (currentCache, newItems, { arg }) => {
-    //   //     if (!arg.cursor) {
-    //   //       // Reset if no cursor (refresh)
-    //   //       return newItems;
-    //   //     }
-    //   //     currentCache.posts.push(...newItems.posts);
-    //   //     currentCache.nextCursor = newItems.nextCursor;
-    //   //   },
-    //   //   forceRefetch({ currentArg, previousArg }) {
-    //   //     return currentArg?.cursor !== previousArg?.cursor;
-    //   //   },
-    //   //   providesTags: ["Post"],
-    //   // }),
-
-    // for delete post refetch
     getFeed: builder.query({
       query: ({ cursor }) => {
         let url = "/posts/feed";
@@ -78,134 +53,6 @@ export const postApi = api.injectEndpoints({
       providesTags: ["Post"],
     }),
 
-    // 1. Fetching Posts (Feed)
-    getPosts: builder.query({
-      query: ({ type, cursor }) =>
-        `/posts?type=${type}${cursor ? `&cursor=${cursor}` : ""}`,
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.posts.map(({ id }: any) => ({
-                type: "Post" as const,
-                id,
-              })),
-              "Post",
-            ]
-          : ["Post"],
-    }),
-
-    // 2. Fetching Single Post Detail
-    getPost: builder.query({
-      query: (id) => `/posts/${id}`,
-      providesTags: (result, error, id) => [{ type: "Post", id }],
-    }),
-
-    // 3. Fetching Threaded Comments
-    getComments: builder.query({
-      query: (id) => `/posts/${id}/comments`,
-      providesTags: (result, error, id) => [
-        { type: "Post", id: `COMMENTS-${id}` },
-      ],
-    }),
-
-    // 4. Like Post (Optimistic)
-    likePost: builder.mutation({
-      query: ({ postId }) => ({ url: `/posts/${postId}/like`, method: "POST" }),
-      async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
-        const userId = (getState() as any).auth.user?.id;
-        const patchResult = dispatch(
-          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
-            const hasLiked = draft.likes?.some((l: any) => l.userId === userId);
-            if (hasLiked) {
-              draft._count.likes -= 1;
-              draft.likes = draft.likes.filter((l: any) => l.userId !== userId);
-            } else {
-              draft._count.likes += 1;
-              draft.likes.push({ userId });
-            }
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patchResult.undo();
-        }
-      },
-    }),
-
-    // 5. Repost & Undo Repost Logic
-    repostPost: builder.mutation({
-      query: ({ id, content }) => ({
-        url: `/posts/${id}/repost`,
-        method: "POST",
-        body: { content },
-      }),
-      invalidatesTags: ["Post"],
-    }),
-
-    deleteRepost: builder.mutation({
-      query: (id) => ({ url: `/posts/${id}/repost`, method: "DELETE" }),
-      invalidatesTags: ["Post"],
-    }),
-
-    // 6. Commenting (The X-Style Thread Logic)
-    commentPost: builder.mutation({
-      query: ({ id, content, parentId }) => ({
-        url: `/posts/${id}/comment`,
-        method: "POST",
-        body: { content, parentId },
-      }),
-      // Invalidate specific comments list to ensure sync
-      invalidatesTags: (res, err, { id }) => [
-        { type: "Post", id: `COMMENTS-${id}` },
-      ],
-      async onQueryStarted(
-        { id, content, parentId },
-        { dispatch, getState, queryFulfilled },
-      ) {
-        const user = (getState() as any).auth.user;
-        const tempId = `temp-${Date.now()}`;
-
-        const patchComments = dispatch(
-          postApi.util.updateQueryData("getComments", id, (draft: any) => {
-            const newComment = {
-              id: tempId,
-              content,
-              user,
-              createdAt: new Date().toISOString(),
-              _count: { likes: 0, replies: 0 },
-              replies: [],
-              likes: [],
-            };
-
-            if (!parentId) {
-              draft.unshift(newComment);
-            } else {
-              // Recursive function to find the nested parent to reply to
-              const findAndAdd = (list: any[]) => {
-                for (let item of list) {
-                  if (item.id === parentId) {
-                    item.replies = [newComment, ...(item.replies || [])];
-                    item._count.replies += 1;
-                    return true;
-                  }
-                  if (item.replies && findAndAdd(item.replies)) return true;
-                }
-                return false;
-              };
-              findAndAdd(draft);
-            }
-          }),
-        );
-        try {
-          await queryFulfilled;
-        } catch {
-          patchComments.undo();
-        }
-      },
-    }),
-    /// #################################
-
     getBookmarks: builder.query({
       query: () => "/posts/bookmarks",
       providesTags: ["Post"],
@@ -220,72 +67,72 @@ export const postApi = api.injectEndpoints({
       invalidatesTags: ["Post"],
     }),
 
-    // likePost: builder.mutation({
-    //   query: ({ postId }) => ({
-    //     url: `/posts/${postId}/like`,
-    //     method: "POST",
-    //   }),
-    //   async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
-    //     const userId = (getState() as any).auth.user?.id;
+    likePost: builder.mutation({
+      query: ({ postId }) => ({
+        url: `/posts/${postId}/like`,
+        method: "POST",
+      }),
+      async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
+        const userId = (getState() as any).auth.user?.id;
 
-    //     // We need to update both public and private lists if they exist in cache
-    //     const updateCache = (type: string) => {
-    //       return dispatch(
-    //         postApi.util.updateQueryData(
-    //           "getPosts",
-    //           { type } as any,
-    //           (draft) => {
-    //             if (!draft?.posts) return;
-    //             const post = draft.posts.find((p: any) => p.id === postId);
-    //             if (post) {
-    //               const hasLiked = post.likes?.some(
-    //                 (l: any) => l.userId === userId,
-    //               );
-    //               if (hasLiked) {
-    //                 post._count.likes -= 1;
-    //                 post.likes = post.likes.filter(
-    //                   (l: any) => l.userId !== userId,
-    //                 );
-    //               } else {
-    //                 post._count.likes += 1;
-    //                 post.likes = [...(post.likes || []), { userId }];
-    //               }
-    //             }
-    //           },
-    //         ),
-    //       );
-    //     };
+        // We need to update both public and private lists if they exist in cache
+        const updateCache = (type: string) => {
+          return dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type } as any,
+              (draft) => {
+                if (!draft?.posts) return;
+                const post = draft.posts.find((p: any) => p.id === postId);
+                if (post) {
+                  const hasLiked = post.likes?.some(
+                    (l: any) => l.userId === userId,
+                  );
+                  if (hasLiked) {
+                    post._count.likes -= 1;
+                    post.likes = post.likes.filter(
+                      (l: any) => l.userId !== userId,
+                    );
+                  } else {
+                    post._count.likes += 1;
+                    post.likes = [...(post.likes || []), { userId }];
+                  }
+                }
+              },
+            ),
+          );
+        };
 
-    //     const patchPublic = updateCache("public");
-    //     const patchPrivate = updateCache("private");
-    //     const patchPost = dispatch(
-    //       postApi.util.updateQueryData("getPost", postId, (draft: any) => {
-    //         if (draft) {
-    //           const hasLiked = draft.likes?.some(
-    //             (l: any) => l.userId === userId,
-    //           );
-    //           if (hasLiked) {
-    //             draft._count.likes -= 1;
-    //             draft.likes = draft.likes.filter(
-    //               (l: any) => l.userId !== userId,
-    //             );
-    //           } else {
-    //             draft._count.likes += 1;
-    //             draft.likes = [...(draft.likes || []), { userId }];
-    //           }
-    //         }
-    //       }),
-    //     );
+        const patchPublic = updateCache("public");
+        const patchPrivate = updateCache("private");
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
+            if (draft) {
+              const hasLiked = draft.likes?.some(
+                (l: any) => l.userId === userId,
+              );
+              if (hasLiked) {
+                draft._count.likes -= 1;
+                draft.likes = draft.likes.filter(
+                  (l: any) => l.userId !== userId,
+                );
+              } else {
+                draft._count.likes += 1;
+                draft.likes = [...(draft.likes || []), { userId }];
+              }
+            }
+          }),
+        );
 
-    //     try {
-    //       await queryFulfilled;
-    //     } catch {
-    //       patchPublic.undo();
-    //       patchPrivate.undo();
-    //       patchPost.undo();
-    //     }
-    //   },
-    // }),
+        try {
+          await queryFulfilled;
+        } catch {
+          patchPublic.undo();
+          patchPrivate.undo();
+          patchPost.undo();
+        }
+      },
+    }),
 
     bookmarkPost: builder.mutation({
       query: (id) => ({
@@ -299,207 +146,204 @@ export const postApi = api.injectEndpoints({
       invalidatesTags: ["Post"],
     }),
 
-    // repostPost: builder.mutation({
-    //   query: ({ id, content, image }) => ({
-    //     url: `/posts/${id}/repost`,
-    //     method: "POST",
-    //     body: { content, image },
-    //   }),
-    //   async onQueryStarted(
-    //     { id, content },
-    //     { dispatch, queryFulfilled, getState },
-    //   ) {
-    //     if (content) return; // Don't optimistically update quotes yet as they create new posts
+    repostPost: builder.mutation({
+      query: ({ id, content, image }) => ({
+        url: `/posts/${id}/repost`,
+        method: "POST",
+        body: { content, image },
+      }),
+      async onQueryStarted(
+        { id, content },
+        { dispatch, queryFulfilled, getState },
+      ) {
+        if (content) return; // Don't optimistically update quotes yet as they create new posts
 
-    //     const updateCache = (draft: any) => {
-    //       if (!draft?.posts) return;
-    //       const post = draft.posts.find((p: any) => p.id === id);
-    //       if (post) {
-    //         post.repostsCount = (post.repostsCount || 0) + 1;
-    //         post.repostedByMe = true;
-    //         // Also update legacy count if needed
-    //         if (post._count)
-    //           post._count.reposts = (post._count.reposts || 0) + 1;
-    //       }
-    //     };
+        const updateCache = (draft: any) => {
+          if (!draft?.posts) return;
+          const post = draft.posts.find((p: any) => p.id === id);
+          if (post) {
+            post.repostsCount = (post.repostsCount || 0) + 1;
+            post.repostedByMe = true;
+            // Also update legacy count if needed
+            if (post._count)
+              post._count.reposts = (post._count.reposts || 0) + 1;
+          }
+        };
 
-    //     const patchGetPosts = dispatch(
-    //       postApi.util.updateQueryData(
-    //         "getPosts",
-    //         { type: "public", cursor: null } as any,
-    //         updateCache,
-    //       ),
-    //     );
-    //     const patchGetFeed = dispatch(
-    //       postApi.util.updateQueryData(
-    //         "getFeed",
-    //         { cursor: null } as any,
-    //         updateCache,
-    //       ),
-    //     );
+        const patchGetPosts = dispatch(
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            updateCache,
+          ),
+        );
+        const patchGetFeed = dispatch(
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            updateCache,
+          ),
+        );
 
-    //     try {
-    //       await queryFulfilled;
-    //     } catch {
-    //       patchGetPosts.undo();
-    //       patchGetFeed.undo();
-    //     }
-    //   },
-    //   invalidatesTags: ["Post"],
-    // }),
+        try {
+          await queryFulfilled;
+        } catch {
+          patchGetPosts.undo();
+          patchGetFeed.undo();
+        }
+      },
+      invalidatesTags: ["Post"],
+    }),
+    deleteRepost: builder.mutation({
+      query: (id) => ({
+        url: `/posts/${id}/repost`,
+        method: "DELETE",
+      }),
+      async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
+        const updateCache = (draft: any) => {
+          if (!draft?.posts) return;
+          const post = draft.posts.find((p: any) => p.id === id);
+          if (post) {
+            post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
+            post.repostedByMe = false;
+            // Also update legacy
+            if (post._count)
+              post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
+          }
+        };
 
-    // /// #################################
-    // deleteRepost: builder.mutation({
-    //   query: (id) => ({
-    //     url: `/posts/${id}/repost`,
-    //     method: "DELETE",
-    //   }),
-    //   async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
-    //     const updateCache = (draft: any) => {
-    //       if (!draft?.posts) return;
-    //       const post = draft.posts.find((p: any) => p.id === id);
-    //       if (post) {
-    //         post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
-    //         post.repostedByMe = false;
-    //         // Also update legacy
-    //         if (post._count)
-    //           post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
-    //       }
-    //     };
+        const patchGetPosts = dispatch(
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            updateCache,
+          ),
+        );
+        const patchGetFeed = dispatch(
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            updateCache,
+          ),
+        );
 
-    //     const patchGetPosts = dispatch(
-    //       postApi.util.updateQueryData(
-    //         "getPosts",
-    //         { type: "public", cursor: null } as any,
-    //         updateCache,
-    //       ),
-    //     );
-    //     const patchGetFeed = dispatch(
-    //       postApi.util.updateQueryData(
-    //         "getFeed",
-    //         { cursor: null } as any,
-    //         updateCache,
-    //       ),
-    //     );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchGetPosts.undo();
+          patchGetFeed.undo();
+        }
+      },
+      invalidatesTags: ["Post"],
+    }),
+    getPost: builder.query({
+      query: (id) => `/posts/${id}`,
+      providesTags: ["Post"],
+    }),
+    getComments: builder.query({
+      query: (id) => `/posts/${id}/comments`,
+      providesTags: ["Post"],
+    }),
+    commentPost: builder.mutation({
+      query: ({ id, content, parentId }) => ({
+        url: `/posts/${id}/comment`,
+        method: "POST",
+        body: { content, parentId },
+      }),
+      async onQueryStarted(
+        { id, content, parentId },
+        { dispatch, queryFulfilled, getState },
+      ) {
+        const user = (getState() as any).auth.user;
+        const tempId = Date.now().toString();
 
-    //     try {
-    //       await queryFulfilled;
-    //     } catch {
-    //       patchGetPosts.undo();
-    //       patchGetFeed.undo();
-    //     }
-    //   },
-    //   invalidatesTags: ["Post"],
-    // }),
+        // 1. Optimistically increment comment count in post lists/detail
+        const updateCount = (type: string) => {
+          return dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type } as any,
+              (draft) => {
+                if (!draft?.posts) return;
+                const post = draft.posts.find((p: any) => p.id === id);
+                if (post) {
+                  post._count.comments += 1;
+                }
+              },
+            ),
+          );
+        };
 
-    // getPost: builder.query({
-    //   query: (id) => `/posts/${id}`,
-    //   providesTags: ["Post"],
-    // }),
-    // getComments: builder.query({
-    //   query: (id) => `/posts/${id}/comments`,
-    //   providesTags: ["Post"],
-    // }),
-    // commentPost: builder.mutation({
-    //   query: ({ id, content, parentId }) => ({
-    //     url: `/posts/${id}/comment`,
-    //     method: "POST",
-    //     body: { content, parentId },
-    //   }),
-    //   async onQueryStarted(
-    //     { id, content, parentId },
-    //     { dispatch, queryFulfilled, getState },
-    //   ) {
-    //     const user = (getState() as any).auth.user;
-    //     const tempId = Date.now().toString();
+        const patchPublic = updateCount("public");
+        const patchPrivate = updateCount("private");
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", id, (draft: any) => {
+            if (draft) {
+              draft._count.comments += 1;
+            }
+          }),
+        );
 
-    //     // 1. Optimistically increment comment count in post lists/detail
-    //     const updateCount = (type: string) => {
-    //       return dispatch(
-    //         postApi.util.updateQueryData(
-    //           "getPosts",
-    //           { type } as any,
-    //           (draft) => {
-    //             if (!draft?.posts) return;
-    //             const post = draft.posts.find((p: any) => p.id === id);
-    //             if (post) {
-    //               post._count.comments += 1;
-    //             }
-    //           },
-    //         ),
-    //       );
-    //     };
+        // 2. Optimistically add the comment to the comments list
+        const patchComments = dispatch(
+          postApi.util.updateQueryData(
+            "getComments" as any,
+            id as any,
+            (draft: any) => {
+              if (draft && !parentId) {
+                // Only add to top-level comments if parentId is null
+                draft.unshift({
+                  id: tempId,
+                  content,
+                  userId: user.id,
+                  postId: id,
+                  parentId: null,
+                  createdAt: new Date().toISOString(),
+                  user: {
+                    id: user.id,
+                    name: user.name,
+                    username: user.username,
+                    image: user.image,
+                  },
+                  replies: [],
+                });
+              } else if (draft && parentId) {
+                // If it's a reply, find the parent and add to its replies
+                const parent = draft.find((c: any) => c.id === parentId);
+                if (parent) {
+                  parent.replies = [
+                    ...(parent.replies || []),
+                    {
+                      id: tempId,
+                      content,
+                      userId: user.id,
+                      postId: id,
+                      parentId,
+                      createdAt: new Date().toISOString(),
+                      user: {
+                        id: user.id,
+                        name: user.name,
+                        username: user.username,
+                        image: user.image,
+                      },
+                    },
+                  ];
+                }
+              }
+            },
+          ),
+        );
 
-    //     const patchPublic = updateCount("public");
-    //     const patchPrivate = updateCount("private");
-    //     const patchPost = dispatch(
-    //       postApi.util.updateQueryData("getPost", id, (draft: any) => {
-    //         if (draft) {
-    //           draft._count.comments += 1;
-    //         }
-    //       }),
-    //     );
-
-    //     // 2. Optimistically add the comment to the comments list
-    //     const patchComments = dispatch(
-    //       postApi.util.updateQueryData(
-    //         "getComments" as any,
-    //         id as any,
-    //         (draft: any) => {
-    //           if (draft && !parentId) {
-    //             // Only add to top-level comments if parentId is null
-    //             draft.unshift({
-    //               id: tempId,
-    //               content,
-    //               userId: user.id,
-    //               postId: id,
-    //               parentId: null,
-    //               createdAt: new Date().toISOString(),
-    //               user: {
-    //                 id: user.id,
-    //                 name: user.name,
-    //                 username: user.username,
-    //                 image: user.image,
-    //               },
-    //               replies: [],
-    //             });
-    //           } else if (draft && parentId) {
-    //             // If it's a reply, find the parent and add to its replies
-    //             const parent = draft.find((c: any) => c.id === parentId);
-    //             if (parent) {
-    //               parent.replies = [
-    //                 ...(parent.replies || []),
-    //                 {
-    //                   id: tempId,
-    //                   content,
-    //                   userId: user.id,
-    //                   postId: id,
-    //                   parentId,
-    //                   createdAt: new Date().toISOString(),
-    //                   user: {
-    //                     id: user.id,
-    //                     name: user.name,
-    //                     username: user.username,
-    //                     image: user.image,
-    //                   },
-    //                 },
-    //               ];
-    //             }
-    //           }
-    //         },
-    //       ),
-    //     );
-
-    //     try {
-    //       await queryFulfilled;
-    //     } catch {
-    //       patchPublic.undo();
-    //       patchPrivate.undo();
-    //       patchPost.undo();
-    //       patchComments.undo();
-    //     }
-    //   },
-    // }),
+        try {
+          await queryFulfilled;
+        } catch {
+          patchPublic.undo();
+          patchPrivate.undo();
+          patchPost.undo();
+          patchComments.undo();
+        }
+      },
+    }),
 
     incrementViewCount: builder.mutation({
       query: ({ postId }) => ({
