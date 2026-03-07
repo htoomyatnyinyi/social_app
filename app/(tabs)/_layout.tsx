@@ -1,58 +1,94 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSelector } from "react-redux";
+import { useSelector , useDispatch } from "react-redux";
 import { useGetUnreadCountQuery } from "../../store/notificationApi";
-import { API_URL } from "../../store/api";
+import { API_URL, api } from "../../store/api";
 
 export default function TabLayout() {
   const token = useSelector((state: any) => state.auth.token);
-  const { data: notificationData, refetch } = useGetUnreadCountQuery(
-    undefined,
-    {
-      pollingInterval: 15000,
-    },
-  );
+  const dispatch = useDispatch();
+  const { data: notificationData, refetch: refetchUnread } =
+    useGetUnreadCountQuery(undefined, {
+      pollingInterval: 30000, // Reduced polling — WS handles real-time
+    });
+
+  // Keep refetch in a ref to avoid re-creating the WS connection
+  const refetchRef = useRef(refetchUnread);
+  useEffect(() => {
+    refetchRef.current = refetchUnread;
+  }, [refetchUnread]);
 
   useEffect(() => {
     if (!token) return;
 
-    const wsUrl = API_URL.replace("http", "ws");
-    const socket = new WebSocket(
-      `${wsUrl}/notifications/ws?token=${token || ""}`,
-    );
+    let isCleanedUp = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let socketRef: WebSocket | null = null;
 
-    socket.onopen = () => {
-      console.log("Connected to notification WS");
-    };
+    const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
+    const cleanBase = API_URL.replace(/^https?:\/\//, "");
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "refresh") {
-          console.log("Received notification refresh signal");
-          refetch();
+    const connect = () => {
+      if (isCleanedUp) return;
+
+      const socket = new WebSocket(
+        `${wsProtocol}://${cleanBase}/notifications/ws?token=${token}`,
+      );
+      socketRef = socket;
+
+      socket.onopen = () => {
+        console.log("✅ Notification WS connected");
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "refresh") {
+            console.log("🔔 Notification refresh signal received");
+            // Refetch unread count (badge)
+            refetchRef.current();
+            // Invalidate the full notification list so it refetches when the screen is visited
+            dispatch(api.util.invalidateTags(["Notification"]));
+            // Also invalidate Chat tag so the chat list refreshes with new message previews
+            dispatch(api.util.invalidateTags(["Chat"]));
+          }
+        } catch (e) {
+          console.error("Error parsing notification WS message", e);
         }
-      } catch (e) {
-        console.error("Error parsing notification WS message", e);
-      }
+      };
+
+      socket.onerror = (e) => {
+        console.error("❌ Notification WS error", e);
+      };
+
+      socket.onclose = (e) => {
+        console.log(
+          `🔌 Notification WS closed. Code: ${e.code}, Reason: ${e.reason}`,
+        );
+        socketRef = null;
+        // Auto-reconnect after 5 seconds unless we cleaned up
+        if (!isCleanedUp) {
+          reconnectTimer = setTimeout(connect, 5000);
+        }
+      };
     };
 
-    socket.onerror = (e) => {
-      console.log("Notification WS error", e);
-    };
+    connect();
 
     return () => {
-      socket.close();
+      isCleanedUp = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socketRef?.close();
+      socketRef = null;
     };
-  }, [token, refetch]);
+  }, [token, dispatch]); // Only reconnect when token changes, not on refetch
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#1d9bf0",
         tabBarInactiveTintColor: "#6B7280",
-        // headerShown: false,
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: "#f3f4f6",
@@ -84,7 +120,7 @@ export default function TabLayout() {
               color={color}
             />
           ),
-          headerShown: false, // Often Home has custom header
+          headerShown: false,
         }}
       />
       <Tabs.Screen

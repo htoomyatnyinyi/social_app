@@ -35,3 +35,5 @@ export default function Index() {
 
 //   return <Redirect href="/(tabs)" />;
 // }
+
+// ~/Android/Sdk/emulator/emulator -avd HMNN_2
