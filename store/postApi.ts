@@ -515,4 +515,5 @@ export const {
   useGetBookmarksQuery,
   useBlockUserMutation,
   useDeleteRepostMutation,
+  useReportPostMutation,
 } = postApi;

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo, useCallback } from "react";
+import React, { useEffect, useRef, memo, useCallback, useState } from "react";
 import {
   View,
   FlatList,
@@ -20,114 +20,150 @@ import { useChatWebSocket } from "../../hooks/useChatWebSocket";
 import { messages as messagesTable } from "../../db/schema";
 
 // Memoized Message Bubble Component
-const MessageBubble = memo(({
-  item,
-  prevMessage,
-  user,
-}: {
-  item: typeof messagesTable.$inferSelect;
-  prevMessage: typeof messagesTable.$inferSelect | null;
-  user: any;
-}) => {
-  const isMe = item.senderId === user?.id;
-  const isSameSenderAsPrev = prevMessage?.senderId === item.senderId;
-  const isPending = item.status === "pending";
+const MessageBubble = memo(
+  ({
+    item,
+    prevMessage,
+    user,
+  }: {
+    item: typeof messagesTable.$inferSelect;
+    prevMessage: typeof messagesTable.$inferSelect | null;
+    user: any;
+  }) => {
+    const isMe = item.senderId === user?.id;
+    const isSameSenderAsPrev = prevMessage?.senderId === item.senderId;
+    const isPending = item.status === "pending";
 
-  return (
-    <View
-      className={`flex-row mb-1 px-4 ${isMe ? "justify-end" : "justify-start"} ${!isSameSenderAsPrev ? "mt-4" : ""}`}
-    >
-      {!isMe && !isSameSenderAsPrev && (
-        <View className="w-8 h-8 rounded-full bg-gray-200 mr-2 items-center justify-center">
-          <Ionicons name="person" size={16} color="gray" />
-        </View>
-      )}
-      {!isMe && isSameSenderAsPrev && <View className="w-10" />}
-
+    return (
       <View
-        className={`max-w-[75%] px-4 py-3 rounded-2xl ${
-          isMe
-            ? "bg-[#1d9bf0] rounded-tr-[4px]"
-            : "bg-gray-100 rounded-tl-[4px]"
-        } ${isSameSenderAsPrev ? (isMe ? "rounded-tr-2xl" : "rounded-tl-2xl") : ""} ${isPending ? "opacity-70" : ""}`}
+        className={`flex-row mb-1 px-4 ${isMe ? "justify-end" : "justify-start"} ${!isSameSenderAsPrev ? "mt-4" : ""}`}
       >
-        <Text
-          className={`${isMe ? "text-white" : "text-gray-900"} text-[16px]`}
+        {!isMe && !isSameSenderAsPrev && (
+          <View className="w-8 h-8 rounded-full bg-gray-200 mr-2 items-center justify-center">
+            <Ionicons name="person" size={16} color="gray" />
+          </View>
+        )}
+        {!isMe && isSameSenderAsPrev && <View className="w-10" />}
+
+        <View
+          className={`max-w-[75%] px-4 py-3 rounded-2xl ${
+            isMe
+              ? "bg-[#1d9bf0] rounded-tr-[4px]"
+              : "bg-gray-100 rounded-tl-[4px]"
+          } ${isSameSenderAsPrev ? (isMe ? "rounded-tr-2xl" : "rounded-tl-2xl") : ""} ${isPending ? "opacity-70" : ""}`}
         >
-          {item.content}
-        </Text>
-        <View className="flex-row items-center justify-end mt-1 gap-1">
           <Text
-            className={`text-[10px] ${isMe ? "text-sky-100" : "text-gray-400"}`}
+            className={`${isMe ? "text-white" : "text-gray-900"} text-[16px]`}
           >
-            {new Date(item.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {item.content}
           </Text>
-          {isMe && (
-            <Ionicons
-              name={
-                isPending
-                  ? "time-outline"
-                  : item.status === "delivered"
-                    ? "checkmark-outline"
-                    : "checkmark-done-outline"
-              }
-              size={12}
-              color={isPending ? "#e0e0e0" : item.status === "delivered" ? "#87ceeb" : "#4fc3f7"}
-            />
-          )}
+          <View className="flex-row items-center justify-end mt-1 gap-1">
+            <Text
+              className={`text-[10px] ${isMe ? "text-sky-100" : "text-gray-400"}`}
+            >
+              {new Date(item.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            {isMe && (
+              <Ionicons
+                name={
+                  isPending
+                    ? "time-outline"
+                    : item.status === "delivered"
+                      ? "checkmark-outline"
+                      : "checkmark-done-outline"
+                }
+                size={12}
+                color={
+                  isPending
+                    ? "#e0e0e0"
+                    : item.status === "delivered"
+                      ? "#87ceeb"
+                      : "#4fc3f7"
+                }
+              />
+            )}
+          </View>
         </View>
       </View>
-    </View>
-  );
-});
+    );
+  },
+);
 
 export default function ChatScreen() {
   const { chatId, title } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  
+
   // Selectors
   const user = useSelector((state: any) => state.auth.user);
   const token = useSelector((state: any) => state.auth.token);
 
   // Ensure chatId is a string
   const resolvedChatId = Array.isArray(chatId) ? chatId[0] : chatId;
-  
+
   // Custom Hooks
-  const { messages, loading, fetchMessages, sendMessage } = useChatMessages(resolvedChatId, token, user);
-  
-  // WebSocket - triggers fetchMessages on new message
+  const { messages, loading, fetchMessages, sendMessage } = useChatMessages(
+    resolvedChatId,
+    token,
+    user,
+  );
+
+  // WebSocket — uses ref internally so no reconnection loops
   useChatWebSocket({
     chatId: resolvedChatId,
     token,
-    onMessageReceived: fetchMessages
+    onMessageReceived: fetchMessages,
   });
 
-  const [inputText, setInputText] = React.useState("");
+  const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList>(null);
 
-  // Robust Scroll to Bottom
-  const lastMessageId = messages?.[messages?.length - 1]?.id;
-  useEffect(() => {
-    if (messages && messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [messages?.length, lastMessageId]);
+  // Scroll to bottom when new messages arrive
+  const scrollToBottom = useCallback((animated = true) => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated });
+    }, 100);
+  }, []);
 
-  const handleSend = () => {
+  // Scroll on new messages
+  const prevMessageCount = useRef(0);
+  useEffect(() => {
+    if (messages && messages.length > prevMessageCount.current) {
+      scrollToBottom();
+    }
+    prevMessageCount.current = messages?.length ?? 0;
+  }, [messages?.length, scrollToBottom]);
+
+  const handleSend = useCallback(() => {
     if (!inputText.trim()) return;
     sendMessage(inputText.trim());
     setInputText("");
-  };
+    // Scroll to bottom immediately for the optimistic message
+    scrollToBottom();
+  }, [inputText, sendMessage, scrollToBottom]);
 
-  const renderItem = useCallback(({ item, index }: { item: typeof messagesTable.$inferSelect; index: number }) => {
-    const prevMessage = messages && index > 0 ? messages[index - 1] : null;
-    return <MessageBubble item={item} prevMessage={prevMessage} user={user} />;
-  }, [messages, user]);
+  const renderItem = useCallback(
+    ({
+      item,
+      index,
+    }: {
+      item: typeof messagesTable.$inferSelect;
+      index: number;
+    }) => {
+      const prevMessage = messages && index > 0 ? messages[index - 1] : null;
+      return (
+        <MessageBubble item={item} prevMessage={prevMessage} user={user} />
+      );
+    },
+    [messages, user],
+  );
+
+  const keyExtractor = useCallback(
+    (item: typeof messagesTable.$inferSelect) => item.id,
+    [],
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top", "left", "right"]}>
@@ -157,12 +193,8 @@ export default function ChatScreen() {
           ref={flatListRef}
           data={messages ?? []}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          extraData={messages}
+          keyExtractor={keyExtractor}
           contentContainerStyle={{ paddingVertical: 20 }}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center mt-20">
@@ -182,6 +214,7 @@ export default function ChatScreen() {
             placeholder="Message..."
             className="flex-1 bg-gray-100 rounded-full px-4 py-2 mr-2 min-h-[40px] text-gray-800"
             multiline
+            onSubmitEditing={handleSend}
           />
           <TouchableOpacity
             onPress={handleSend}

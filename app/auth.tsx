@@ -8,7 +8,7 @@ import {
   Platform,
   Dimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { EvilIcons, Ionicons } from "@expo/vector-icons";
 import { useSignupMutation, useSigninMutation } from "../store/authApi";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../store/authSlice";

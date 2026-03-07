@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { API_URL } from "../store/api";
 import { db } from "../db/client";
 import { messages as messagesTable } from "../db/schema";
@@ -9,56 +9,89 @@ interface UseChatWebSocketProps {
   onMessageReceived?: () => void;
 }
 
-export const useChatWebSocket = ({ chatId, token, onMessageReceived }: UseChatWebSocketProps) => {
+export const useChatWebSocket = ({
+  chatId,
+  token,
+  onMessageReceived,
+}: UseChatWebSocketProps) => {
   const socketRef = useRef<WebSocket | null>(null);
+  // Store callback in a ref to prevent reconnection loops when the callback identity changes
+  const onMessageReceivedRef = useRef(onMessageReceived);
+
+  // Keep the ref up to date without causing re-renders or reconnections
+  useEffect(() => {
+    onMessageReceivedRef.current = onMessageReceived;
+  }, [onMessageReceived]);
 
   useEffect(() => {
     if (!token || !chatId) return;
 
-    const wsUrl = API_URL.replace("http", "ws");
-    const socket = new WebSocket(
-      `${wsUrl}/chat/ws?chatId=${chatId}&token=${token}`,
-    );
-    socketRef.current = socket;
+    // Safely build the WS URL
+    const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
+    const cleanBase = API_URL.replace(/^https?:\/\//, "");
+    const wsUrl = `${wsProtocol}://${cleanBase}/chat/ws?chatId=${chatId}&token=${token}`;
 
-    socket.onopen = () => console.log("WS Connected to", chatId);
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isCleanedUp = false;
 
-    socket.onmessage = async (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("WS message received:", data);
-        if (data.type === "new_message") {
-          await db
-            .insert(messagesTable)
-            .values({
-              id: data.id,
-              chatId: chatId,
-              senderId: data.senderId,
-              content: data.content,
-              createdAt: new Date(data.createdAt).getTime(),
-              status: "synced", // Server messages are always synced
-            })
-            .onConflictDoNothing();
-          
-          console.log("WS message inserted:", data.id);
-          
-          // Trigger callback to update UI
-          if (onMessageReceived) {
-            onMessageReceived();
+    const connect = () => {
+      if (isCleanedUp) return;
+
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log(`✅ Chat WS Connected: ${chatId}`);
+      };
+
+      socket.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "new_message") {
+            await db
+              .insert(messagesTable)
+              .values({
+                id: data.id,
+                chatId: chatId,
+                senderId: data.senderId,
+                content: data.content,
+                createdAt: new Date(data.createdAt).getTime(),
+                status: "synced",
+              })
+              .onConflictDoNothing();
+
+            // Use the ref — no dependency on callback identity
+            onMessageReceivedRef.current?.();
           }
+        } catch (e) {
+          console.error("❌ Chat WS Message Error:", e);
         }
-      } catch (e) {
-        console.error("WS Message Error", e);
-      }
+      };
+
+      socket.onerror = (e) => {
+        console.error("❌ Chat WS Error:", e);
+      };
+
+      socket.onclose = (e) => {
+        console.log(`🔌 Chat WS Closed. Code: ${e.code}, Reason: ${e.reason}`);
+        socketRef.current = null;
+
+        // Auto-reconnect after 3s unless cleaned up
+        if (!isCleanedUp) {
+          reconnectTimer = setTimeout(connect, 3000);
+        }
+      };
     };
 
-    socket.onerror = (e) => console.error("WS Error", e);
+    connect();
 
     return () => {
-      socket.close();
+      isCleanedUp = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [chatId, token, onMessageReceived]);
+  }, [chatId, token]); // Stable deps only — no callback
 
   return socketRef.current;
 };

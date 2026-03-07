@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -19,8 +19,8 @@ import {
   useBookmarkPostMutation,
   useDeletePostMutation,
   useDeleteRepostMutation,
-  useBlockPostMutation,
   useBlockUserMutation,
+  useReportPostMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
@@ -37,12 +37,6 @@ interface User {
   image?: string;
 }
 
-interface Comment {
-  id: string;
-  content: string;
-  user: User;
-}
-
 interface Post {
   id: string;
   content: string;
@@ -51,9 +45,9 @@ interface Post {
   author: User;
   isRepost?: boolean;
   originalPost?: Post;
-  likes: Array<{ userId: string }>;
-  bookmarks: Array<{ userId: string }>;
-  repostedBy: Array<{ userId: string }>;
+  likes: { userId: string }[];
+  bookmarks: { userId: string }[];
+  repostedBy: { userId: string }[];
   _count: {
     comments: number;
     reposts: number;
@@ -304,8 +298,8 @@ export default function FeedScreen() {
   const [repostPost] = useRepostPostMutation();
   const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
-  const [blockPost] = useBlockPostMutation();
   const [blockUser] = useBlockUserMutation();
+  const [reportPost] = useReportPostMutation();
 
   // ─── Handlers ───────────────────────────────────────
 
@@ -407,7 +401,7 @@ export default function FeedScreen() {
 
   const uniquePosts = Array.from(
     new Map(posts.map((item: any) => [item.id, item])).values(),
-  );
+  ) as Post[];
 
   // ─── Render ─────────────────────────────────────────
 
@@ -561,38 +555,33 @@ export default function FeedScreen() {
             console.error("Delete failed", err);
           }
         }}
-        // Add onBlock, onReport, etc. as needed...
         onReport={async () => {
           if (!postForOptions?.id) return;
-          alert("Thank you for reporting this post.");
           try {
-            await blockPost({
-              id: postForOptions.id, // Changed from postId to id
+            await reportPost({
+              id: postForOptions.id,
               reason: "SPAM",
             }).unwrap();
-
-            alert("Post blocked successfully");
+            alert("Thank you for reporting this post.");
+            setOptionsModalVisible(false);
           } catch (error: any) {
-            console.error("Error blocking post:", error);
+            console.error("Error reporting post:", error);
             const errorMessage = error?.data?.message || "Something went wrong";
-            alert(`Failed to block: ${errorMessage}`);
+            alert(`Failed to report: ${errorMessage}`);
           }
         }}
         onBlock={async () => {
-          if (!postForOptions?.id) return;
+          if (!postForOptions?.author?.id) return;
           try {
-            await blockUser({
-              id: postForOptions.id, // Changed from postId to id
-            }).unwrap();
-
-            alert("User blocked successfully");
+            await blockUser({ id: postForOptions.author.id }).unwrap();
+            alert(`Blocked @${postForOptions?.author?.name}`);
+            setOptionsModalVisible(false);
+            refetch();
           } catch (error: any) {
             console.error("Error blocking user:", error);
             const errorMessage = error?.data?.message || "Something went wrong";
             alert(`Failed to block: ${errorMessage}`);
           }
-          alert(`Blocked @${postForOptions?.author?.name}`);
-          refetch();
         }}
       />
     </SafeAreaView>

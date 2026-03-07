@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import {
   View,
-  ScrollView,
   Text,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   FlatList,
   RefreshControl,
 } from "react-native";
@@ -21,7 +19,6 @@ import {
 import {
   useLikePostMutation,
   useRepostPostMutation,
-  useIncrementViewCountMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -39,6 +36,9 @@ export default function ProfileScreen() {
     skip: !user?.id,
   });
 
+  const [likePost] = useLikePostMutation();
+  const [repostPost] = useRepostPostMutation();
+
   const {
     data: userPosts,
     isLoading: isPostsLoading,
@@ -46,15 +46,7 @@ export default function ProfileScreen() {
   } = useGetUserPostsQuery(user?.id, {
     skip: !user?.id || activeTab !== "posts",
   });
-  const {
-    data: userPosts_c,
-    isLoading: isPostsLoading_c,
-    refetch: refetchPosts_c,
-  } = useGetUserPostsQuery(user?.id, {
-    skip: !user?.id,
-  });
 
-  console.log(profile, userPosts_c, userPosts, "check");
   const {
     data: userLikes,
     isLoading: isLikesLoading,
@@ -62,10 +54,6 @@ export default function ProfileScreen() {
   } = useGetUserLikesQuery(user?.id, {
     skip: !user?.id || activeTab !== "likes",
   });
-
-  const [likePost] = useLikePostMutation();
-  const [repostPost] = useRepostPostMutation();
-  const [incrementViewCount] = useIncrementViewCountMutation();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -319,7 +307,6 @@ export default function ProfileScreen() {
   const data =
     activeTab === "posts" ? userPosts : activeTab === "likes" ? userLikes : [];
 
-  console.log(data);
   return (
     <SafeAreaView className="flex-1 bg-white">
       <FlatList
