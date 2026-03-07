@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSelector , useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useGetUnreadCountQuery } from "../../store/notificationApi";
 import { API_URL, api } from "../../store/api";
 
@@ -106,7 +106,7 @@ export default function TabLayout() {
           fontWeight: "bold",
           fontSize: 18,
         },
-        headerShown: true,
+        headerShown: false,
       }}
     >
       <Tabs.Screen
