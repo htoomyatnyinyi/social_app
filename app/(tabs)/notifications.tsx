@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   useGetNotificationsQuery,
   useMarkAllAsReadMutation,
@@ -25,9 +26,37 @@ export default function NotificationsScreen() {
     refetch,
     isFetching,
   } = useGetNotificationsQuery({});
+
+  // const {
+  //   data: notifications,
+  //   isLoading,
+  //   refetch,
+  //   isFetching,
+  // } = useGetNotificationsQuery(
+  //   {},
+  //   {
+  //     refetchOnMountOrArgChange: true,
+  //   },
+  // );
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [markAsRead] = useMarkAsReadMutation();
   const [createChatRoom] = useCreateChatRoomMutation();
+
+  // Refetch notifications when screen is focused (e.g., navigating back from a post)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
+
+  useEffect(() => {
+    if (notifications) {
+      console.log("--- API DATA DEBUG ---");
+      console.log("Type of notifications:", typeof notifications);
+      console.log("Is Array?:", Array.isArray(notifications));
+      console.log("Full Data:", JSON.stringify(notifications, null, 2));
+    }
+  }, [notifications]);
 
   const getNotificationConfig = (type: string) => {
     switch (type) {
@@ -72,9 +101,25 @@ export default function NotificationsScreen() {
     }
   };
 
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  };
+
   const handleNotificationPress = async (notification: any) => {
+    // Mark as read optimistically
     if (!notification.read) {
-      await markAsRead(notification.id);
+      markAsRead(notification.id);
     }
 
     if (notification.type === "MESSAGE" && notification.issuerId) {
@@ -147,15 +192,7 @@ export default function NotificationsScreen() {
           )}
 
           <Text className="text-gray-400 text-xs mt-3">
-            {new Date(item.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}{" "}
-            ·{" "}
-            {new Date(item.createdAt).toLocaleDateString([], {
-              month: "short",
-              day: "numeric",
-            })}
+            {formatTimeAgo(item.createdAt)}
           </Text>
         </View>
         {!item.read && (
@@ -173,7 +210,7 @@ export default function NotificationsScreen() {
           Notifications
         </Text>
         <TouchableOpacity onPress={() => markAllAsRead({})} className="p-1">
-          <Ionicons name="settings-outline" size={20} color="black" />
+          <Ionicons name="checkmark-done-outline" size={22} color="#1d9bf0" />
         </TouchableOpacity>
       </View>
 

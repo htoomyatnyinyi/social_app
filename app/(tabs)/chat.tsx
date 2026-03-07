@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSelector } from "react-redux";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   useGetChatRoomsQuery,
   useGetPublicChatQuery,
@@ -37,6 +38,13 @@ export default function ChatListScreen() {
   });
   const [createChatRoom] = useCreateChatRoomMutation();
 
+  // Refetch chat rooms when the tab is focused so last-message previews are fresh
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
+
   const handleStartChat = async (otherUserId: string) => {
     try {
       const room = await createChatRoom(otherUserId).unwrap();
@@ -46,6 +54,21 @@ export default function ChatListScreen() {
       console.error(e);
       alert("Follow each other to start a private chat");
     }
+  };
+
+  const formatLastMessageTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return "now";
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
 
   const ChatItem = ({ item }: { item: any }) => {
@@ -79,10 +102,7 @@ export default function ChatListScreen() {
             </Text>
             {lastMessage && (
               <Text className="text-gray-400 text-xs">
-                {new Date(lastMessage.createdAt).toLocaleDateString([], {
-                  month: "short",
-                  day: "numeric",
-                })}
+                {formatLastMessageTime(lastMessage.createdAt)}
               </Text>
             )}
           </View>
@@ -97,14 +117,6 @@ export default function ChatListScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      {/* <View className="px-4 py-3 flex-row items-center border-b border-gray-50">
-        <Text className="text-xl font-extrabold text-gray-900">Messages</Text>
-        <TouchableOpacity className="ml-auto">
-          <Ionicons name="settings-outline" size={22} color="black" />
-        </TouchableOpacity>
-      </View> */}
-
       {/* Search Bar */}
       <View className="px-4 py-3">
         <View className="flex-row items-center bg-gray-100 rounded-2xl px-4 py-2.5">
@@ -146,7 +158,7 @@ export default function ChatListScreen() {
                       {u.name}
                     </Text>
                     <Text className="text-gray-500 text-sm">
-                      @{u.name.toLowerCase().replace(/\s/g, "")}
+                      @{u.username || u.name.toLowerCase().replace(/\s/g, "")}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -194,26 +206,6 @@ export default function ChatListScreen() {
             )}
           </>
         }
-        // ListEmptyComponent={
-        //   !isLoading && (
-        //     <View className="items-center justify-center mt-20 px-10">
-        //       <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-6">
-        //         <Ionicons
-        //           name="mail-unread-outline"
-        //           size={40}
-        //           color="#D1D5DB"
-        //         />
-        //       </View>
-        //       <Text className="text-2xl font-extrabold text-center mb-2 text-gray-900">
-        //         Inbox Zero
-        //       </Text>
-        //       <Text className="text-gray-500 text-center text-lg leading-6">
-        //         Private messages are here. Search for users to start a safe
-        //         conversation.
-        //       </Text>
-        //     </View>
-        //   )
-        // }
         ListEmptyComponent={
           <View className="items-center justify-center mt-20 px-10">
             <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-6">
@@ -233,7 +225,7 @@ export default function ChatListScreen() {
       <TouchableOpacity
         onPress={() => {
           router.push("/chat/new");
-        }} // Could open a full search modal
+        }}
         className="absolute bottom-6 right-6 w-14 h-14 bg-[#1d9bf0] rounded-full items-center justify-center shadow-xl shadow-sky-500/40"
       >
         <Ionicons name="mail-outline" size={28} color="white" />

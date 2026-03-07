@@ -54,8 +54,8 @@ interface Post {
   image?: string;
   createdAt: string;
   author: User;
-  likes: Array<{ userId: string }>;
-  bookmarks: Array<{ userId: string }>;
+  likes: { userId: string }[];
+  bookmarks: { userId: string }[];
   _count: {
     comments: number;
     reposts: number;
