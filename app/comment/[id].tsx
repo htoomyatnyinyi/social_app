@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,13 +18,14 @@ import {
   useCommentPostMutation,
   useLikeCommentMutation,
   useRepostCommentMutation,
+  useIncrementCommentViewCountMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PostOptionsModal from "../../components/PostOptionsModal";
 
 export default function CommentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: any }>();
   const router = useRouter();
   const currentUser = useSelector((state: any) => state.auth.user);
 
@@ -33,13 +35,51 @@ export default function CommentDetailScreen() {
 
   const inputRef = useRef<TextInput>(null);
 
-  const { data: comment, isLoading, refetch } = useGetCommentQuery(id!, {
+  const {
+    data: comment,
+    isLoading,
+    refetch,
+  } = useGetCommentQuery(id!, {
     skip: !id,
   });
 
   const [commentPost] = useCommentPostMutation();
   const [likeComment] = useLikeCommentMutation();
   const [repostComment] = useRepostCommentMutation();
+  const [incrementView] = useIncrementCommentViewCountMutation();
+
+  useEffect(() => {
+    if (comment?.postId && comment?.id) {
+      incrementView({ postId: comment.postId, commentId: comment.id })
+        .unwrap()
+        .then(() => {
+          refetch();
+        });
+    }
+  }, [comment?.postId, comment?.id, incrementView, refetch]);
+
+  const handleMainCommentShare = useCallback(async () => {
+    try {
+      if (!comment) return;
+      const urlToShare = `https://oasis-social.com/comment/${comment.id}`;
+      await Share.share({
+        message: `Check out this comment by @${comment.user?.username || comment.user?.name}: "${comment.content}"\n${urlToShare}`,
+      });
+    } catch (error) {
+      console.error("Error sharing comment:", error);
+    }
+  }, [comment]);
+
+  const handleReplyShare = useCallback(async (item: any) => {
+    try {
+      const urlToShare = `https://oasis-social.com/comment/${item.id}`;
+      await Share.share({
+        message: `Check out this reply by @${item.user?.username || item.user?.name}: "${item.content}"\n${urlToShare}`,
+      });
+    } catch (error) {
+      console.error("Error sharing reply:", error);
+    }
+  }, []);
 
   const handleSendComment = useCallback(async () => {
     if (!commentContent.trim() || !comment?.postId) return;
@@ -68,19 +108,22 @@ export default function CommentDetailScreen() {
         console.error("Failed to like comment:", err);
       }
     },
-    [likeComment, refetch]
+    [likeComment, refetch],
   );
 
   const handleCommentRepost = useCallback(
     async (item: any) => {
       try {
-        await repostComment({ postId: item.postId, commentId: item.id }).unwrap();
+        await repostComment({
+          postId: item.postId,
+          commentId: item.id,
+        }).unwrap();
         refetch();
       } catch (err) {
         console.error("Failed to repost comment:", err);
       }
     },
-    [repostComment, refetch]
+    [repostComment, refetch],
   );
 
   if (isLoading) {
@@ -100,23 +143,23 @@ export default function CommentDetailScreen() {
   }
 
   const hasLikedMain = comment.commentLikes?.some(
-    (l: any) => l.userId === currentUser?.id
+    (l: any) => l.userId === currentUser?.id,
   );
   const hasRepostedMain = comment.commentReposts?.some(
-    (r: any) => r.userId === currentUser?.id
+    (r: any) => r.userId === currentUser?.id,
   );
 
   const renderReply = ({ item }: { item: any }) => {
     const hasLiked = item.commentLikes?.some(
-      (l: any) => l.userId === currentUser?.id
+      (l: any) => l.userId === currentUser?.id,
     );
     const hasReposted = item.commentReposts?.some(
-      (r: any) => r.userId === currentUser?.id
+      (r: any) => r.userId === currentUser?.id,
     );
 
     return (
       <View className="border-b border-gray-100 bg-white">
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.push(`/comment/${item.id}`)}
           className="flex-row p-4"
         >
@@ -133,7 +176,9 @@ export default function CommentDetailScreen() {
                   {item.user?.name || "User"}
                 </Text>
                 <Text className="text-gray-500 text-[13.5px]">
-                  @{item.user?.username || item.user?.name?.toLowerCase().replace(/\s+/g, "")}
+                  @
+                  {item.user?.username ||
+                    item.user?.name?.toLowerCase().replace(/\s+/g, "")}
                 </Text>
                 <Text className="text-gray-400 text-[13px] ml-1">
                   ·{" "}
@@ -149,7 +194,11 @@ export default function CommentDetailScreen() {
                   setOptionsVisible(true);
                 }}
               >
-                <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={16}
+                  color="#6B7280"
+                />
               </TouchableOpacity>
             </View>
 
@@ -161,7 +210,7 @@ export default function CommentDetailScreen() {
               {item.content}
             </Text>
 
-            <View className="flex-row mt-3 items-center justify-between pr-8">
+            <View className="flex-row mt-3 items-center justify-between pr-4">
               <TouchableOpacity className="flex-row items-center">
                 <Ionicons name="chatbubble-outline" size={17} color="#6B7280" />
                 <Text className="text-xs text-gray-500 ml-1.5">
@@ -178,7 +227,9 @@ export default function CommentDetailScreen() {
                   size={18}
                   color={hasReposted ? "#00BA7C" : "#6B7280"}
                 />
-                <Text className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C]" : "text-gray-500"}`}>
+                <Text
+                  className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C]" : "text-gray-500"}`}
+                >
                   {item._count?.commentReposts ?? 0}
                 </Text>
               </TouchableOpacity>
@@ -192,12 +243,25 @@ export default function CommentDetailScreen() {
                   size={18}
                   color={hasLiked ? "#F91880" : "#6B7280"}
                 />
-                <Text className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}>
+                <Text
+                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                >
                   {item._count?.commentLikes ?? 0}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
+              <TouchableOpacity className="flex-row items-center">
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={17}
+                  color="#6B7280"
+                />
+                <Text className="text-xs text-gray-500 ml-1.5">
+                  {item.views ?? 0}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => handleReplyShare(item)}>
                 <Ionicons name="share-outline" size={18} color="#6B7280" />
               </TouchableOpacity>
             </View>
@@ -232,7 +296,9 @@ export default function CommentDetailScreen() {
           ListHeaderComponent={
             <View className="p-4 bg-white border-b border-gray-100">
               {/* Parent Context */}
-              <TouchableOpacity onPress={() => router.push(`/post/${comment.postId}`)}>
+              <TouchableOpacity
+                onPress={() => router.push(`/post/${comment.postId}`)}
+              >
                 {comment.parent ? (
                   <Text className="text-[#1d9bf0] text-[13.5px] mb-2 font-medium">
                     Show thread
@@ -249,7 +315,8 @@ export default function CommentDetailScreen() {
                 <View className="flex-row items-center">
                   <Image
                     source={{
-                      uri: comment.user?.image || "https://via.placeholder.com/48",
+                      uri:
+                        comment.user?.image || "https://via.placeholder.com/48",
                     }}
                     className="w-12 h-12 rounded-full mr-3 bg-gray-100"
                   />
@@ -258,7 +325,9 @@ export default function CommentDetailScreen() {
                       {comment.user?.name || "User"}
                     </Text>
                     <Text className="text-gray-500 text-[14.5px]">
-                      @{comment.user?.username || comment.user?.name?.toLowerCase().replace(/\s+/g, "")}
+                      @
+                      {comment.user?.username ||
+                        comment.user?.name?.toLowerCase().replace(/\s+/g, "")}
                     </Text>
                   </View>
                 </View>
@@ -269,7 +338,11 @@ export default function CommentDetailScreen() {
                     setOptionsVisible(true);
                   }}
                 >
-                  <Ionicons name="ellipsis-horizontal" size={20} color="#6B7280" />
+                  <Ionicons
+                    name="ellipsis-horizontal"
+                    size={20}
+                    color="#6B7280"
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -298,7 +371,11 @@ export default function CommentDetailScreen() {
               {/* Action bar */}
               <View className="flex-row justify-between items-center py-2 px-6">
                 <TouchableOpacity className="flex-row items-center">
-                  <Ionicons name="chatbubble-outline" size={22} color="#6B7280" />
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={22}
+                    color="#6B7280"
+                  />
                   <Text className="text-gray-600 text-[15px] ml-2">
                     {comment._count?.replies ?? 0}
                   </Text>
@@ -329,14 +406,27 @@ export default function CommentDetailScreen() {
                   />
                   <Text
                     className={`text-[15px] ml-2 ${
-                      hasLikedMain ? "text-[#F91880] font-medium" : "text-gray-600"
+                      hasLikedMain
+                        ? "text-[#F91880] font-medium"
+                        : "text-gray-600"
                     }`}
                   >
                     {comment._count?.commentLikes ?? 0}
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity>
+                <TouchableOpacity className="flex-row items-center">
+                  <Ionicons
+                    name="stats-chart-outline"
+                    size={22}
+                    color="#6B7280"
+                  />
+                  <Text className="text-gray-600 text-[15px] ml-2">
+                    {comment.views ?? 0}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleMainCommentShare}>
                   <Ionicons name="share-outline" size={23} color="#6B7280" />
                 </TouchableOpacity>
               </View>
@@ -355,7 +445,8 @@ export default function CommentDetailScreen() {
         <View className="border-t border-gray-100 bg-white shadow-sm pb-1">
           <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
             <Text className="text-gray-600 text-[14.5px]">
-              Replying to <Text className="text-[#1d9bf0]">@{comment.user?.name}</Text>
+              Replying to{" "}
+              <Text className="text-[#1d9bf0]">@{comment.user?.name}</Text>
             </Text>
           </View>
 

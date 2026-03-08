@@ -9,7 +9,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
+  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,7 +51,8 @@ interface Comment {
   replies?: Comment[];
   commentLikes?: { userId: string }[];
   commentReposts?: { userId: string }[];
-  _count?: { replies: number; commentLikes: number; commentReposts: number; };
+  _count?: { replies: number; commentLikes: number; commentReposts: number };
+  views?: number;
 }
 
 interface Post {
@@ -62,6 +63,7 @@ interface Post {
   author: User;
   likes: { userId: string }[];
   bookmarks: { userId: string }[];
+  repostedBy: { userId: string }[];
   _count: {
     comments: number;
     reposts: number;
@@ -90,7 +92,7 @@ const CommentItem = memo(
 
     const [likeComment] = useLikeCommentMutation();
     const [repostComment] = useRepostCommentMutation();
-    const router = require("expo-router").useRouter();
+    const router = useRouter();
 
     const handleCommentLike = useCallback(async () => {
       try {
@@ -102,22 +104,40 @@ const CommentItem = memo(
 
     const handleCommentRepost = useCallback(async () => {
       try {
-        await repostComment({ postId: item.postId, commentId: item.id }).unwrap();
+        await repostComment({
+          postId: item.postId,
+          commentId: item.id,
+        }).unwrap();
       } catch (err) {
         console.error("Failed to repost comment:", err);
       }
     }, [repostComment, item.postId, item.id]);
 
+    const handleCommentShare = useCallback(async () => {
+      try {
+        const urlToShare = `https://oasis-social.com/comment/${item.id}`;
+        await Share.share({
+          message: `Check out this comment by @${item.user?.username || item.user?.name}: "${item.content}"\n${urlToShare}`,
+        });
+      } catch (error) {
+        console.error("Error sharing comment:", error);
+      }
+    }, [item]);
+
     const hasLiked =
       item.commentLikes?.some((l: any) => l.userId === currentUserId) ?? false;
     const hasReposted =
-      item.commentReposts?.some((r: any) => r.userId === currentUserId) ?? false;
+      item.commentReposts?.some((r: any) => r.userId === currentUserId) ??
+      false;
 
     return (
       <View
         className={`${isReply ? "ml-12 border-l-2 border-gray-200 pl-4" : "border-b border-gray-100"} bg-white`}
       >
-        <TouchableOpacity onPress={() => router.push(`/comment/${item.id}`)} className="flex-row p-4">
+        <TouchableOpacity
+          onPress={() => router.push(`/comment/${item.id}`)}
+          className="flex-row p-4"
+        >
           <Image
             source={{
               uri: item.user?.image || "https://via.placeholder.com/40",
@@ -162,7 +182,7 @@ const CommentItem = memo(
               {item.content}
             </Text>
 
-            <View className="flex-row mt-3 items-center justify-between pr-8">
+            <View className="flex-row mt-3 items-center justify-between pr-4">
               <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => onReply(item.id, item.user?.name)}
@@ -173,21 +193,50 @@ const CommentItem = memo(
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity className="flex-row items-center" onPress={handleCommentRepost}>
-                <Ionicons name="repeat-outline" size={18} color={hasReposted ? "#00BA7C" : "#6B7280"} />
-                <Text className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C]" : "text-gray-500"}`}>
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={handleCommentRepost}
+              >
+                <Ionicons
+                  name="repeat-outline"
+                  size={18}
+                  color={hasReposted ? "#00BA7C" : "#6B7280"}
+                />
+                <Text
+                  className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C]" : "text-gray-500"}`}
+                >
                   {item._count?.commentReposts ?? 0}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity className="flex-row items-center" onPress={handleCommentLike}>
-                <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={18} color={hasLiked ? "#F91880" : "#6B7280"} />
-                <Text className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}>
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={handleCommentLike}
+              >
+                <Ionicons
+                  name={hasLiked ? "heart" : "heart-outline"}
+                  size={18}
+                  color={hasLiked ? "#F91880" : "#6B7280"}
+                />
+                <Text
+                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
+                >
                   {item._count?.commentLikes ?? 0}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
+              <TouchableOpacity className="flex-row items-center">
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={17}
+                  color="#6B7280"
+                />
+                <Text className="text-xs text-gray-500 ml-1.5">
+                  {item.views ?? 0}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleCommentShare}>
                 <Ionicons name="share-outline" size={18} color="#6B7280" />
               </TouchableOpacity>
             </View>
@@ -195,15 +244,17 @@ const CommentItem = memo(
         </TouchableOpacity>
 
         {/* Nested replies - Only show grok replies directly inline */}
-        {item.replies?.filter((r: any) => r.user?.username === 'grok').map((reply) => (
-          <CommentItem
-            key={reply.id}
-            item={reply}
-            currentUserId={currentUserId}
-            onReply={onReply}
-            onOptions={onOptions}
-          />
-        ))}
+        {item.replies
+          ?.filter((r: any) => r.user?.username === "grok")
+          .map((reply) => (
+            <CommentItem
+              key={reply.id}
+              item={reply}
+              currentUserId={currentUserId}
+              onReply={onReply}
+              onOptions={onOptions}
+            />
+          ))}
       </View>
     );
   },
@@ -250,7 +301,7 @@ export default function PostDetailScreen() {
     if (id) {
       incrementView({ postId: id }).catch(() => {});
     }
-  }, [id]);
+  }, [id, incrementView]);
 
   const handleSendComment = useCallback(async () => {
     if (!commentContent.trim() || !id) return;
@@ -298,8 +349,29 @@ export default function PostDetailScreen() {
 
   const hasLiked =
     post?.likes?.some((l: any) => l.userId === currentUser?.id) ?? false;
+  const hasReposted =
+    post?.repostedBy?.some((r: any) => r.userId === currentUser?.id) ?? false;
   const isBookmarked =
     post?.bookmarks?.some((b: any) => b.userId === currentUser?.id) ?? false;
+
+  const handlePostShare = useCallback(async () => {
+    try {
+      const urlToShare = `https://oasis-social.com/post/${post.id}`;
+      await Share.share({
+        message: `Check out this post by @${post.author?.username || post.author?.name}: "${post.content}"\n${urlToShare}`,
+      });
+    } catch (error) {
+      console.error("Error sharing post:", error);
+    }
+  }, [post]);
+
+  const handlePostRepost = useCallback(async () => {
+    try {
+      await repostPost({ id: post.id }).unwrap();
+    } catch (err) {
+      console.error("Repost failed", err);
+    }
+  }, [post?.id, repostPost]);
 
   if (postLoading || commentsLoading) {
     return (
@@ -431,10 +503,16 @@ export default function PostDetailScreen() {
 
                 <TouchableOpacity
                   className="flex-row items-center"
-                  onPress={() => repostPost({ id: post.id })}
+                  onPress={handlePostRepost}
                 >
-                  <Ionicons name="repeat-outline" size={24} color="#6B7280" />
-                  <Text className="text-gray-600 text-[15px] ml-2">
+                  <Ionicons
+                    name="repeat-outline"
+                    size={24}
+                    color={hasReposted ? "#00BA7C" : "#6B7280"}
+                  />
+                  <Text
+                    className={`text-[15px] ml-2 ${hasReposted ? "text-[#00BA7C]" : "text-gray-600"}`}
+                  >
                     {post._count?.reposts ?? 0}
                   </Text>
                 </TouchableOpacity>
@@ -474,7 +552,7 @@ export default function PostDetailScreen() {
                   />
                 </TouchableOpacity>
 
-                <TouchableOpacity>
+                <TouchableOpacity onPress={handlePostShare}>
                   <Ionicons name="share-outline" size={23} color="#6B7280" />
                 </TouchableOpacity>
               </View>

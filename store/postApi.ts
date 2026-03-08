@@ -485,6 +485,12 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+    incrementCommentViewCount: builder.mutation({
+      query: ({ postId, commentId }) => ({
+        url: `/posts/${postId}/comment/${commentId}/view`,
+        method: "POST",
+      }),
+    }),
   }),
 });
 
@@ -508,4 +514,5 @@ export const {
   useLikeCommentMutation,
   useRepostCommentMutation,
   useDeleteCommentMutation,
+  useIncrementCommentViewCountMutation,
 } = postApi;
