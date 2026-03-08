@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "nobleapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    // "newArchEnabled": true, // comment on 7/3/2026
     "ios": {
       "supportsTablet": true
     },
@@ -19,9 +19,10 @@
         // "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "package": "com.htoomyatnyinyi.noble_app",
-      "softwareKeyboardLayoutMode": "resize",
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      // "softwareKeyboardLayoutMode": "resize", // check
+      // "edgeToEdgeEnabled": true, // comment on 7/3/2026
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",

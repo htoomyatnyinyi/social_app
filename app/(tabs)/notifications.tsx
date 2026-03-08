@@ -268,7 +268,10 @@ export default function NotificationsScreen() {
           Notifications
         </Text>
         <TouchableOpacity onPress={() => markAllAsRead({})} className="p-1">
-          <Ionicons name="checkmark-done-outline" size={22} color="#1d9bf0" />
+          <View className="flex-row items-center space-x-2">
+            <Ionicons name="checkmark-done-outline" size={22} color="#1d9bf0" />
+            <Text className="text-[15px] text-gray-900">Mark all as read</Text>
+          </View>
         </TouchableOpacity>
       </View>
 

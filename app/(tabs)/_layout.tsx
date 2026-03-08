@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
@@ -89,12 +89,18 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: "#1d9bf0",
         tabBarInactiveTintColor: "#6B7280",
+        // tabBarShowLabel: false,
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: "#f3f4f6",
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          // height: 60,
+          // paddingBottom: 8,
+          // paddingTop: 8,
+          // --- MODIFIED VALUES ---
+          height: 85, // Increased from 60
+          paddingBottom: 25, // Increased from 8 to push icons up away from the bottom edge
+          paddingTop: 10, // Optional: slight adjustment for top spacing
+          // -----------------------
         },
         headerStyle: {
           borderBottomWidth: 1,
