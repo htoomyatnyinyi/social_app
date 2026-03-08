@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { Provider as ReduxProvider } from "react-redux";
 import { store, persistor } from "../store/store";
