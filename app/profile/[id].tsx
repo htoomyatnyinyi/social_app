@@ -223,7 +223,7 @@ export default function UserProfileScreen() {
   const Header = () => (
     <SafeAreaView className="bg-white">
       {/* Header Bar */}
-      <View className="flex-row items-center px-4 py-2">
+      <View className="flex-row items-center px-4 py-2 border-b border-gray-100">
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
@@ -236,15 +236,23 @@ export default function UserProfileScreen() {
           </Text>
         </View>
         <View className="flex-1" />
-        {isMe && (
-          <TouchableOpacity onPress={() => router.push("/settings")}>
-            <Ionicons name="settings-outline" size={24} color="black" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => router.push("/settings")}>
+          <Ionicons name="settings-outline" size={24} color="#111827" />
+        </TouchableOpacity>
       </View>
 
       {/* Banner */}
-      <View className="h-32 bg-sky-100" />
+      <View className="h-40 bg-sky-100">
+        {profile.coverImage ? (
+          <Image
+            source={{ uri: profile.coverImage }}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="w-full h-full bg-sky-500" />
+        )}
+      </View>
 
       {/* Profile Header */}
       <View className="px-4 -mt-12">
@@ -253,7 +261,14 @@ export default function UserProfileScreen() {
             source={{ uri: profile.image || "https://via.placeholder.com/100" }}
             className="w-24 h-24 rounded-full border-4 border-white bg-gray-100"
           />
-          {!isMe && (
+          {isMe ? (
+            <TouchableOpacity
+              onPress={() => router.push("/profile/update")}
+              className="px-6 py-2 rounded-full border border-gray-300 mb-1"
+            >
+              <Text className="font-bold text-black">Edit profile</Text>
+            </TouchableOpacity>
+          ) : (
             <View className="flex-row mb-1">
               <TouchableOpacity
                 onPress={handleMessage}
@@ -288,6 +303,37 @@ export default function UserProfileScreen() {
         <Text className="mt-3 text-[16px] text-gray-800 leading-5">
           {profile.bio || "No bio yet."}
         </Text>
+
+        <View className="flex-row flex-wrap mt-3">
+          {profile.location && (
+            <View className="flex-row items-center mr-4 mb-2">
+              <Ionicons name="location-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500 ml-1 text-sm">{profile.location}</Text>
+            </View>
+          )}
+          {profile.website && (
+            <View className="flex-row items-center mr-4 mb-2">
+              <Ionicons name="link-outline" size={16} color="#6B7280" />
+              <Text className="text-[#1d9bf0] ml-1 text-sm" numberOfLines={1}>
+                {profile.website.replace(/^https?:\/\//, "")}
+              </Text>
+            </View>
+          )}
+          <View className="flex-row items-center mr-4 mb-2">
+            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+            <Text className="text-gray-500 ml-1 text-sm">
+              Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </Text>
+          </View>
+          {profile.dob && (
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="gift-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500 ml-1 text-sm">
+                Born {new Date(profile.dob).toLocaleDateString("en-US", { month: "long", day: "numeric" })}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View className="flex-row mt-4 mb-6">
           <TouchableOpacity

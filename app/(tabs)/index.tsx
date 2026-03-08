@@ -439,7 +439,7 @@ export default function FeedScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+      {/* <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
         <TouchableOpacity onPress={() => router.push("/profile")}>
           <Image
             source={{ uri: user?.image || "https://via.placeholder.com/36" }}
@@ -448,7 +448,7 @@ export default function FeedScreen() {
         </TouchableOpacity>
         <Text className="text-2xl font-bold tracking-tight">Oasis</Text>
         <Ionicons name="sparkles-outline" size={24} color="#000" />
-      </View>
+      </View> */}
 
       {/* Tabs */}
       <View className="flex-row border-b border-gray-100">
