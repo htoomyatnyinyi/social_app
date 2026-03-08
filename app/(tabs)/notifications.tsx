@@ -17,6 +17,7 @@ import {
   useMarkAsReadMutation,
 } from "../../store/notificationApi";
 import { useCreateChatRoomMutation } from "../../store/chatApi";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -117,8 +118,13 @@ export default function NotificationsScreen() {
   };
 
   const handleNotificationPress = async (notification: any) => {
-    // Mark as read optimistically
-    if (!notification.read) {
+    // Determine if the group contains any unread notifications
+    // Note: notification object here could be the "latest" representing a group
+    // In grouped mode, we'll mark it read and the backend will handle marking all matching ones read!
+    if (
+      !notification.read ||
+      (notification._groupUnreadCount && notification._groupUnreadCount > 0)
+    ) {
       markAsRead(notification.id);
     }
 
@@ -138,6 +144,49 @@ export default function NotificationsScreen() {
       router.push(`/profile/${notification.issuerId}`);
     }
   };
+
+  // Grouping logic for notifications
+  const groupedNotifications = React.useMemo(() => {
+    if (!notifications || !Array.isArray(notifications)) return [];
+
+    const groups: Record<string, any[]> = {};
+
+    notifications.forEach((n) => {
+      // Create a unique key based on Type + Issuer + Target Entity
+      const targetId = n.postId || n.commentId || "none";
+      const key = `${n.type}-${n.issuerId}-${targetId}`;
+
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(n);
+    });
+
+    // Map each group to its latest notification, but attach group metadata
+    return Object.values(groups)
+      .map((group) => {
+        // Sort descending by date just in case
+        group.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+
+        const latest = { ...group[0] };
+        latest._groupCount = group.length;
+        latest._groupUnreadCount = group.filter((n) => !n.read).length;
+
+        // If the group has unread messages, ensure the visual row looks unread
+        if (latest._groupUnreadCount > 0) {
+          latest.read = false;
+        }
+
+        return latest;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+  }, [notifications]);
 
   const NotificationItem = ({ item }: { item: any }) => {
     const config = getNotificationConfig(item.type);
@@ -166,10 +215,19 @@ export default function NotificationsScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text className="text-[15px] text-gray-900 leading-5">
-            <Text className="font-extrabold">{item.issuer.name}</Text>{" "}
-            {config.text}
-          </Text>
+          <View className="flex-row items-baseline min-w-0 pr-2">
+            <Text className="text-[15px] text-gray-900 leading-5 flex-shrink">
+              <Text className="font-extrabold">{item.issuer.name}</Text>{" "}
+              {config.text}
+            </Text>
+            {item._groupCount > 1 && (
+              <View className="bg-sky-100 px-1.5 py-0.5 rounded-md ml-1.5 flex-row items-center self-center">
+                <Text className="text-sky-600 text-[10px] font-bold">
+                  +{item._groupCount - 1}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {item.post && (
             <Text
@@ -203,7 +261,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-50">
         <Text className="text-xl font-extrabold text-gray-900">
@@ -230,7 +288,7 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <FlatList
-          data={notifications}
+          data={groupedNotifications}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <NotificationItem item={item} />}
           refreshControl={
@@ -260,6 +318,6 @@ export default function NotificationsScreen() {
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
