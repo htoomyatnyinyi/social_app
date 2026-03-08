@@ -77,8 +77,8 @@ export default function SettingsScreen() {
           label: "Liked Posts",
           onPress: () =>
             router.push({
-              pathname: `/profile/${user.id}`,
-              params: { tab: "likes" },
+              pathname: "/profile/[id]",
+              params: { id: user.id, tab: "likes" },
             }),
         },
       ],
