@@ -30,6 +30,7 @@ export const postApi = api.injectEndpoints({
       },
       providesTags: ["Post"],
     }),
+
     getFeed: builder.query({
       query: ({ cursor }) => {
         let url = "/posts/feed";
@@ -56,6 +57,7 @@ export const postApi = api.injectEndpoints({
       query: () => "/posts/bookmarks",
       providesTags: ["Post"],
     }),
+
     createPost: builder.mutation({
       query: (newPost) => ({
         url: "/posts",
