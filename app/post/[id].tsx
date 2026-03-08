@@ -21,6 +21,9 @@ import {
   useRepostPostMutation,
   useIncrementViewCountMutation,
   useBookmarkPostMutation,
+  useLikeCommentMutation,
+  useRepostCommentMutation,
+  useDeleteCommentMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
@@ -39,13 +42,16 @@ interface User {
 
 interface Comment {
   id: string;
+  postId: string;
   content: string;
   createdAt: string;
   user: User;
   parentId?: string;
   parent?: Comment;
   replies?: Comment[];
-  _count?: { replies: number };
+  commentLikes?: { userId: string }[];
+  commentReposts?: { userId: string }[];
+  _count?: { replies: number; commentLikes: number; commentReposts: number; };
 }
 
 interface Post {
@@ -82,11 +88,36 @@ const CommentItem = memo(
   }) => {
     const isReply = !!item.parentId;
 
+    const [likeComment] = useLikeCommentMutation();
+    const [repostComment] = useRepostCommentMutation();
+    const router = require("expo-router").useRouter();
+
+    const handleCommentLike = useCallback(async () => {
+      try {
+        await likeComment({ postId: item.postId, commentId: item.id }).unwrap();
+      } catch (err) {
+        console.error("Failed to like comment:", err);
+      }
+    }, [likeComment, item.postId, item.id]);
+
+    const handleCommentRepost = useCallback(async () => {
+      try {
+        await repostComment({ postId: item.postId, commentId: item.id }).unwrap();
+      } catch (err) {
+        console.error("Failed to repost comment:", err);
+      }
+    }, [repostComment, item.postId, item.id]);
+
+    const hasLiked =
+      item.commentLikes?.some((l: any) => l.userId === currentUserId) ?? false;
+    const hasReposted =
+      item.commentReposts?.some((r: any) => r.userId === currentUserId) ?? false;
+
     return (
       <View
         className={`${isReply ? "ml-12 border-l-2 border-gray-200 pl-4" : "border-b border-gray-100"} bg-white`}
       >
-        <View className="flex-row p-4">
+        <TouchableOpacity onPress={() => router.push(`/comment/${item.id}`)} className="flex-row p-4">
           <Image
             source={{
               uri: item.user?.image || "https://via.placeholder.com/40",
@@ -142,12 +173,18 @@ const CommentItem = memo(
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity className="flex-row items-center">
-                <Ionicons name="repeat-outline" size={18} color="#6B7280" />
+              <TouchableOpacity className="flex-row items-center" onPress={handleCommentRepost}>
+                <Ionicons name="repeat-outline" size={18} color={hasReposted ? "#00BA7C" : "#6B7280"} />
+                <Text className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C]" : "text-gray-500"}`}>
+                  {item._count?.commentReposts ?? 0}
+                </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity className="flex-row items-center">
-                <Ionicons name="heart-outline" size={18} color="#6B7280" />
+              <TouchableOpacity className="flex-row items-center" onPress={handleCommentLike}>
+                <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={18} color={hasLiked ? "#F91880" : "#6B7280"} />
+                <Text className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}>
+                  {item._count?.commentLikes ?? 0}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity>
@@ -155,10 +192,10 @@ const CommentItem = memo(
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Nested replies */}
-        {item.replies?.map((reply) => (
+        {/* Nested replies - Only show grok replies directly inline */}
+        {item.replies?.filter((r: any) => r.user?.username === 'grok').map((reply) => (
           <CommentItem
             key={reply.id}
             item={reply}

@@ -31,7 +31,7 @@ const MessageBubble = memo(
   }: {
     item: typeof messagesTable.$inferSelect;
     prevMessage: typeof messagesTable.$inferSelect | null;
-    user;
+    user: any;
   }) => {
     const isMe = item.senderId === user?.id;
     // Because the list is inverted, 'prevMessage' conceptually means the message chronologically BEFORE this one

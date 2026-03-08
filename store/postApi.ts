@@ -460,6 +460,31 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+    getComment: builder.query({
+      query: (id) => `/posts/comment/${id}`,
+      providesTags: ["Post"],
+    }),
+    likeComment: builder.mutation({
+      query: ({ postId, commentId }) => ({
+        url: `/posts/${postId}/comment/${commentId}/like`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Post"],
+    }),
+    repostComment: builder.mutation({
+      query: ({ postId, commentId }) => ({
+        url: `/posts/${postId}/comment/${commentId}/repost`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Post"],
+    }),
+    deleteComment: builder.mutation({
+      query: ({ postId, commentId }) => ({
+        url: `/posts/${postId}/comment/${commentId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Post"],
+    }),
   }),
 });
 
@@ -479,4 +504,8 @@ export const {
   useBlockUserMutation,
   useDeleteRepostMutation,
   useReportPostMutation,
+  useGetCommentQuery,
+  useLikeCommentMutation,
+  useRepostCommentMutation,
+  useDeleteCommentMutation,
 } = postApi;
