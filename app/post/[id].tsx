@@ -315,9 +315,11 @@ export default function PostDetailScreen() {
 
     try {
       await commentPost({
-        id,
+        postId: id,
         content,
-        parentId: parentId || undefined,
+        // parentId: parentId,
+
+        ...(parentId ? { parentId } : {}),
       }).unwrap();
       refetchComments();
     } catch (err) {
@@ -327,6 +329,14 @@ export default function PostDetailScreen() {
   }, [commentContent, id, replyToId, commentPost, refetchComments]);
 
   const handleReply = useCallback((commentId: string, username: string) => {
+    console.log(
+      "commentId",
+      commentId,
+      "username",
+      username,
+      "at handle reply comment callback",
+    );
+
     setReplyToId(commentId);
     setReplyTargetName(username);
     setCommentContent("");
@@ -414,7 +424,9 @@ export default function PostDetailScreen() {
             <CommentItem
               item={item}
               currentUserId={currentUser?.id}
-              onReply={handleReply}
+              onReply={(commentId, username) => {
+                handleReply(commentId, username);
+              }}
               onOptions={handleOptions}
             />
           )}
