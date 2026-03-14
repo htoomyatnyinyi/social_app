@@ -72,15 +72,16 @@ export default function SettingsScreen() {
           label: "Change Password",
           onPress: () => router.push("/settings/change-password"),
         },
-        {
-          icon: "heart-outline",
-          label: "Liked Posts",
-          onPress: () =>
-            router.push({
-              pathname: "/profile/[id]",
-              params: { id: user.id, tab: "likes" },
-            }),
-        },
+
+        // {
+        //   icon: "heart-outline",
+        //   label: "Liked Posts",
+        //   onPress: () =>
+        //     router.push({
+        //       pathname: "/profile/[id]",
+        //       params: { id: user.id, tab: "likes" },
+        //     }),
+        // },
       ],
     },
     {
@@ -95,6 +96,16 @@ export default function SettingsScreen() {
           icon: "moon-outline",
           label: "Dark Mode",
           onPress: () => Alert.alert("Coming Soon"),
+        },
+      ],
+    },
+    {
+      title: "Meditation",
+      items: [
+        {
+          icon: "meditation-outline",
+          label: "Meditation",
+          onPress: () => router.push("/settings/meditation"),
         },
       ],
     },

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from "react";
+import * as Linking from "expo-linking";
 import {
   View,
   FlatList,
@@ -93,6 +94,18 @@ export default function NotificationsScreen() {
           color: "#1D9BF0",
           text: "sent you a message",
         };
+      case "SYSTEM":
+        return {
+          icon: "information-circle",
+          color: "#1D9BF0",
+          text: "system notification",
+        };
+      case "UPDATE":
+        return {
+          icon: "cloud-download",
+          color: "#00BA7C",
+          text: "app update available",
+        };
       default:
         return {
           icon: "notifications",
@@ -140,6 +153,18 @@ export default function NotificationsScreen() {
 
     if (notification.postId) {
       router.push(`/post/${notification.postId}`);
+    } else if (notification.link) {
+      // Handle external links or deep links
+      if (
+        notification.link.startsWith("http://") ||
+        notification.link.startsWith("https://")
+      ) {
+        // Open in browser
+        Linking.openURL(notification.link);
+      } else {
+        // Internal navigation
+        router.push(notification.link as any);
+      }
     } else if (notification.issuerId) {
       router.push(`/profile/${notification.issuerId}`);
     }
