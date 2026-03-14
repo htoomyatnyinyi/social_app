@@ -16,11 +16,25 @@ export const authApi = api.injectEndpoints({
         body: userData,
       }),
     }),
+    googleAuth: builder.mutation({
+      query: (tokenData) => ({
+        url: "/auth/google",
+        method: "POST",
+        body: tokenData,
+      }),
+    }),
+    verifyCode: builder.mutation({
+      query: (verifyData) => ({
+        url: "/auth/verify",
+        method: "POST",
+        body: verifyData,
+      }),
+    }),
     searchUsers: builder.query({
       query: (search) => `/auth/users?search=${search}`,
     }),
   }),
 });
 
-export const { useSigninMutation, useSignupMutation, useSearchUsersQuery } =
+export const { useSigninMutation, useSignupMutation, useGoogleAuthMutation, useVerifyCodeMutation, useSearchUsersQuery } =
   authApi;
