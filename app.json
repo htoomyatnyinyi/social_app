@@ -1,26 +1,23 @@
 {
   "expo": {
-    "name": "noble_app",
-    "slug": "noble_app",
-    "version": "1.0.0",
+    "name": "Ananta",
+    "slug": "ananta",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "nobleapp",
+    "scheme": "ananta",
     "userInterfaceStyle": "automatic",
-    // "newArchEnabled": true, // comment on 7/3/2026
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE"
-        // "foregroundImage": "./assets/images/android-icon-foreground.png",
-        // "backgroundImage": "./assets/images/android-icon-background.png",
-        // "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.htoomyatnyinyi.noble_app",
-      // "softwareKeyboardLayoutMode": "resize", // check
-      // "edgeToEdgeEnabled": true, // comment on 7/3/2026
+      "package": "com.htoomyatnyinyi.ananta",
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize"
     },
@@ -41,7 +38,9 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
+      // "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -50,7 +49,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "bda3db98-49e7-4676-a8e0-ed418ea590af"
+        "projectId": "e819e9d3-f1ab-497d-8b76-e695cf1445e4"
       }
     }
   }
