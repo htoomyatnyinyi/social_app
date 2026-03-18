@@ -8,6 +8,7 @@ import {
   FlatList,
   RefreshControl,
   Alert,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -153,13 +154,42 @@ export default function UserProfileScreen() {
             <Text className="text-[15px] leading-[22px] text-gray-800 mb-3">
               {displayItem.content}
             </Text>
-            {displayItem.image && (
-              <Image
-                source={{ uri: displayItem.image }}
-                className="w-full h-48 rounded-2xl mb-3"
-                resizeMode="cover"
-              />
-            )}
+            {/* Images */}
+            {(() => {
+              const imgs = displayItem.images?.length
+                ? displayItem.images
+                : displayItem.image
+                  ? [displayItem.image]
+                  : [];
+              if (imgs.length === 0) return null;
+
+              if (imgs.length === 1) {
+                return (
+                  <Image
+                    source={{ uri: imgs[0] }}
+                    className="w-full h-48 rounded-2xl mb-3"
+                    resizeMode="cover"
+                  />
+                );
+              }
+
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-3 flex-row"
+                >
+                  {imgs.map((uri: string, idx: number) => (
+                    <Image
+                      key={idx}
+                      source={{ uri }}
+                      className="w-64 h-48 rounded-2xl border border-gray-100 bg-gray-50 mr-2"
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+              );
+            })()}
             <View className="flex-row justify-between pr-4 mt-2">
               <TouchableOpacity className="flex-row items-center">
                 <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />

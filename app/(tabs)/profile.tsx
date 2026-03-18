@@ -7,6 +7,7 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
@@ -114,13 +115,42 @@ const ProfilePostCard = React.memo(
               )}
             </View>
 
-            {displayItem.image && (
-              <Image
-                source={{ uri: displayItem.image }}
-                className="w-full h-48 rounded-2xl mb-3"
-                resizeMode="cover"
-              />
-            )}
+            {/* Images */}
+            {(() => {
+              const imgs = displayItem.images?.length
+                ? displayItem.images
+                : displayItem.image
+                  ? [displayItem.image]
+                  : [];
+              if (imgs.length === 0) return null;
+
+              if (imgs.length === 1) {
+                return (
+                  <Image
+                    source={{ uri: imgs[0] }}
+                    className="w-full h-48 rounded-2xl mb-3"
+                    resizeMode="cover"
+                  />
+                );
+              }
+
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-3 flex-row"
+                >
+                  {imgs.map((uri: string, idx: number) => (
+                    <Image
+                      key={idx}
+                      source={{ uri }}
+                      className="w-64 h-48 rounded-2xl border border-gray-100 bg-gray-50 mr-2"
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+              );
+            })()}
 
             <View className="flex-row justify-between pr-4 mt-2">
               {/* Comments */}
