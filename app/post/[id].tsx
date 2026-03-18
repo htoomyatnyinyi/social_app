@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
+  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,6 +60,7 @@ interface Post {
   id: string;
   content: string;
   image?: string;
+  images?: string[];
   createdAt: string;
   author: User;
   likes: { userId: string }[];
@@ -474,13 +476,42 @@ export default function PostDetailScreen() {
                 {post.content}
               </Text>
 
-              {post.image && (
-                <Image
-                  source={{ uri: post.image }}
-                  className="w-full h-64 rounded-2xl mb-5 border border-gray-100"
-                  resizeMode="cover"
-                />
-              )}
+              {/* Images */}
+              {(() => {
+                const imgs = post.images?.length
+                  ? post.images
+                  : post.image
+                    ? [post.image]
+                    : [];
+                if (imgs.length === 0) return null;
+
+                if (imgs.length === 1) {
+                  return (
+                    <Image
+                      source={{ uri: imgs[0] }}
+                      className="w-full h-72 rounded-2xl mb-5 border border-gray-100"
+                      resizeMode="cover"
+                    />
+                  );
+                }
+
+                return (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mb-5 flex-row"
+                  >
+                    {imgs.map((uri: string, idx: number) => (
+                      <Image
+                        key={idx}
+                        source={{ uri }}
+                        className="w-80 h-72 rounded-2xl mr-3 border border-gray-100 bg-gray-50"
+                        resizeMode="cover"
+                      />
+                    ))}
+                  </ScrollView>
+                );
+              })()}
 
               {/* Timestamp + views */}
               <View className="flex-row items-center py-2.5 border-y border-gray-100 mb-2">

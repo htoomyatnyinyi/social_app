@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -53,13 +54,42 @@ export default function BookmarksScreen() {
           <Text className="text-[15px] leading-[22px] text-gray-800 mb-2">
             {item.content}
           </Text>
-          {item.image && (
-            <Image
-              source={{ uri: item.image }}
-              className="w-full h-56 rounded-2xl mb-2 border border-gray-100"
-              resizeMode="cover"
-            />
-          )}
+          {/* Images */}
+          {(() => {
+            const imgs = item.images?.length
+              ? item.images
+              : item.image
+                ? [item.image]
+                : [];
+            if (imgs.length === 0) return null;
+
+            if (imgs.length === 1) {
+              return (
+                <Image
+                  source={{ uri: imgs[0] }}
+                  className="w-full h-56 rounded-2xl mb-2 border border-gray-100"
+                  resizeMode="cover"
+                />
+              );
+            }
+
+            return (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-2 flex-row"
+              >
+                {imgs.map((uri: string, idx: number) => (
+                  <Image
+                    key={idx}
+                    source={{ uri }}
+                    className="w-64 h-56 rounded-2xl border border-gray-100 bg-gray-50 mr-2"
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+            );
+          })()}
           {/* Simple stats row for now */}
           <View className="flex-row justify-between pr-10 mt-2">
             <View className="flex-row items-center">
