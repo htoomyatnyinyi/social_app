@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
+import { useMarkMessagesAsReadMutation } from "../../store/chatApi";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -89,6 +90,13 @@ export default function ChatScreen() {
 
   const user = useSelector((state: any) => state.auth.user);
   const token = useSelector((state: any) => state.auth.token);
+  const [markAsRead] = useMarkMessagesAsReadMutation();
+
+  React.useEffect(() => {
+    if (resolvedChatId) {
+      markAsRead(resolvedChatId);
+    }
+  }, [resolvedChatId, markAsRead]);
 
   const { messages, fetchMessages, sendMessage } = useChatMessages(
     resolvedChatId,

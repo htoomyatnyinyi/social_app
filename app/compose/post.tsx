@@ -41,8 +41,7 @@ export default function ComposePostScreen() {
   const user = useSelector((state: any) => state.auth.user);
 
   const [content, setContent] = useState("");
-  const [image, setImage] = useState<string | null>(null);
-  const [base64Image, setBase64Image] = useState<string | null>(null);
+  const [images, setImages] = useState<{uri: string, base64: string}[]>([]);
   const [locationTag, setLocationTag] = useState<string | null>(null);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
@@ -62,14 +61,20 @@ export default function ComposePostScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsMultipleSelection: true,
+      selectionLimit: 4,
       quality: 0.6,
       base64: true,
     });
 
-    if (!result.canceled && result.assets[0].base64) {
-      setImage(result.assets[0].uri);
-      setBase64Image(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    if (!result.canceled) {
+      const newImages = result.assets
+        .filter((a) => a.base64)
+        .map((a) => ({
+          uri: a.uri,
+          base64: `data:image/jpeg;base64,${a.base64}`,
+        }));
+      setImages((prev) => [...prev, ...newImages].slice(0, 4));
     }
   };
 
@@ -87,8 +92,13 @@ export default function ComposePostScreen() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
-      setImage(result.assets[0].uri);
-      setBase64Image(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      setImages((prev) => [
+        ...prev,
+        {
+          uri: result.assets[0].uri,
+          base64: `data:image/jpeg;base64,${result.assets[0].base64}`,
+        },
+      ].slice(0, 4));
     }
   };
 
@@ -120,7 +130,7 @@ export default function ComposePostScreen() {
   };
 
   const handlePost = async () => {
-    if (!content.trim() && !image) return;
+    if (!content.trim() && images.length === 0) return;
 
     const finalContent = locationTag
       ? `${content}\n\n📍 ${locationTag}`.trim()
@@ -131,7 +141,7 @@ export default function ComposePostScreen() {
         await repostPost({
           id: quoteId as string,
           content: finalContent,
-          image: base64Image || undefined,
+          images: images.length > 0 ? images.map((img) => img.base64) : undefined,
         }).unwrap();
       } else if (replyToId) {
         await commentPost({
@@ -142,7 +152,7 @@ export default function ComposePostScreen() {
       } else {
         await createPost({
           content: finalContent,
-          image: base64Image || undefined,
+          images: images.length > 0 ? images.map((img) => img.base64) : undefined,
           isPublic: true,
         }).unwrap();
       }
@@ -171,9 +181,9 @@ export default function ComposePostScreen() {
           )}
           <TouchableOpacity
             onPress={handlePost}
-            disabled={(!content.trim() && !image) || isLoading}
+            disabled={(!content.trim() && images.length === 0) || isLoading}
             className={`px-6 py-1.5 rounded-full ${
-              (!content.trim() && !image) || isLoading
+              (!content.trim() && images.length === 0) || isLoading
                 ? "bg-sky-200"
                 : "bg-[#1d9bf0]"
             }`}
@@ -271,24 +281,25 @@ export default function ComposePostScreen() {
                 </View>
               )}
 
-              {/* Image Preview */}
-              {image && (
-                <View className="relative mb-6">
-                  <Image
-                    source={{ uri: image }}
-                    className="w-full h-72 rounded-2xl bg-gray-100"
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity
-                    onPress={() => {
-                      setImage(null);
-                      setBase64Image(null);
-                    }}
-                    className="absolute top-3 right-3 bg-black/70 p-1.5 rounded-full"
-                  >
-                    <Ionicons name="close" size={20} color="white" />
-                  </TouchableOpacity>
-                </View>
+              {/* Image Previews */}
+              {images.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 flex-row">
+                  {images.map((img, idx) => (
+                    <View key={idx} className="relative mr-2">
+                      <Image
+                        source={{ uri: img.uri }}
+                        className="w-48 h-56 rounded-2xl bg-gray-100"
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-full"
+                      >
+                        <Ionicons name="close" size={16} color="white" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
               )}
             </View>
           </View>
