@@ -28,7 +28,7 @@ export const chatApi = api.injectEndpoints({
         url: `/chat/rooms/${chatId}/read`,
         method: "POST",
       }),
-      invalidatesTags: ["Chat"],
+      invalidatesTags: ["Chat", "Notification"],
     }),
   }),
 });
