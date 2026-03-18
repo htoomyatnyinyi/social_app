@@ -92,17 +92,17 @@ export default function ChatScreen() {
   const token = useSelector((state: any) => state.auth.token);
   const [markAsRead] = useMarkMessagesAsReadMutation();
 
-  React.useEffect(() => {
-    if (resolvedChatId) {
-      markAsRead(resolvedChatId);
-    }
-  }, [resolvedChatId, markAsRead]);
-
   const { messages, fetchMessages, sendMessage } = useChatMessages(
     resolvedChatId,
     token,
     user,
   );
+
+  React.useEffect(() => {
+    if (resolvedChatId) {
+      markAsRead(resolvedChatId);
+    }
+  }, [resolvedChatId, messages?.length, markAsRead]);
   useChatWebSocket({
     chatId: resolvedChatId,
     token,

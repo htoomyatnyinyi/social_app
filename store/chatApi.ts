@@ -28,6 +28,22 @@ export const chatApi = api.injectEndpoints({
         url: `/chat/rooms/${chatId}/read`,
         method: "POST",
       }),
+      async onQueryStarted(chatId, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          chatApi.util.updateQueryData("getChatRooms", {}, (draft: any) => {
+            if (!draft) return;
+            const room = draft.find((r: any) => r.id === chatId);
+            if (room) {
+              room.unreadCount = 0;
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: ["Chat", "Notification"],
     }),
   }),
