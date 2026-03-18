@@ -9,6 +9,7 @@ import {
   RefreshControl,
   TextInput,
   Alert,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -41,6 +42,7 @@ interface Post {
   id: string;
   content: string;
   image?: string;
+  images?: string[];
   createdAt: string;
   author: User;
   isRepost?: boolean;
@@ -214,14 +216,42 @@ const PostCard = React.memo(
               )}
             </View>
 
-            {/* Image */}
-            {displayPost.image && (
-              <Image
-                source={{ uri: displayPost.image }}
-                className="w-full h-56 rounded-2xl mb-3 border border-gray-100"
-                resizeMode="cover"
-              />
-            )}
+            {/* Images */}
+            {(() => {
+              const imgs = displayPost.images?.length
+                ? displayPost.images
+                : displayPost.image
+                  ? [displayPost.image]
+                  : [];
+              if (imgs.length === 0) return null;
+
+              if (imgs.length === 1) {
+                return (
+                  <Image
+                    source={{ uri: imgs[0] }}
+                    className="w-full h-56 rounded-2xl mb-3 border border-gray-100 bg-gray-50"
+                    resizeMode="cover"
+                  />
+                );
+              }
+
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-3 flex-row"
+                >
+                  {imgs.map((uri: string, idx: number) => (
+                    <Image
+                      key={idx}
+                      source={{ uri }}
+                      className="w-64 h-56 rounded-2xl border border-gray-100 bg-gray-50 mr-2"
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+              );
+            })()}
 
             {/* Action row */}
             <View className="flex-row justify-between items-center pr-2 mt-1">

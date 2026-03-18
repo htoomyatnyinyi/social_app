@@ -165,10 +165,10 @@ export const postApi = api.injectEndpoints({
     }),
 
     repostPost: builder.mutation({
-      query: ({ id, content, image }) => ({
+      query: ({ id, content, image, images }) => ({
         url: `/posts/${id}/repost`,
         method: "POST",
-        body: { content, image },
+        body: { content, image, images },
       }),
       async onQueryStarted(
         { id, content },
