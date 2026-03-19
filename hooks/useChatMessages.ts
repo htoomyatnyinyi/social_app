@@ -37,8 +37,8 @@ export const useChatMessages = (
   }, []); // Stable — uses ref internally
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim() || !chatId) return;
+    async (content: string, image?: string) => {
+      if ((!content.trim() && !image) || !chatId) return;
 
       const tempId = Crypto.randomUUID();
 
@@ -48,7 +48,9 @@ export const useChatMessages = (
           id: tempId,
           chatId: chatId,
           senderId: user?.id,
-          content: content,
+          content: content || "",
+          type: image ? "image" : "text",
+          mediaUrl: image || null,
           createdAt: Date.now(),
           status: "pending",
         });
