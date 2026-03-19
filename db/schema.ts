@@ -21,6 +21,7 @@ export const messages = sqliteTable("messages", {
 
   // Sync status
   status: text("status").default("synced"), // 'synced', 'pending', 'failed'
+  read: integer("read").default(0), // 0 = unread/delivered, 1 = seen
 
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at"),
