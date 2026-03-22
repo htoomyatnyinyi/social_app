@@ -21,6 +21,27 @@ export const profileApi = api.injectEndpoints({
       }),
       invalidatesTags: ["User", "Post"],
     }),
+    muteUser: builder.mutation({
+      query: (id) => ({
+        url: `/profile/${id}/mute`,
+        method: "POST",
+      }),
+      invalidatesTags: ["User", "Post"],
+    }),
+    blockUser: builder.mutation({
+      query: (id) => ({
+        url: `/profile/${id}/block`,
+        method: "POST",
+      }),
+      invalidatesTags: ["User", "Post"],
+    }),
+    updatePushToken: builder.mutation({
+      query: (data) => ({
+        url: "/profile/push-token",
+        method: "POST",
+        body: data,
+      }),
+    }),
     getFollowers: builder.query({
       query: (id) => `/profile/${id}/followers`,
       providesTags: ["User"],
@@ -63,4 +84,7 @@ export const {
   useGetSuggestionsQuery,
   useGetUserRepliesQuery,
   useGetUserRepostsQuery,
+  useMuteUserMutation,
+  useBlockUserMutation,
+  useUpdatePushTokenMutation,
 } = profileApi;

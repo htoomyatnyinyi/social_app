@@ -17,6 +17,8 @@ import {
   useFollowUserMutation,
   useGetUserPostsQuery,
   useGetUserLikesQuery,
+  useMuteUserMutation,
+  useBlockUserMutation,
 } from "../../store/profileApi";
 import { useCreateChatRoomMutation } from "../../store/chatApi";
 import { useSelector } from "react-redux";
@@ -57,6 +59,8 @@ export default function UserProfileScreen() {
   });
 
   const [followUser] = useFollowUserMutation();
+  const [muteUser] = useMuteUserMutation();
+  const [blockUser] = useBlockUserMutation();
   const [createChatRoom] = useCreateChatRoomMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
@@ -118,9 +122,61 @@ export default function UserProfileScreen() {
     if (activeTab === "likes") refetchLikes();
   };
 
+  const handleMute = async () => {
+    try {
+      await muteUser(id).unwrap();
+      Alert.alert("Success", "User has been muted. Their posts will be hidden.");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not mute user. Please try again.");
+    }
+  };
+
+  const handleBlock = async () => {
+    try {
+      await blockUser(id).unwrap();
+      Alert.alert("Blocked", "User has been completely blocked and hidden.");
+      router.back();
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not block user.");
+    }
+  };
+
+  const handleMoreActions = () => {
+    Alert.alert("Actions", "What would you like to do?", [
+      { text: "Mute", onPress: handleMute },
+      { text: "Block", onPress: handleBlock, style: "destructive" },
+      { text: "Cancel", style: "cancel" }
+    ]);
+  };
+
   const PostCard = ({ item }: { item: any }) => {
     const isRepost = item.isRepost && item.originalPost;
     const displayItem = isRepost ? item.originalPost : item;
+
+    const renderContent = (text: string) => {
+      if (!text) return null;
+      const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
+      return (
+        <Text className="text-[15px] leading-[22px] text-gray-800 mb-3">
+          {parts.map((part, i) => {
+            if (part.startsWith("#")) {
+              return (
+                <Text
+                  key={i}
+                  className="text-[#1D9BF0]"
+                  onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
+                >
+                  {part}
+                </Text>
+              );
+            }
+            return <Text key={i}>{part}</Text>;
+          })}
+        </Text>
+      );
+    };
 
     return (
       <TouchableOpacity
@@ -151,9 +207,7 @@ export default function UserProfileScreen() {
                 {new Date(displayItem.createdAt).toLocaleDateString()}
               </Text>
             </View>
-            <Text className="text-[15px] leading-[22px] text-gray-800 mb-3">
-              {displayItem.content}
-            </Text>
+            {renderContent(displayItem.content)}
             {/* Images */}
             {(() => {
               const imgs = displayItem.images?.length
@@ -315,6 +369,12 @@ export default function UserProfileScreen() {
                 >
                   {profile.isFollowing ? "Following" : "Follow"}
                 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleMoreActions}
+                className="ml-2 border border-gray-300 p-2.5 rounded-full"
+              >
+                <Ionicons name="ellipsis-vertical" size={20} color="black" />
               </TouchableOpacity>
             </View>
           )}

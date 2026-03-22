@@ -139,6 +139,33 @@ const PostCard = React.memo(
 
     if (!displayPost) return null;
 
+    const renderContent = (text: string) => {
+      if (!text) return null;
+      const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
+      return (
+        <Text
+          className="text-[15px] leading-6 text-gray-800"
+          numberOfLines={isExpanded ? undefined : showSeeMore ? 5 : undefined}
+          onTextLayout={handleTextLayout}
+        >
+          {parts.map((part, i) => {
+            if (part.startsWith("#")) {
+              return (
+                <Text
+                  key={i}
+                  className="text-[#1D9BF0]"
+                  onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
+                >
+                  {part}
+                </Text>
+              );
+            }
+            return <Text key={i}>{part}</Text>;
+          })}
+        </Text>
+      );
+    };
+
     return (
       <TouchableOpacity
         activeOpacity={0.92}
@@ -194,16 +221,7 @@ const PostCard = React.memo(
 
             {/* Content with See More Logic */}
             <View className="mb-3">
-              <Text
-                className="text-[15px] leading-6 text-gray-800"
-                // Initially undefined to measure fully. If > 5 lines, clamps to 5 until expanded
-                numberOfLines={
-                  isExpanded ? undefined : showSeeMore ? 5 : undefined
-                }
-                onTextLayout={handleTextLayout}
-              >
-                {displayPost.content}
-              </Text>
+              {renderContent(displayPost.content)}
 
               {/* See More Button */}
               {showSeeMore && !isExpanded && (

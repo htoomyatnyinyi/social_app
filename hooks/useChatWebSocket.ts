@@ -9,6 +9,7 @@ interface UseChatWebSocketProps {
   token: string | null;
   currentUserId?: string;
   onMessageReceived?: () => void;
+  onTypingStatus?: (userId: string) => void;
 }
 
 export const useChatWebSocket = ({
@@ -16,13 +17,16 @@ export const useChatWebSocket = ({
   token,
   currentUserId,
   onMessageReceived,
+  onTypingStatus,
 }: UseChatWebSocketProps) => {
   const socketRef = useRef<WebSocket | null>(null);
   const onMessageReceivedRef = useRef(onMessageReceived);
+  const onTypingStatusRef = useRef(onTypingStatus);
 
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
-  }, [onMessageReceived]);
+    onTypingStatusRef.current = onTypingStatus;
+  }, [onMessageReceived, onTypingStatus]);
 
   useEffect(() => {
     if (!token || !chatId) return;
@@ -71,6 +75,8 @@ export const useChatWebSocket = ({
             }
 
             onMessageReceivedRef.current?.();
+          } else if (data.type === "typing_start" && data.userId !== currentUserId) {
+             onTypingStatusRef.current?.(data.userId);
           }
         } catch (e) {
           console.error("❌ Chat WS Message Error:", e);
@@ -101,5 +107,11 @@ export const useChatWebSocket = ({
     };
   }, [chatId, token]);
 
-  return socketRef.current;
+  const sendTyping = () => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "typing_start", chatId }));
+    }
+  };
+
+  return { socket: socketRef.current, sendTyping };
 };

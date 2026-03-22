@@ -17,6 +17,8 @@ import {
   useSigninMutation,
   useSignupMutation,
   useVerifyCodeMutation,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
 } from "../store/authApi";
 import { setCredentials } from "../store/authSlice";
 
@@ -32,6 +34,8 @@ export default function AuthScreen() {
   const [signup, { isLoading: isSignupLoading }] = useSignupMutation();
   const [signin, { isLoading: isSigninLoading }] = useSigninMutation();
   const [verifyCode, { isLoading: isVerifyLoading }] = useVerifyCodeMutation();
+  const [reqReset, { isLoading: isReqLoading }] = useRequestPasswordResetMutation();
+  const [doReset, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const dispatch = useDispatch();
   const router = useRouter();
@@ -60,6 +64,38 @@ export default function AuthScreen() {
       }
     } catch (err: any) {
       setError(err.data?.message || "Authentication failed. Please try again.");
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError("");
+    if (!email) {
+      setError("Please enter your email");
+      return;
+    }
+    try {
+      await reqReset({ email }).unwrap();
+      setActiveTab(4); // Move to Reset form
+      setVerificationCode("");
+      setPassword("");
+    } catch (err: any) {
+      setError(err.data?.message || "Failed to request reset.");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setError("");
+    if (!verificationCode || !password) {
+      setError("Please enter the code and a new password");
+      return;
+    }
+    try {
+      await doReset({ email, token: verificationCode, newPassword: password }).unwrap();
+      setActiveTab(0); // Go back to login
+      setPassword("");
+      alert("Password reset successful! Please log in.");
+    } catch (err: any) {
+      setError(err.data?.message || "Reset failed. Invalid token.");
     }
   };
 
@@ -105,11 +141,15 @@ export default function AuthScreen() {
             {activeTab === 0 && "Welcome back"}
             {activeTab === 1 && "Create account"}
             {activeTab === 2 && "Verify email"}
+            {activeTab === 3 && "Reset password"}
+            {activeTab === 4 && "Check your inbox"}
           </Text>
           <Text className="text-gray-500 text-lg mb-10">
             {activeTab === 0 && "See what's happening in the world right now."}
             {activeTab === 1 && "Join the conversation and stay connected."}
             {activeTab === 2 && `We sent a code to ${email || "your email"}.`}
+            {activeTab === 3 && "Enter your email to receive a reset code."}
+            {activeTab === 4 && `Enter the 6-digit code sent to ${email || "your email"}.`}
           </Text>
 
           {error ? (
@@ -205,14 +245,67 @@ export default function AuthScreen() {
                 </View>
               </View>
             )}
+
+            {activeTab === 3 && (
+              <View className="mb-4">
+                <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 flex-row items-center">
+                  <Ionicons name="mail-outline" size={20} color="#6B7280" />
+                  <TextInput
+                    placeholder="Email address"
+                    placeholderTextColor="#9CA3AF"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    className="flex-1 ml-3 text-lg text-gray-900"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+              </View>
+            )}
+
+            {activeTab === 4 && (
+              <>
+                <View className="mb-4">
+                  <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 flex-row items-center">
+                    <Ionicons name="keypad-outline" size={20} color="#6B7280" />
+                    <TextInput
+                      placeholder="Enter 6-digit reset code"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      className="flex-1 ml-3 text-lg text-gray-900 tracking-widest font-bold"
+                      value={verificationCode}
+                      onChangeText={setVerificationCode}
+                    />
+                  </View>
+                </View>
+                <View className="mb-8">
+                  <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5 flex-row items-center">
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={20}
+                      color="#6B7280"
+                    />
+                    <TextInput
+                      placeholder="New Password"
+                      placeholderTextColor="#9CA3AF"
+                      secureTextEntry
+                      className="flex-1 ml-3 text-lg text-gray-900"
+                      value={password}
+                      onChangeText={setPassword}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
           </View>
 
           <TouchableOpacity
-            onPress={activeTab === 2 ? handleVerify : handleAuth}
-            disabled={isSignupLoading || isSigninLoading || isVerifyLoading}
+            onPress={activeTab === 2 ? handleVerify : activeTab === 3 ? handleForgotPassword : activeTab === 4 ? handleResetPassword : handleAuth}
+            disabled={isSignupLoading || isSigninLoading || isVerifyLoading || isReqLoading || isResetLoading}
             activeOpacity={0.8}
             className={`py-4 rounded-2xl items-center shadow-lg shadow-sky-500/30 mt-4 ${
-              isSignupLoading || isSigninLoading || isVerifyLoading
+              isSignupLoading || isSigninLoading || isVerifyLoading || isReqLoading || isResetLoading
                 ? "bg-sky-400"
                 : "bg-[#1d9bf0]"
             }`}
@@ -221,10 +314,18 @@ export default function AuthScreen() {
               {activeTab === 0 && "Sign In"}
               {activeTab === 1 && "Get Started"}
               {activeTab === 2 && "Verify & Continue"}
+              {activeTab === 3 && "Send Reset Link"}
+              {activeTab === 4 && "Reset Password"}
             </Text>
           </TouchableOpacity>
 
-          {activeTab !== 2 && (
+          {activeTab === 0 && (
+            <TouchableOpacity onPress={() => { setActiveTab(3); setError(""); }} className="mt-5 mb-2 items-center">
+              <Text className="text-[#1d9bf0] font-semibold text-base">Forgot password?</Text>
+            </TouchableOpacity>
+          )}
+
+          {(activeTab === 0 || activeTab === 1) && (
             <View className="flex-row justify-center mt-8">
               <Text className="text-gray-500 text-base">
                 {activeTab === 0
@@ -244,10 +345,10 @@ export default function AuthScreen() {
             </View>
           )}
 
-          {activeTab === 2 && (
-            <TouchableOpacity
-              className="mt-6 items-center"
-              onPress={() => setActiveTab(1)}
+          {activeTab >= 2 && (
+              <TouchableOpacity
+                className="mt-6 items-center"
+                onPress={() => setActiveTab(activeTab === 2 ? 1 : 0)}
             >
               <Text className="text-gray-500 font-medium">
                 Change email or resend code
