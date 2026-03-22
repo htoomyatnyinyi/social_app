@@ -9,13 +9,22 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useGetFollowingQuery } from "../../store/profileApi";
+import { useGetFollowingQuery, useFollowUserMutation } from "../../store/profileApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FollowingScreen() {
   const { userId } = useLocalSearchParams();
   const router = useRouter();
   const { data: following, isLoading } = useGetFollowingQuery(userId);
+  const [followUser] = useFollowUserMutation();
+
+  const handleFollow = async (id: string) => {
+    try {
+      await followUser(id).unwrap();
+    } catch (e) {
+      console.error("Failed to toggle follow", e);
+    }
+  };
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -30,6 +39,20 @@ export default function FollowingScreen() {
         <Text className="font-bold text-base text-gray-900">{item.name}</Text>
         <Text className="text-gray-500 text-sm">@{item.username}</Text>
       </View>
+      <TouchableOpacity
+        className={`py-1.5 px-4 rounded-full border ${
+          item.isFollowing ? "bg-white border-gray-300" : "bg-black border-black"
+        }`}
+        onPress={() => handleFollow(item.id)}
+      >
+        <Text
+          className={`text-xs font-bold ${
+            item.isFollowing ? "text-gray-900" : "text-white"
+          }`}
+        >
+          {item.isFollowing ? "Following" : "Follow"}
+        </Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 

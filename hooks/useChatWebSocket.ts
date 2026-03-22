@@ -1,32 +1,36 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { API_URL } from "../store/api";
 import { db } from "../db/client";
 import { messages as messagesTable } from "../db/schema";
+import * as Haptics from "expo-haptics";
 
 interface UseChatWebSocketProps {
   chatId: string | null;
   token: string | null;
+  currentUserId?: string;
   onMessageReceived?: () => void;
+  onTypingStatus?: (userId: string) => void;
 }
 
 export const useChatWebSocket = ({
   chatId,
   token,
+  currentUserId,
   onMessageReceived,
+  onTypingStatus,
 }: UseChatWebSocketProps) => {
   const socketRef = useRef<WebSocket | null>(null);
-  // Store callback in a ref to prevent reconnection loops when the callback identity changes
   const onMessageReceivedRef = useRef(onMessageReceived);
+  const onTypingStatusRef = useRef(onTypingStatus);
 
-  // Keep the ref up to date without causing re-renders or reconnections
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
-  }, [onMessageReceived]);
+    onTypingStatusRef.current = onTypingStatus;
+  }, [onMessageReceived, onTypingStatus]);
 
   useEffect(() => {
     if (!token || !chatId) return;
 
-    // Safely build the WS URL
     const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
     const cleanBase = API_URL.replace(/^https?:\/\//, "");
     const wsUrl = `${wsProtocol}://${cleanBase}/chat/ws?chatId=${chatId}&token=${token}`;
@@ -55,13 +59,24 @@ export const useChatWebSocket = ({
                 chatId: chatId,
                 senderId: data.senderId,
                 content: data.content,
+                type: data.image ? "image" : "text",
+                mediaUrl: data.image || null,
+                read: data.read ? 1 : 0,
                 createdAt: new Date(data.createdAt).getTime(),
                 status: "synced",
               })
               .onConflictDoNothing();
 
-            // Use the ref — no dependency on callback identity
+            // Haptic feedback for incoming messages (not from self)
+            if (currentUserId && data.senderId !== currentUserId) {
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
+            }
+
             onMessageReceivedRef.current?.();
+          } else if (data.type === "typing_start" && data.userId !== currentUserId) {
+             onTypingStatusRef.current?.(data.userId);
           }
         } catch (e) {
           console.error("❌ Chat WS Message Error:", e);
@@ -76,7 +91,6 @@ export const useChatWebSocket = ({
         console.log(`🔌 Chat WS Closed. Code: ${e.code}, Reason: ${e.reason}`);
         socketRef.current = null;
 
-        // Auto-reconnect after 3s unless cleaned up
         if (!isCleanedUp) {
           reconnectTimer = setTimeout(connect, 3000);
         }
@@ -91,7 +105,13 @@ export const useChatWebSocket = ({
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [chatId, token]); // Stable deps only — no callback
+  }, [chatId, token]);
 
-  return socketRef.current;
+  const sendTyping = () => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "typing_start", chatId }));
+    }
+  };
+
+  return { socket: socketRef.current, sendTyping };
 };

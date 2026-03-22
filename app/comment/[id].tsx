@@ -89,7 +89,7 @@ export default function CommentDetailScreen() {
 
     try {
       await commentPost({
-        id: comment.postId,
+        postId: comment.postId,
         content,
         parentId: id, // replying to this specific comment
       }).unwrap();

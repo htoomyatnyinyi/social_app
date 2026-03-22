@@ -38,6 +38,7 @@ export const syncMessages = async (
           body: JSON.stringify({
             chatId,
             content: msg.content,
+            image: msg.mediaUrl || undefined,
           }),
         });
 
@@ -51,6 +52,9 @@ export const syncMessages = async (
               chatId: serverMsg.chatId,
               senderId: serverMsg.senderId,
               content: serverMsg.content,
+              type: serverMsg.image ? "image" : "text",
+              mediaUrl: serverMsg.image || null,
+              read: serverMsg.read ? 1 : 0,
               createdAt: new Date(serverMsg.createdAt).getTime(),
               status: "synced",
             })
@@ -59,6 +63,7 @@ export const syncMessages = async (
               set: {
                 status: "synced",
                 content: serverMsg.content,
+                read: serverMsg.read ? 1 : 0,
                 createdAt: new Date(serverMsg.createdAt).getTime(),
               },
             });
@@ -109,12 +114,20 @@ export const syncMessages = async (
               chatId: msg.chatId,
               senderId: msg.senderId,
               content: msg.content,
+              type: msg.image ? "image" : "text",
+              mediaUrl: msg.image || null,
+              read: msg.read ? 1 : 0,
               createdAt: new Date(msg.createdAt).getTime(),
               status: "synced",
             })
             .onConflictDoUpdate({
               target: messages.id,
-              set: { status: "synced", content: msg.content },
+              set: {
+                status: "synced",
+                content: msg.content,
+                read: msg.read ? 1 : 0,
+                mediaUrl: msg.image || null,
+              },
             });
 
           const msgTime = new Date(msg.createdAt).getTime();

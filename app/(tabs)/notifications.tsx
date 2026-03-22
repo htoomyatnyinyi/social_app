@@ -92,90 +92,90 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 // Memoized NotificationItem for partial rendering performance optimization
-const NotificationItem = React.memo(({ 
-  item, 
-  onPress, 
-  onPressProfile 
-}: { 
-  item: any; 
-  onPress: (item: any) => void;
-  onPressProfile: (issuerId: string) => void;
-}) => {
-  const config = getNotificationConfig(item.type);
+const NotificationItem = React.memo(
+  ({
+    item,
+    onPress,
+    onPressProfile,
+  }: {
+    item: any;
+    onPress: (item: any) => void;
+    onPressProfile: (issuerId: string) => void;
+  }) => {
+    const config = getNotificationConfig(item.type);
 
-  return (
-    <TouchableOpacity
-      onPress={() => onPress(item)}
-      activeOpacity={0.8}
-      className={`flex-row p-4 border-b border-gray-50 items-start ${item.read ? "bg-white" : "bg-sky-50/50"}`}
-    >
-      <View className="mr-3 pt-1">
-        <Ionicons name={config.icon as any} size={26} color={config.color} />
-      </View>
-
-      <View className="flex-1">
-        <View className="flex-row items-center mb-1">
-          <TouchableOpacity
-            onPress={() => onPressProfile(item.issuer.id)}
-          >
-            <Image
-              source={{
-                uri: item.issuer.image || "https://via.placeholder.com/48",
-              }}
-              className="w-10 h-10 rounded-full mr-2 bg-gray-100"
-            />
-          </TouchableOpacity>
+    return (
+      <TouchableOpacity
+        onPress={() => onPress(item)}
+        activeOpacity={0.8}
+        className={`flex-row p-4 border-b border-gray-50 items-start ${item.read ? "bg-white" : "bg-sky-50/50"}`}
+      >
+        <View className="mr-3 pt-1">
+          <Ionicons name={config.icon as any} size={26} color={config.color} />
         </View>
 
-        <View className="flex-row items-baseline min-w-0 pr-2">
-          <Text className="text-[15px] text-gray-900 leading-5 flex-shrink">
-            <Text className="font-extrabold">{item.issuer.name}</Text>{" "}
-            {config.text}
-          </Text>
-          {item._groupCount > 1 && (
-            <View className="bg-sky-100 px-1.5 py-0.5 rounded-md ml-1.5 flex-row items-center self-center">
-              <Text className="text-sky-600 text-[10px] font-bold">
-                +{item._groupCount - 1}
+        <View className="flex-1">
+          <View className="flex-row items-center mb-1">
+            <TouchableOpacity onPress={() => onPressProfile(item.issuer.id)}>
+              <Image
+                source={{
+                  uri: item.issuer.image || "https://via.placeholder.com/48",
+                }}
+                className="w-10 h-10 rounded-full mr-2 bg-gray-100"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View className="flex-row items-baseline min-w-0 pr-2">
+            <Text className="text-[15px] text-gray-900 leading-5 flex-shrink">
+              <Text className="font-extrabold">{item.issuer.name}</Text>{" "}
+              {config.text}
+            </Text>
+            {item._groupCount > 1 && (
+              <View className="bg-sky-100 px-1.5 py-0.5 rounded-md ml-1.5 flex-row items-center self-center">
+                <Text className="text-sky-600 text-[10px] font-bold">
+                  +{item._groupCount - 1}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {item.post && (
+            <Text
+              className="text-gray-500 text-[14px] mt-2 leading-4"
+              numberOfLines={2}
+            >
+              {item.post.content}
+            </Text>
+          )}
+
+          {item.comment && (
+            <View className="mt-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
+              <Text
+                className="text-gray-600 text-[13px] leading-4"
+                numberOfLines={2}
+              >
+                &quot;{item.comment.content}&quot;
               </Text>
             </View>
           )}
-        </View>
 
-        {item.post && (
-          <Text
-            className="text-gray-500 text-[14px] mt-2 leading-4"
-            numberOfLines={2}
-          >
-            {item.post.content}
+          <Text className="text-gray-400 text-xs mt-3">
+            {formatTimeAgo(item.createdAt)}
           </Text>
+        </View>
+        {!item.read && (
+          <View className="w-2 h-2 bg-[#1d9bf0] rounded-full mt-2" />
         )}
-
-        {item.comment && (
-          <View className="mt-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
-            <Text
-              className="text-gray-600 text-[13px] leading-4"
-              numberOfLines={2}
-            >
-              &quot;{item.comment.content}&quot;
-            </Text>
-          </View>
-        )}
-
-        <Text className="text-gray-400 text-xs mt-3">
-          {formatTimeAgo(item.createdAt)}
-        </Text>
-      </View>
-      {!item.read && (
-        <View className="w-2 h-2 bg-[#1d9bf0] rounded-full mt-2" />
-      )}
-    </TouchableOpacity>
-  );
-});
+      </TouchableOpacity>
+    );
+  },
+);
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const {
-    data: notifications,
+    data: notificationsData,
     isLoading,
     refetch,
     isFetching,
@@ -192,54 +192,72 @@ export default function NotificationsScreen() {
   );
 
   useEffect(() => {
-    if (notifications) {
+    if (notificationsData) {
       console.log("--- API DATA DEBUG ---");
-      console.log("Type of notifications:", typeof notifications);
-      console.log("Is Array?:", Array.isArray(notifications));
-      console.log("Full Data:", JSON.stringify(notifications, null, 2));
+      console.log("Type of notificationsData:", typeof notificationsData);
+      console.log("Is Array?:", Array.isArray(notificationsData));
+      if (notificationsData.notifications) {
+        console.log("Has notifications array?: true");
+        console.log(
+          "Notifications Count:",
+          notificationsData.notifications.length,
+        );
+      }
+      console.log("Full Data:", JSON.stringify(notificationsData, null, 2));
     }
-  }, [notifications]);
+  }, [notificationsData]);
 
   // Use stable reference with useCallback to not break NotificationItem memoization
-  const handleNotificationPress = useCallback(async (notification: any) => {
-    if (
-      !notification.read ||
-      (notification._groupUnreadCount && notification._groupUnreadCount > 0)
-    ) {
-      markAsRead(notification.id);
-    }
-
-    if (notification.type === "MESSAGE" && notification.issuerId) {
-      try {
-        const room = await createChatRoom(notification.issuerId).unwrap();
-        router.push(`/chat/${room.id}`);
-        return;
-      } catch (e) {
-        console.error("Failed to find chat room", e);
-      }
-    }
-
-    if (notification.postId) {
-      router.push(`/post/${notification.postId}`);
-    } else if (notification.link) {
+  const handleNotificationPress = useCallback(
+    async (notification: any) => {
       if (
-        notification.link.startsWith("http://") ||
-        notification.link.startsWith("https://")
+        !notification.read ||
+        (notification._groupUnreadCount && notification._groupUnreadCount > 0)
       ) {
-        Linking.openURL(notification.link);
-      } else {
-        router.push(notification.link as any);
+        markAsRead(notification.id);
       }
-    } else if (notification.issuerId) {
-      router.push(`/profile/${notification.issuerId}`);
-    }
-  }, [markAsRead, createChatRoom, router]);
 
-  const handleProfilePress = useCallback((issuerId: string) => {
-    router.push(`/profile/${issuerId}`);
-  }, [router]);
+      if (notification.type === "MESSAGE" && notification.issuerId) {
+        try {
+          const room = await createChatRoom(notification.issuerId).unwrap();
+          router.push(`/chat/${room.id}`);
+          return;
+        } catch (e) {
+          console.error("Failed to find chat room", e);
+        }
+      }
+
+      if (notification.postId) {
+        router.push(`/post/${notification.postId}`);
+      } else if (notification.link) {
+        if (
+          notification.link.startsWith("http://") ||
+          notification.link.startsWith("https://")
+        ) {
+          Linking.openURL(notification.link);
+        } else {
+          router.push(notification.link as any);
+        }
+      } else if (notification.issuerId) {
+        router.push(`/profile/${notification.issuerId}`);
+      }
+    },
+    [markAsRead, createChatRoom, router],
+  );
+
+  const handleProfilePress = useCallback(
+    (issuerId: string) => {
+      router.push(`/profile/${issuerId}`);
+    },
+    [router],
+  );
 
   const groupedNotifications = React.useMemo(() => {
+    // Extract the array from the backend response object { notifications, nextCursor }
+    const notifications = Array.isArray(notificationsData)
+      ? notificationsData
+      : notificationsData?.notifications;
+
     if (!notifications || !Array.isArray(notifications)) return [];
 
     const groups: Record<string, any[]> = {};
@@ -275,18 +293,21 @@ export default function NotificationsScreen() {
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-  }, [notifications]);
+  }, [notificationsData]);
 
   // Stable key extractor and renderItem
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
-  const renderItem = useCallback(({ item }: { item: any }) => (
-    <NotificationItem 
-      item={item} 
-      onPress={handleNotificationPress} 
-      onPressProfile={handleProfilePress} 
-    />
-  ), [handleNotificationPress, handleProfilePress]);
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <NotificationItem
+        item={item}
+        onPress={handleNotificationPress}
+        onPressProfile={handleProfilePress}
+      />
+    ),
+    [handleNotificationPress, handleProfilePress],
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-white">
