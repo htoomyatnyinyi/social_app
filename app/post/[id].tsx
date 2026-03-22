@@ -181,7 +181,24 @@ const CommentItem = memo(
             )}
 
             <Text className="text-[15px] leading-6 text-gray-800">
-              {item.content}
+              {(() => {
+                if (!item.content) return null;
+                const parts = item.content.split(/(#[a-zA-Z0-9_]+)/g);
+                return parts.map((part, i) => {
+                  if (part.startsWith("#")) {
+                    return (
+                      <Text
+                        key={i}
+                        className="text-[#1d9bf0]"
+                        onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
+                      >
+                        {part}
+                      </Text>
+                    );
+                  }
+                  return <Text key={i}>{part}</Text>;
+                });
+              })()}
             </Text>
 
             <View className="flex-row mt-3 items-center justify-between pr-4">
@@ -289,11 +306,13 @@ export default function PostDetailScreen() {
     refetch: refetchComments,
   } = useGetCommentsQuery(id!, { skip: !id });
 
-  const [commentPost] = useCommentPostMutation();
+  const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
-  const [incrementView] = useIncrementViewCountMutation();
+  const [deletePost] = useDeletePostMutation();
+  const [deleteComment] = useDeleteCommentMutation();
+  const [incrementViewCount] = useIncrementViewCountMutation();
   const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
   const comments = commentsData ?? [];
@@ -301,9 +320,9 @@ export default function PostDetailScreen() {
   // Auto-increment view count once
   React.useEffect(() => {
     if (id) {
-      incrementView({ postId: id }).catch(() => {});
+      incrementViewCount({ postId: id }).catch(() => {});
     }
-  }, [id, incrementView]);
+  }, [id, incrementViewCount]);
 
   const handleSendComment = useCallback(async () => {
     if (!commentContent.trim() || !id) return;
@@ -473,7 +492,24 @@ export default function PostDetailScreen() {
 
               {/* Content */}
               <Text className="text-[17px] leading-6 text-gray-900 mb-4">
-                {post.content}
+                {(() => {
+                  if (!post.content) return null;
+                  const parts = post.content.split(/(#[a-zA-Z0-9_]+)/g);
+                  return parts.map((part, i) => {
+                    if (part.startsWith("#")) {
+                      return (
+                        <Text
+                          key={i}
+                          className="text-[#1d9bf0]"
+                          onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
+                        >
+                          {part}
+                        </Text>
+                      );
+                    }
+                    return <Text key={i}>{part}</Text>;
+                  });
+                })()}
               </Text>
 
               {/* Images */}
@@ -670,9 +706,21 @@ export default function PostDetailScreen() {
           selectedItem?.user?.id === currentUser?.id ||
           selectedItem?.author?.id === currentUser?.id
         }
-        onDelete={() => {
-          alert("Delete coming soon");
+        onDelete={async () => {
+          if (!selectedItem) return;
+          try {
+            if (selectedItem.postId) {
+              await deleteComment({ postId: selectedItem.postId, commentId: selectedItem.id }).unwrap();
+            } else {
+              await deletePost({ id: selectedItem.id }).unwrap();
+              router.back();
+            }
+          } catch (e) {
+            console.error("Delete failed", e);
+            alert("Failed to delete content");
+          }
           setOptionsVisible(false);
+          setSelectedItem(null);
         }}
         onReport={() => {
           alert("Reported");
@@ -709,6 +757,8 @@ export default function PostDetailScreen() {
 //   useRepostPostMutation,
 //   useIncrementViewCountMutation,
 //   useBookmarkPostMutation,
+//   useDeletePostMutation,
+//   useDeleteCommentMutation,
 // } from "../../store/postApi";
 // import { useSelector } from "react-redux";
 // import { useFollowUserMutation } from "@/store/profileApi";

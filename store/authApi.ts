@@ -33,8 +33,29 @@ export const authApi = api.injectEndpoints({
     searchUsers: builder.query({
       query: (search) => `/auth/users?search=${search}`,
     }),
+    requestPasswordReset: builder.mutation({
+      query: (data) => ({
+        url: "/auth/reset-password/request",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    resetPassword: builder.mutation({
+      query: (data) => ({
+        url: "/auth/reset-password/verify",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
-export const { useSigninMutation, useSignupMutation, useGoogleAuthMutation, useVerifyCodeMutation, useSearchUsersQuery } =
-  authApi;
+export const { 
+  useSigninMutation, 
+  useSignupMutation, 
+  useGoogleAuthMutation, 
+  useVerifyCodeMutation, 
+  useSearchUsersQuery,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation
+} = authApi;

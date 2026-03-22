@@ -126,15 +126,32 @@ export default function ChatScreen() {
       markAsRead(resolvedChatId);
     }
   }, [resolvedChatId, messages?.length, markAsRead]);
-  useChatWebSocket({
+  const [inputText, setInputText] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { sendTyping } = useChatWebSocket({
     chatId: resolvedChatId,
     token,
     currentUserId: user?.id,
-    onMessageReceived: fetchMessages,
+    onMessageReceived: () => {
+      fetchMessages();
+      setIsTyping(false); 
+    },
+    onTypingStatus: () => {
+      setIsTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+    }
   });
 
-  const [inputText, setInputText] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const handleTextChange = (text: string) => {
+    setInputText(text);
+    if (text.length > 0) {
+      sendTyping();
+    }
+  };
 
   const reversedMessages = useMemo(
     () => (messages ? [...messages].reverse() : []),
@@ -202,6 +219,13 @@ export default function ChatScreen() {
             showsVerticalScrollIndicator={false}
           />
 
+          {/* Typing Indicator */}
+          {isTyping && (
+            <View className="px-4 py-1 bg-black">
+              <Text className="text-gray-500 text-sm italic">User is typing...</Text>
+            </View>
+          )}
+
           {/* 4. Input Area */}
           <View className="bg-black border-t border-zinc-900">
             {/* Image Preview */}
@@ -249,7 +273,7 @@ export default function ChatScreen() {
                   placeholder="Start a message"
                   placeholderTextColor="#71767b"
                   value={inputText}
-                  onChangeText={setInputText}
+                  onChangeText={handleTextChange}
                   multiline
                   className="text-[16px] text-white min-h-[38px] max-h-[100px]"
                   cursorColor="#1d9bf0"
