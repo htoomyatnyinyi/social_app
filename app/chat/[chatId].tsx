@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,10 +18,12 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useChatMessages } from "../../hooks/useChatMessages";
-import { useChatWebSocket } from "../../hooks/useChatWebSocket";
-import { messages as messagesTable } from "../../db/schema";
+
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import { useChatMessages } from "@/hooks/useChatMessages";
+import { useChatWebSocket } from "@/hooks/useChatWebSocket";
 
 // Fixed: Named function to solve "Missing Display Name"
 const MessageBubble = memo(function MessageBubble({
@@ -28,13 +31,14 @@ const MessageBubble = memo(function MessageBubble({
   prevMessage,
   user,
 }: {
-  item: typeof messagesTable.$inferSelect;
-  prevMessage: typeof messagesTable.$inferSelect | null;
+  item: any;
+  prevMessage: any;
   user: any;
 }) {
   const isMe = item.senderId === user?.id;
   const isSameSenderAsPrev = prevMessage?.senderId === item.senderId;
   const isPending = item.status === "pending";
+  const isRead = item.read === 1;
 
   return (
     <View
@@ -49,11 +53,30 @@ const MessageBubble = memo(function MessageBubble({
             : "bg-[#262626] rounded-2xl rounded-tl-sm"
         } ${isPending ? "opacity-70" : ""}`}
       >
-        <Text
-          className={`${isMe ? "text-white" : "text-gray-100"} text-[15px] leading-5`}
-        >
-          {item.content}
-        </Text>
+        {/* Image */}
+        {item.mediaUrl ? (
+          <Image
+            source={{ uri: item.mediaUrl }}
+            style={{
+              width: 200,
+              height: 200,
+              borderRadius: 12,
+              marginBottom: item.content ? 8 : 0,
+            }}
+            resizeMode="cover"
+          />
+        ) : null}
+
+        {/* Text content */}
+        {item.content ? (
+          <Text
+            className={`${isMe ? "text-white" : "text-gray-100"} text-[15px] leading-5`}
+          >
+            {item.content}
+          </Text>
+        ) : null}
+
+        {/* Timestamp + delivery ticks */}
         <View className="flex-row items-center justify-end mt-1 gap-1">
           <Text
             className={`text-[10px] ${isMe ? "text-sky-200" : "text-gray-500"}`}
@@ -68,12 +91,12 @@ const MessageBubble = memo(function MessageBubble({
               name={
                 isPending
                   ? "time-outline"
-                  : item.status === "delivered"
-                    ? "checkmark-outline"
-                    : "checkmark-done-outline"
+                  : isRead
+                    ? "checkmark-done-outline"
+                    : "checkmark-outline"
               }
               size={14}
-              color={isPending ? "#e0e0e0" : "#ffffff"}
+              color={isPending ? "#e0e0e0" : isRead ? "#60a5fa" : "#ffffff"}
             />
           )}
         </View>
@@ -103,25 +126,61 @@ export default function ChatScreen() {
       markAsRead(resolvedChatId);
     }
   }, [resolvedChatId, messages?.length, markAsRead]);
-  useChatWebSocket({
+  const [inputText, setInputText] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { sendTyping } = useChatWebSocket({
     chatId: resolvedChatId,
     token,
-    onMessageReceived: fetchMessages,
+    currentUserId: user?.id,
+    onMessageReceived: () => {
+      fetchMessages();
+      setIsTyping(false); 
+    },
+    onTypingStatus: () => {
+      setIsTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+    }
   });
 
-  const [inputText, setInputText] = useState("");
+  const handleTextChange = (text: string) => {
+    setInputText(text);
+    if (text.length > 0) {
+      sendTyping();
+    }
+  };
 
   const reversedMessages = useMemo(
     () => (messages ? [...messages].reverse() : []),
     [messages],
   );
 
+  const pickImage = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      // Convert to base64 for upload
+      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+        encoding: FileSystem.EncodingType.Base64,
+        // encoding: FileSystem.EncodingType.Base64,
+      });
+      const mimeType = result.assets[0].mimeType || "image/jpeg";
+      setSelectedImage(`data:${mimeType};base64,${base64}`);
+    }
+  }, []);
+
   const handleSend = useCallback(() => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() && !selectedImage) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    sendMessage(inputText.trim());
+    sendMessage(inputText.trim(), selectedImage || undefined);
     setInputText("");
-  }, [inputText, sendMessage]);
+    setSelectedImage(null);
+  }, [inputText, selectedImage, sendMessage]);
 
   return (
     // 1. Root Container
@@ -160,8 +219,44 @@ export default function ChatScreen() {
             showsVerticalScrollIndicator={false}
           />
 
+          {/* Typing Indicator */}
+          {isTyping && (
+            <View className="px-4 py-1 bg-black">
+              <Text className="text-gray-500 text-sm italic">User is typing...</Text>
+            </View>
+          )}
+
           {/* 4. Input Area */}
           <View className="bg-black border-t border-zinc-900">
+            {/* Image Preview */}
+            {selectedImage && (
+              <View className="px-4 pt-3 pb-1">
+                <View style={{ position: "relative", alignSelf: "flex-start" }}>
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={{ width: 80, height: 80, borderRadius: 12 }}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setSelectedImage(null)}
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -6,
+                      backgroundColor: "#1d9bf0",
+                      borderRadius: 10,
+                      width: 20,
+                      height: 20,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Ionicons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             <View
               className="flex-row items-center px-3 py-2"
               style={{
@@ -169,7 +264,7 @@ export default function ChatScreen() {
                   Platform.OS === "ios" ? Math.max(insets.bottom, 8) : 8,
               }}
             >
-              <TouchableOpacity className="p-2">
+              <TouchableOpacity className="p-2" onPress={pickImage}>
                 <Ionicons name="image-outline" size={26} color="#1d9bf0" />
               </TouchableOpacity>
 
@@ -178,7 +273,7 @@ export default function ChatScreen() {
                   placeholder="Start a message"
                   placeholderTextColor="#71767b"
                   value={inputText}
-                  onChangeText={setInputText}
+                  onChangeText={handleTextChange}
                   multiline
                   className="text-[16px] text-white min-h-[38px] max-h-[100px]"
                   cursorColor="#1d9bf0"
@@ -187,13 +282,15 @@ export default function ChatScreen() {
 
               <TouchableOpacity
                 onPress={handleSend}
-                disabled={!inputText.trim()}
+                disabled={!inputText.trim() && !selectedImage}
                 className="ml-2 p-2"
               >
                 <Ionicons
                   name="send"
                   size={22}
-                  color={inputText.trim() ? "#1d9bf0" : "#074c7a"}
+                  color={
+                    inputText.trim() || selectedImage ? "#1d9bf0" : "#074c7a"
+                  }
                 />
               </TouchableOpacity>
             </View>

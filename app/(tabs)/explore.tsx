@@ -155,35 +155,34 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useSearchUsersQuery } from "../../store/authApi";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useGlobalSearchQuery } from "../../store/searchApi";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FollowerSuggestions from "@/components/FollowerSuggestions";
 
-interface User {
-  id: string;
-  name: string;
-  username: string;
-  image?: string;
-}
-
 export default function ExploreScreen() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const { data: users, isLoading } = useSearchUsersQuery(search, {
-    skip: !search,
+  const { q } = useLocalSearchParams<{ q?: string }>();
+  const [search, setSearch] = useState(q || "");
+  const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
+    q?.startsWith("#") ? "posts" : "users"
+  );
+  
+  const { data, isLoading } = useGlobalSearchQuery(search, {
+    skip: search.length < 2,
   });
+
   const currentUser = useSelector((state: any) => state.auth.user);
 
-  // remove current user from results
-  const filteredUsers = users?.filter(
-    (user: User) => user.id !== currentUser?.id,
-  );
+  const filteredUsers = data?.users?.filter(
+    (user: any) => user.id !== currentUser?.id
+  ) || [];
 
-  const UserItem = ({ item }: { item: User }) => (
+  const renderUser = ({ item }: { item: any }) => (
     <TouchableOpacity
       onPress={() => router.push(`/profile/${item.id}`)}
       className="flex-row items-center p-4 border-b border-gray-50 bg-white"
@@ -200,10 +199,82 @@ export default function ExploreScreen() {
     </TouchableOpacity>
   );
 
+  const renderPost = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      onPress={() => router.push(`/post/${item.id}`)}
+      className="p-4 border-b border-gray-50 bg-white"
+    >
+      <View className="flex-row items-center mb-2">
+        <Image
+          source={{ uri: item.author.image || "https://via.placeholder.com/50" }}
+          className="w-8 h-8 rounded-full bg-gray-200 mr-2"
+        />
+        <Text className="font-bold text-gray-900">{item.author.name}</Text>
+        <Text className="text-gray-500 text-sm ml-1">@{item.author.username}</Text>
+      </View>
+      <Text className="text-gray-800 text-base" numberOfLines={3}>{item.content}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderHashtag = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      onPress={() => {
+        setSearch(`#${item.name}`);
+        setActiveTab("posts");
+      }}
+      className="flex-row items-center p-4 border-b border-gray-50 bg-white justify-between"
+    >
+      <View className="flex-row items-center">
+        <View className="w-10 h-10 rounded-full bg-sky-50 items-center justify-center mr-3">
+          <Text className="text-xl font-bold text-sky-500">#</Text>
+        </View>
+        <Text className="font-bold text-lg text-gray-900">{item.name}</Text>
+      </View>
+      <Text className="text-gray-400 text-sm">{item.count} posts</Text>
+    </TouchableOpacity>
+  );
+
+  const renderContent = () => {
+    if (!search || search.length < 2) return <FollowerSuggestions />;
+    if (isLoading) return <ActivityIndicator size="large" color="#1d9bf0" className="mt-10" />;
+    
+    let listData = [];
+    let renderItemFn: any;
+    
+    if (activeTab === "users") {
+      listData = filteredUsers;
+      renderItemFn = renderUser;
+    } else if (activeTab === "posts") {
+      listData = data?.posts || [];
+      renderItemFn = renderPost;
+    } else {
+      listData = data?.hashtags || [];
+      renderItemFn = renderHashtag;
+    }
+
+    if (listData.length === 0) {
+      return (
+        <View className="flex-1 items-center justify-center mt-20 px-8">
+           <Text className="text-gray-500">No {activeTab} found for "{search}"</Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={listData}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItemFn}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+      />
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Search Header */}
-      <View className="px-4 py-3 border-b border-gray-50">
+      <View className="px-4 py-3 border-b border-gray-100 bg-white shadow-sm z-10">
         <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5">
           <Ionicons name="search" size={20} color="#6B7280" />
           <TextInput
@@ -222,39 +293,34 @@ export default function ExploreScreen() {
         </View>
       </View>
 
+      {/* Tabs */}
+      {search.length >= 2 && (
+        <View className="flex-row border-b border-gray-100 bg-white">
+          <TouchableOpacity 
+            className={`flex-1 py-3 items-center border-b-2 ${activeTab === 'users' ? 'border-[#1d9bf0]' : 'border-transparent'}`}
+            onPress={() => setActiveTab('users')}
+          >
+            <Text className={`font-bold ${activeTab === 'users' ? 'text-gray-900' : 'text-gray-500'}`}>Accounts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            className={`flex-1 py-3 items-center border-b-2 ${activeTab === 'posts' ? 'border-[#1d9bf0]' : 'border-transparent'}`}
+            onPress={() => setActiveTab('posts')}
+          >
+            <Text className={`font-bold ${activeTab === 'posts' ? 'text-gray-900' : 'text-gray-500'}`}>Posts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            className={`flex-1 py-3 items-center border-b-2 ${activeTab === 'hashtags' ? 'border-[#1d9bf0]' : 'border-transparent'}`}
+            onPress={() => setActiveTab('hashtags')}
+          >
+            <Text className={`font-bold ${activeTab === 'hashtags' ? 'text-gray-900' : 'text-gray-500'}`}>Tags</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Content */}
-      <FlatList
-        data={filteredUsers}
-        // data={users}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <UserItem item={item} />}
-        contentContainerStyle={{ flexGrow: 1 }}
-        ListHeaderComponent={<FollowerSuggestions />}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View className="flex-1 items-center justify-center mt-20 px-8">
-              {!search ? (
-                <>
-                  <Text className="text-xl font-bold text-gray-900 mb-2">
-                    Search for people
-                  </Text>
-                  <Text className="text-gray-500 text-center leading-5">
-                    Find your friends, family, and favorite content creators.
-                  </Text>
-                </>
-              ) : (
-                <Text className="text-gray-500">
-                  No users found for {search}
-                </Text>
-              )}
-            </View>
-          ) : (
-            <View className="mt-10">
-              <ActivityIndicator size="small" color="#1d9bf0" />
-            </View>
-          )
-        }
-      />
+      <View className="flex-1 bg-gray-50">
+        {renderContent()}
+      </View>
     </SafeAreaView>
   );
 }
