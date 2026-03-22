@@ -24,6 +24,7 @@ import {
   useRepostPostMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 // ────────────────────────────────────────────────
 // Memoized Post Card Component (unchanged - your original is good)
@@ -63,16 +64,30 @@ const ProfilePostCard = React.memo(
 
     return (
       <TouchableOpacity
-        onPress={() => isReply && parentPost ? onPressPost(parentPost.id) : onPressPost(displayItem.id)}
+        onPress={() =>
+          isReply && parentPost
+            ? onPressPost(parentPost.id)
+            : onPressPost(displayItem.id)
+        }
         activeOpacity={0.9}
         className="p-4 border-b border-gray-100 bg-white"
       >
         {/* Reply context banner */}
         {isReply && parentPost && (
           <View className="flex-row items-center mb-2 ml-10">
-            <Ionicons name="return-down-forward-outline" size={14} color="#6B7280" />
-            <Text className="text-gray-500 text-[13px] ml-1.5" numberOfLines={1}>
-              Replying to <Text className="font-bold">@{parentPost.author?.name || "user"}</Text>
+            <Ionicons
+              name="return-down-forward-outline"
+              size={14}
+              color="#6B7280"
+            />
+            <Text
+              className="text-gray-500 text-[13px] ml-1.5"
+              numberOfLines={1}
+            >
+              Replying to{" "}
+              <Text className="font-bold">
+                @{parentPost.author?.name || "user"}
+              </Text>
             </Text>
           </View>
         )}
@@ -296,7 +311,21 @@ export default function ProfileScreen() {
   const Header = () => (
     <SafeAreaView className="bg-white" edges={["top"]}>
       {/* Banner */}
-      <View className="h-32 bg-sky-500" />
+      <View className="h-32 bg-sky-100">
+        {profile?.coverImage ? (
+          <Image
+            source={{ uri: profile.coverImage }}
+            className="w-full h-full"
+            resizeMode="cover"
+            // contentFit="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={["#1d9bf0", "#0ea5e9"]}
+            className="w-full h-full"
+          />
+        )}
+      </View>
 
       {/* Profile Header */}
       <View className="px-4 -mt-12">
@@ -341,7 +370,11 @@ export default function ProfileScreen() {
             {profile?.name || user?.name || "User Name"}
           </Text>
           <Text className="text-gray-500 text-[15px]">
-            @{profile?.name?.toLowerCase().replace(/\s/g, "") || "handle"}
+            @
+            {profile?.username ||
+              user?.username ||
+              profile?.name?.toLowerCase().replace(/\s/g, "") ||
+              "handle"}
           </Text>
         </View>
 
@@ -349,17 +382,50 @@ export default function ProfileScreen() {
           {profile?.bio || "Building the future of social networking. 🚀"}
         </Text>
 
-        <View className="flex-row mt-3 items-center">
-          <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-          <Text className="text-gray-500 ml-1.5 text-[15px]">
-            Joined{" "}
-            {profile?.createdAt
-              ? new Date(profile.createdAt).toLocaleDateString("en-US", {
+        <View className="flex-row flex-wrap mt-3">
+          {profile?.location && (
+            <View className="flex-row items-center mr-4 mb-2">
+              <Ionicons name="location-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500 ml-1.5 text-[15px]">
+                {profile.location}
+              </Text>
+            </View>
+          )}
+          {profile?.website && (
+            <View className="flex-row items-center mr-4 mb-2">
+              <Ionicons name="link-outline" size={16} color="#6B7280" />
+              <Text
+                className="text-[#1d9bf0] ml-1.5 text-[15px]"
+                numberOfLines={1}
+              >
+                {profile.website.replace(/^https?:\/\//, "")}
+              </Text>
+            </View>
+          )}
+          <View className="flex-row items-center mr-4 mb-2">
+            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+            <Text className="text-gray-500 ml-1.5 text-[15px]">
+              Joined{" "}
+              {profile?.createdAt
+                ? new Date(profile.createdAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "January 2026"}
+            </Text>
+          </View>
+          {profile?.dob && (
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="gift-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500 ml-1.5 text-[15px]">
+                Born{" "}
+                {new Date(profile.dob).toLocaleDateString("en-US", {
                   month: "long",
-                  year: "numeric",
-                })
-              : "January 2026"}
-          </Text>
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Upgraded: Clickable Following & Followers */}
