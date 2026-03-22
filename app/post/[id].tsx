@@ -191,7 +191,9 @@ const CommentItem = memo(
                       <Text
                         key={i}
                         className="text-[#1d9bf0]"
-                        onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
+                        onPress={() =>
+                          router.push(`/explore?q=${encodeURIComponent(part)}`)
+                        }
                       >
                         {part}
                       </Text>
@@ -263,18 +265,20 @@ const CommentItem = memo(
           </View>
         </TouchableOpacity>
 
-        {/* Nested replies - Only show grok replies directly inline */}
-        {item.replies
-          ?.filter((r: any) => r.user?.username === "grok")
-          .map((reply) => (
-            <CommentItem
-              key={reply.id}
-              item={reply}
-              currentUserId={currentUserId}
-              onReply={onReply}
-              onOptions={onOptions}
-            />
-          ))}
+        {/* Nested replies - render all replies recursively */}
+        {item.replies && item.replies.length > 0 && (
+          <View>
+            {item.replies.map((reply: any) => (
+              <CommentItem
+                key={reply.id}
+                item={reply}
+                currentUserId={currentUserId}
+                onReply={onReply}
+                onOptions={onOptions}
+              />
+            ))}
+          </View>
+        )}
       </View>
     );
   },
@@ -496,13 +500,17 @@ export default function PostDetailScreen() {
                 {(() => {
                   if (!post.content) return null;
                   const parts = post.content.split(/(#[a-zA-Z0-9_]+)/g);
-                  return parts.map((part, i) => {
+                  return parts.map((part: any, i: any) => {
                     if (part.startsWith("#")) {
                       return (
                         <Text
                           key={i}
                           className="text-[#1d9bf0]"
-                          onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
+                          onPress={() =>
+                            router.push(
+                              `/explore?q=${encodeURIComponent(part)}`,
+                            )
+                          }
                         >
                           {part}
                         </Text>
@@ -711,7 +719,10 @@ export default function PostDetailScreen() {
           if (!selectedItem) return;
           try {
             if (selectedItem.postId) {
-              await deleteComment({ postId: selectedItem.postId, commentId: selectedItem.id }).unwrap();
+              await deleteComment({
+                postId: selectedItem.postId,
+                commentId: selectedItem.id,
+              }).unwrap();
             } else {
               await deletePost({ id: selectedItem.id }).unwrap();
               router.back();
