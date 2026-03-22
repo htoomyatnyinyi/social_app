@@ -6,6 +6,7 @@ import { useGetUnreadCountQuery } from "../../store/notificationApi";
 import { useUpdatePushTokenMutation } from "../../store/profileApi";
 import { API_URL, api } from "../../store/api";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   const token = useSelector((state: any) => state.auth.token);
@@ -104,14 +105,11 @@ export default function TabLayout() {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: "#f3f4f6",
-          // height: 60,
-          // paddingBottom: 8,
-          // paddingTop: 8,
-          // --- MODIFIED VALUES ---
-          height: 85, // Increased from 60
-          paddingBottom: 25, // Increased from 8 to push icons up away from the bottom edge
-          paddingTop: 10, // Optional: slight adjustment for top spacing
-          // -----------------------
+          elevation: 8,
+          shadowOpacity: 0.1,
+          backgroundColor: "#ffffff",
+          height: Platform.OS === "ios" ? 88 : 60,
+          display: "flex",
         },
         headerStyle: {
           borderBottomWidth: 1,

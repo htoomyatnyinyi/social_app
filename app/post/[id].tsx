@@ -25,6 +25,7 @@ import {
   useLikeCommentMutation,
   useRepostCommentMutation,
   useDeleteCommentMutation,
+  useDeletePostMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
