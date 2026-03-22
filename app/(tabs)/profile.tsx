@@ -58,13 +58,24 @@ const ProfilePostCard = React.memo(
     );
 
     const hasLiked = displayItem.likes?.some((l: any) => l.userId === user?.id);
+    const isReply = !!item.isReply;
+    const parentPost = item.parentPost;
 
     return (
       <TouchableOpacity
-        onPress={() => onPressPost(displayItem.id)}
+        onPress={() => isReply && parentPost ? onPressPost(parentPost.id) : onPressPost(displayItem.id)}
         activeOpacity={0.9}
         className="p-4 border-b border-gray-100 bg-white"
       >
+        {/* Reply context banner */}
+        {isReply && parentPost && (
+          <View className="flex-row items-center mb-2 ml-10">
+            <Ionicons name="return-down-forward-outline" size={14} color="#6B7280" />
+            <Text className="text-gray-500 text-[13px] ml-1.5" numberOfLines={1}>
+              Replying to <Text className="font-bold">@{parentPost.author?.name || "user"}</Text>
+            </Text>
+          </View>
+        )}
         <View className="flex-row">
           <View className="mr-3">
             <Image

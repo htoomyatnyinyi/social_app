@@ -133,6 +133,7 @@ export const postApi = api.injectEndpoints({
           patchPost.undo();
         }
       },
+      invalidatesTags: ["Post"],
     }),
 
     bookmarkPost: builder.mutation({
