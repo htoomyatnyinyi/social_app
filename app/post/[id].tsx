@@ -307,10 +307,8 @@ export default function PostDetailScreen() {
   const { data: post, isLoading: postLoading } = useGetPostQuery(id!, {
     skip: !id,
   });
-  const {
-    data: commentsData,
-    isLoading: commentsLoading,
-  } = useGetCommentsQuery(id!, { skip: !id });
+  const { data: commentsData, isLoading: commentsLoading } =
+    useGetCommentsQuery(id!, { skip: !id });
 
   const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
   const [likePost] = useLikePostMutation();

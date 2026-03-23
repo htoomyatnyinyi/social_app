@@ -357,53 +357,70 @@ export const postApi = api.injectEndpoints({
         );
 
         // 2. Optimistically add the comment to the comments list
-        const patchComments = dispatch(
-          postApi.util.updateQueryData(
-            "getComments",
-            postId,
-            (draft: any) => {
-              if (draft) {
-                const newComment = {
-                  id: tempId,
-                  content,
-                  userId: user.id,
-                  postId: postId,
-                  parentId: parentId || null,
-                  createdAt: new Date().toISOString(),
-                  user: {
-                    id: user.id,
-                    name: user.name,
-                    username: user.username,
-                    image: user.image,
-                  },
-                  replies: [],
-                  _count: { replies: 0, commentLikes: 0, commentReposts: 0 },
-                  sending: true,
-                };
+        const updateCommentsCache = (draft: any) => {
+          if (!draft) return;
+          const newComment = {
+            id: tempId,
+            content,
+            userId: user.id,
+            postId: postId,
+            parentId: parentId || null,
+            createdAt: new Date().toISOString(),
+            user: {
+              id: user.id,
+              name: user.name,
+              username: user.username,
+              image: user.image,
+            },
+            replies: [],
+            _count: { replies: 0, commentLikes: 0, commentReposts: 0 },
+            sending: true,
+          };
 
-                if (!parentId) {
-                  draft.unshift(newComment);
-                } else {
-                  // If it's a reply, find the parent and add to its replies
-                  const findAndAddReply = (comments: any[]) => {
-                    for (const comment of comments) {
-                      if (comment.id === parentId) {
-                        comment.replies = [...(comment.replies || []), newComment];
-                        comment._count.replies = (comment._count.replies || 0) + 1;
-                        return true;
-                      }
-                      if (comment.replies && findAndAddReply(comment.replies)) {
-                        return true;
-                      }
-                    }
-                    return false;
-                  };
-                  findAndAddReply(draft);
+          if (!parentId) {
+            if (Array.isArray(draft)) {
+              draft.unshift(newComment);
+            }
+          } else {
+            // If it's a reply, find the parent and add to its replies
+            const findAndAddReply = (data: any) => {
+              const comments = Array.isArray(data) ? data : data.replies || [];
+              for (const comment of comments) {
+                if (comment.id === parentId) {
+                  comment.replies = [...(comment.replies || []), newComment];
+                  comment._count.replies = (comment._count.replies || 0) + 1;
+                  return true;
+                }
+                if (comment.replies && findAndAddReply(comment.replies)) {
+                  return true;
                 }
               }
-            },
-          ),
+              return false;
+            };
+
+            // Also check the root if draft is a single comment (getComment case)
+            if (!Array.isArray(draft) && draft.id === parentId) {
+              draft.replies = [...(draft.replies || []), newComment];
+              draft._count.replies = (draft._count.replies || 0) + 1;
+            } else {
+              findAndAddReply(draft);
+            }
+          }
+        };
+
+        const patchCommentsList = dispatch(
+          postApi.util.updateQueryData("getComments", postId, updateCommentsCache)
         );
+
+        // Also update getComment for the parent if it exists (for the detail screen)
+        const patchesDetail: any[] = [];
+        if (parentId) {
+          patchesDetail.push(
+            dispatch(postApi.util.updateQueryData("getComment", parentId, updateCommentsCache))
+          );
+          // Experimental: try to update the current comment detail page if parentId is nested
+          // Since we don't know the root ID here easily, we rely on the parentId update mostly.
+        }
 
         try {
           await queryFulfilled;
@@ -412,7 +429,8 @@ export const postApi = api.injectEndpoints({
           patchPrivate.undo();
           patchFeed.undo();
           patchPost.undo();
-          patchComments.undo();
+          patchCommentsList.undo();
+          patchesDetail.forEach(p => p.undo());
         }
       },
       invalidatesTags: (result, error, { postId }) => [
@@ -571,14 +589,98 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${postId}/comment/${commentId}/like`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, { postId }) => [{ type: "Comment", id: `LIST_${postId}` }],
+      async onQueryStarted({ postId, commentId }, { dispatch, queryFulfilled, getState }) {
+        const userId = (getState() as any).auth.user?.id;
+        if (!userId) return;
+
+        const updateCache = (draft: any) => {
+          const comments = Array.isArray(draft) ? draft : [draft];
+          
+          const toggleLike = (list: any[]) => {
+            for (const comment of list) {
+              if (comment.id === commentId) {
+                const hasLiked = comment.commentLikes?.some((l: any) => l.userId === userId);
+                if (hasLiked) {
+                  comment.commentLikes = comment.commentLikes.filter((l: any) => l.userId !== userId);
+                  comment._count.commentLikes = Math.max(0, (comment._count.commentLikes || 0) - 1);
+                } else {
+                  comment.commentLikes = [...(comment.commentLikes || []), { userId }];
+                  comment._count.commentLikes = (comment._count.commentLikes || 0) + 1;
+                }
+                return true;
+              }
+              if (comment.replies && toggleLike(comment.replies)) return true;
+            }
+            return false;
+          };
+
+          toggleLike(comments);
+        };
+
+        const patchList = dispatch(
+          postApi.util.updateQueryData("getComments", postId, updateCache)
+        );
+        const patchDetail = dispatch(
+          postApi.util.updateQueryData("getComment", commentId, updateCache)
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchList.undo();
+          patchDetail.undo();
+        }
+      },
+      invalidatesTags: (result, error, { commentId }) => [{ type: "Comment", id: commentId }],
     }),
     repostComment: builder.mutation({
       query: ({ postId, commentId }) => ({
         url: `/posts/${postId}/comment/${commentId}/repost`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, { postId }) => [{ type: "Comment", id: `LIST_${postId}` }],
+      async onQueryStarted({ postId, commentId }, { dispatch, queryFulfilled, getState }) {
+        const userId = (getState() as any).auth.user?.id;
+        if (!userId) return;
+
+        const updateCache = (draft: any) => {
+          const comments = Array.isArray(draft) ? draft : [draft];
+          
+          const toggleRepost = (list: any[]) => {
+            for (const comment of list) {
+              if (comment.id === commentId) {
+                const hasReposted = comment.commentReposts?.some((r: any) => r.userId === userId);
+                if (hasReposted) {
+                  comment.commentReposts = comment.commentReposts.filter((r: any) => r.userId !== userId);
+                  comment._count.commentReposts = Math.max(0, (comment._count.commentReposts || 0) - 1);
+                } else {
+                  comment.commentReposts = [...(comment.commentReposts || []), { userId }];
+                  comment._count.commentReposts = (comment._count.commentReposts || 0) + 1;
+                }
+                return true;
+              }
+              if (comment.replies && toggleRepost(comment.replies)) return true;
+            }
+            return false;
+          };
+
+          toggleRepost(comments);
+        };
+
+        const patchList = dispatch(
+          postApi.util.updateQueryData("getComments", postId, updateCache)
+        );
+        const patchDetail = dispatch(
+          postApi.util.updateQueryData("getComment", commentId, updateCache)
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchList.undo();
+          patchDetail.undo();
+        }
+      },
+      invalidatesTags: (result, error, { commentId }) => [{ type: "Comment", id: commentId }],
     }),
     deleteComment: builder.mutation({
       query: ({ postId, commentId }) => ({
