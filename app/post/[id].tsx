@@ -30,6 +30,7 @@ import {
 import { useSelector } from "react-redux";
 import { useFollowUserMutation } from "@/store/profileApi";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { SHARE_BASE_URL } from "../../store/api";
 import PostOptionsModal from "../../components/PostOptionsModal";
 
 // ────────────────────────────────────────────────
@@ -118,7 +119,7 @@ const CommentItem = memo(
 
     const handleCommentShare = useCallback(async () => {
       try {
-        const urlToShare = `https://oasis-social.com/comment/${item.id}`;
+        const urlToShare = `${SHARE_BASE_URL}/comment/${item.id}`;
         await Share.share({
           message: `Check out this comment by @${item.user?.username || item.user?.name}: "${item.content}"\n${urlToShare}`,
         });
@@ -138,8 +139,9 @@ const CommentItem = memo(
         className={`${isReply ? "ml-12 border-l-2 border-gray-200 pl-4" : "border-b border-gray-100"} bg-white`}
       >
         <TouchableOpacity
-          onPress={() => router.push(`/comment/${item.id}`)}
-          className="flex-row p-4"
+          onPress={() => !item.sending && router.push(`/comment/${item.id}`)}
+          className={`flex-row p-4 ${item.sending ? "opacity-60" : ""}`}
+          disabled={item.sending}
         >
           <Image
             source={{
@@ -308,7 +310,6 @@ export default function PostDetailScreen() {
   const {
     data: commentsData,
     isLoading: commentsLoading,
-    refetch: refetchComments,
   } = useGetCommentsQuery(id!, { skip: !id });
 
   const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
@@ -347,12 +348,11 @@ export default function PostDetailScreen() {
 
         ...(parentId ? { parentId } : {}),
       }).unwrap();
-      refetchComments();
     } catch (err) {
       console.error("Comment failed", err);
       // Optionally show toast / alert
     }
-  }, [commentContent, id, replyToId, commentPost, refetchComments]);
+  }, [commentContent, id, replyToId, commentPost]);
 
   const handleReply = useCallback((commentId: string, username: string) => {
     console.log(
@@ -392,7 +392,7 @@ export default function PostDetailScreen() {
 
   const handlePostShare = useCallback(async () => {
     try {
-      const urlToShare = `https://oasis-social.com/post/${post.id}`;
+      const urlToShare = `${SHARE_BASE_URL}/post/${post.id}`;
       await Share.share({
         message: `Check out this post by @${post.author?.username || post.author?.name}: "${post.content}"\n${urlToShare}`,
       });

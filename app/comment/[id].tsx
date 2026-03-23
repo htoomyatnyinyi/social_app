@@ -22,6 +22,7 @@ import {
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { SHARE_BASE_URL } from "../../store/api";
 import PostOptionsModal from "../../components/PostOptionsModal";
 
 export default function CommentDetailScreen() {
@@ -38,7 +39,6 @@ export default function CommentDetailScreen() {
   const {
     data: comment,
     isLoading,
-    refetch,
   } = useGetCommentQuery(id!, {
     skip: !id,
   });
@@ -50,18 +50,14 @@ export default function CommentDetailScreen() {
 
   useEffect(() => {
     if (comment?.postId && comment?.id) {
-      incrementView({ postId: comment.postId, commentId: comment.id })
-        .unwrap()
-        .then(() => {
-          refetch();
-        });
+      incrementView({ postId: comment.postId, commentId: comment.id });
     }
-  }, [comment?.postId, comment?.id, incrementView, refetch]);
+  }, [comment?.postId, comment?.id, incrementView]);
 
   const handleMainCommentShare = useCallback(async () => {
     try {
       if (!comment) return;
-      const urlToShare = `https://oasis-social.com/comment/${comment.id}`;
+      const urlToShare = `${SHARE_BASE_URL}/comment/${comment.id}`;
       await Share.share({
         message: `Check out this comment by @${comment.user?.username || comment.user?.name}: "${comment.content}"\n${urlToShare}`,
       });
@@ -72,7 +68,7 @@ export default function CommentDetailScreen() {
 
   const handleReplyShare = useCallback(async (item: any) => {
     try {
-      const urlToShare = `https://oasis-social.com/comment/${item.id}`;
+      const urlToShare = `${SHARE_BASE_URL}/comment/${item.id}`;
       await Share.share({
         message: `Check out this reply by @${item.user?.username || item.user?.name}: "${item.content}"\n${urlToShare}`,
       });
@@ -93,22 +89,20 @@ export default function CommentDetailScreen() {
         content,
         parentId: id, // replying to this specific comment
       }).unwrap();
-      refetch();
     } catch (err) {
       console.error("Reply failed", err);
     }
-  }, [commentContent, comment?.postId, id, commentPost, refetch]);
+  }, [commentContent, comment?.postId, id, commentPost]);
 
   const handleCommentLike = useCallback(
     async (item: any) => {
       try {
         await likeComment({ postId: item.postId, commentId: item.id }).unwrap();
-        refetch();
       } catch (err) {
         console.error("Failed to like comment:", err);
       }
     },
-    [likeComment, refetch],
+    [likeComment],
   );
 
   const handleCommentRepost = useCallback(
@@ -118,12 +112,11 @@ export default function CommentDetailScreen() {
           postId: item.postId,
           commentId: item.id,
         }).unwrap();
-        refetch();
       } catch (err) {
         console.error("Failed to repost comment:", err);
       }
     },
-    [repostComment, refetch],
+    [repostComment],
   );
 
   if (isLoading) {
@@ -160,8 +153,9 @@ export default function CommentDetailScreen() {
     return (
       <View className="border-b border-gray-100 bg-white">
         <TouchableOpacity
-          onPress={() => router.push(`/comment/${item.id}`)}
-          className="flex-row p-4"
+          onPress={() => !item.sending && router.push(`/comment/${item.id}`)}
+          className={`flex-row p-4 ${item.sending ? "opacity-60" : ""}`}
+          disabled={item.sending}
         >
           <Image
             source={{

@@ -141,28 +141,66 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${id}/bookmark`,
         method: "POST",
       }),
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
-        // Optimistic toggle
+      async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
+        const userId = (getState() as any).auth.user?.id;
+        if (!userId) return;
+
         const updateCache = (draft: any) => {
-          if (!draft?.posts) return;
-          const post = draft.posts.find((p: any) => p.id === id);
+          if (!draft) return;
+          // Handle both single post (getPost) and list of posts (getPosts/getFeed)
+          const posts = draft.posts || [draft];
+          const post = posts.find((p: any) => p.id === id);
+          
           if (post) {
-            // We assume if it's being toggled, we flip the state.
-            // But checking if we have it bookmarked is hard if we don't have user ID or if we rely on array check.
-            // Simplified: invalidating tags handles the source of truth.
-            // But for UI response:
-            // Boolean toggle if we knew state.
-            // For now, let's stick to invalidation for bookmarks unless we track "bookmarkedByMe" field explicitly.
-            // User requested "Toggle icon correctly + optimistic update".
-            // If we depend on `post.bookmarks` array, we can toggle presence of dummy user?.
-            // Better: relying on backend return value.
+            const hasBookmarked = post.bookmarks?.some(
+              (b: any) => b.userId === userId,
+            );
+            
+            if (hasBookmarked) {
+              post.bookmarks = post.bookmarks.filter(
+                (b: any) => b.userId !== userId,
+              );
+            } else {
+              post.bookmarks = [...(post.bookmarks || []), { userId }];
+            }
           }
         };
-        // We'll leave optimistic update for bookmark for now as logic is "toggle" and current state might be unknown if not passed.
-        // But user asked for it.
-        // We can pass `isBookmarked` status to mutation to know which way to toggle.
+
+        // Update various caches
+        const patchPublic = dispatch(
+          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updateCache)
+        );
+        const patchPrivate = dispatch(
+          postApi.util.updateQueryData("getPosts", { type: "private", cursor: null } as any, updateCache)
+        );
+        const patchFeed = dispatch(
+          postApi.util.updateQueryData("getFeed", { cursor: null } as any, updateCache)
+        );
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", id, updateCache)
+        );
+        const patchBookmarks = dispatch(
+          postApi.util.updateQueryData("getBookmarks", undefined, (draft) => {
+            if (Array.isArray(draft)) {
+              // If we are un-bookmarking, remove from list.
+              // If bookmarking, we'd need the full post object which we might not have here.
+              // So we just filter out if present.
+              return draft.filter((p: any) => p.id !== id);
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchPublic.undo();
+          patchPrivate.undo();
+          patchFeed.undo();
+          patchPost.undo();
+          patchBookmarks.undo();
+        }
       },
-      invalidatesTags: ["Post"],
+      invalidatesTags: (result, error, id) => [{ type: "Post", id }],
     }),
 
     repostPost: builder.mutation({
@@ -276,11 +314,11 @@ export const postApi = api.injectEndpoints({
     }),
     getPost: builder.query({
       query: (id) => `/posts/${id}`,
-      providesTags: ["Post"],
+      providesTags: (result, error, id) => [{ type: "Post", id }],
     }),
     getComments: builder.query({
       query: (id) => `/posts/${id}/comments`,
-      providesTags: ["Post"],
+      providesTags: (result, error, id) => [{ type: "Comment", id: `LIST_${id}` }],
     }),
     commentPost: builder.mutation({
       query: ({ postId, content, parentId }) => ({
@@ -296,48 +334,41 @@ export const postApi = api.injectEndpoints({
         const tempId = Date.now().toString();
 
         // 1. Optimistically increment comment count in post lists/detail
-        const updateCount = (type: string) => {
-          return dispatch(
-            postApi.util.updateQueryData(
-              "getPosts",
-              { type } as any,
-              (draft) => {
-                if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === postId);
-                if (post) {
-                  post._count.comments += 1;
-                }
-              },
-            ),
-          );
+        const updateCount = (draft: any) => {
+          if (!draft) return;
+          const posts = draft.posts || [draft];
+          const post = posts.find((p: any) => p.id === postId);
+          if (post) {
+            post._count.comments = (post._count.comments || 0) + 1;
+          }
         };
 
-        const patchPublic = updateCount("public");
-        const patchPrivate = updateCount("private");
-        const patchPost = dispatch(
-          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
-            if (draft) {
-              draft._count.comments += 1;
-            }
-          }),
+        const patchPublic = dispatch(
+          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updateCount)
         );
-
-        // ... (rest of legacy optimistic update logic if needed, but the main count update is key)
+        const patchPrivate = dispatch(
+          postApi.util.updateQueryData("getPosts", { type: "private", cursor: null } as any, updateCount)
+        );
+        const patchFeed = dispatch(
+          postApi.util.updateQueryData("getFeed", { cursor: null } as any, updateCount)
+        );
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", postId, updateCount)
+        );
 
         // 2. Optimistically add the comment to the comments list
         const patchComments = dispatch(
           postApi.util.updateQueryData(
-            "getComments" as any,
-            postId as any,
+            "getComments",
+            postId,
             (draft: any) => {
-              if (draft && !parentId) {
-                // Only add to top-level comments if parentId is null
-                draft.unshift({
+              if (draft) {
+                const newComment = {
                   id: tempId,
                   content,
                   userId: user.id,
                   postId: postId,
-                  parentId: null,
+                  parentId: parentId || null,
                   createdAt: new Date().toISOString(),
                   user: {
                     id: user.id,
@@ -346,28 +377,28 @@ export const postApi = api.injectEndpoints({
                     image: user.image,
                   },
                   replies: [],
-                });
-              } else if (draft && parentId) {
-                // If it's a reply, find the parent and add to its replies
-                const parent = draft.find((c: any) => c.id === parentId);
-                if (parent) {
-                  parent.replies = [
-                    ...(parent.replies || []),
-                    {
-                      id: tempId,
-                      content,
-                      userId: user.id,
-                      postId: postId,
-                      parentId,
-                      createdAt: new Date().toISOString(),
-                      user: {
-                        id: user.id,
-                        name: user.name,
-                        username: user.username,
-                        image: user.image,
-                      },
-                    },
-                  ];
+                  _count: { replies: 0, commentLikes: 0, commentReposts: 0 },
+                  sending: true,
+                };
+
+                if (!parentId) {
+                  draft.unshift(newComment);
+                } else {
+                  // If it's a reply, find the parent and add to its replies
+                  const findAndAddReply = (comments: any[]) => {
+                    for (const comment of comments) {
+                      if (comment.id === parentId) {
+                        comment.replies = [...(comment.replies || []), newComment];
+                        comment._count.replies = (comment._count.replies || 0) + 1;
+                        return true;
+                      }
+                      if (comment.replies && findAndAddReply(comment.replies)) {
+                        return true;
+                      }
+                    }
+                    return false;
+                  };
+                  findAndAddReply(draft);
                 }
               }
             },
@@ -379,10 +410,15 @@ export const postApi = api.injectEndpoints({
         } catch {
           patchPublic.undo();
           patchPrivate.undo();
+          patchFeed.undo();
           patchPost.undo();
           patchComments.undo();
         }
       },
+      invalidatesTags: (result, error, { postId }) => [
+        { type: "Comment", id: `LIST_${postId}` },
+        { type: "Post", id: postId },
+      ],
     }),
 
     incrementViewCount: builder.mutation({
@@ -466,11 +502,37 @@ export const postApi = api.injectEndpoints({
           ),
         );
 
+        // Remove from Private Posts
+        const patchPrivate = dispatch(
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "private", cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter(
+                  (p: any) => p.id !== id && p.originalPost?.id !== id,
+                );
+              }
+            },
+          ),
+        );
+
+        // Remove from Bookmarks
+        const patchBookmarks = dispatch(
+          postApi.util.updateQueryData("getBookmarks", undefined, (draft) => {
+            if (Array.isArray(draft)) {
+              return draft.filter((p: any) => p.id !== id);
+            }
+          })
+        );
+
         try {
           await queryFulfilled;
         } catch {
           patchPublic.undo();
           patchFeed.undo();
+          patchPrivate.undo();
+          patchBookmarks.undo();
         }
       },
       invalidatesTags: ["Post"],
@@ -502,34 +564,96 @@ export const postApi = api.injectEndpoints({
     }),
     getComment: builder.query({
       query: (id) => `/posts/comment/${id}`,
-      providesTags: ["Post"],
+      providesTags: (result, error, id) => [{ type: "Comment", id }],
     }),
     likeComment: builder.mutation({
       query: ({ postId, commentId }) => ({
         url: `/posts/${postId}/comment/${commentId}/like`,
         method: "POST",
       }),
-      invalidatesTags: ["Post"],
+      invalidatesTags: (result, error, { postId }) => [{ type: "Comment", id: `LIST_${postId}` }],
     }),
     repostComment: builder.mutation({
       query: ({ postId, commentId }) => ({
         url: `/posts/${postId}/comment/${commentId}/repost`,
         method: "POST",
       }),
-      invalidatesTags: ["Post"],
+      invalidatesTags: (result, error, { postId }) => [{ type: "Comment", id: `LIST_${postId}` }],
     }),
     deleteComment: builder.mutation({
       query: ({ postId, commentId }) => ({
         url: `/posts/${postId}/comment/${commentId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Post"],
+      async onQueryStarted(
+        { postId, commentId },
+        { dispatch, queryFulfilled },
+      ) {
+        // 1. Decrement comment count on post
+        const updatePostCount = (draft: any) => {
+          if (!draft) return;
+          const posts = draft.posts || [draft];
+          const post = posts.find((p: any) => p.id === postId);
+          if (post && post._count.comments > 0) {
+            post._count.comments -= 1;
+          }
+        };
+
+        const patchesCount = [
+          dispatch(postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, updatePostCount)),
+          dispatch(postApi.util.updateQueryData("getPosts", { type: "private", cursor: null } as any, updatePostCount)),
+          dispatch(postApi.util.updateQueryData("getFeed", { cursor: null } as any, updatePostCount)),
+          dispatch(postApi.util.updateQueryData("getPost", postId, updatePostCount)),
+        ];
+
+        // 2. Remove comment from the list
+        const patchComments = dispatch(
+          postApi.util.updateQueryData("getComments", postId, (draft: any) => {
+            if (!draft) return;
+            
+            const removeFromList = (list: any[]) => {
+              for (let i = 0; i < list.length; i++) {
+                if (list[i].id === commentId) {
+                  list.splice(i, 1);
+                  return true;
+                }
+                if (list[i].replies && removeFromList(list[i].replies)) {
+                  list[i]._count.replies = Math.max(0, (list[i]._count.replies || 0) - 1);
+                  return true;
+                }
+              }
+              return false;
+            };
+            removeFromList(draft);
+          })
+        );
+
+        // 3. Remove single getComment cache if it exists
+        const patchComment = dispatch(
+          postApi.util.updateQueryData("getComment", commentId, () => {
+             return undefined; // Or mark as deleted
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchesCount.forEach(p => p.undo());
+          patchComments.undo();
+          patchComment.undo();
+        }
+      },
+      invalidatesTags: (result, error, { postId }) => [
+        { type: "Comment", id: `LIST_${postId}` },
+        { type: "Post", id: postId },
+      ],
     }),
     incrementCommentViewCount: builder.mutation({
       query: ({ postId, commentId }) => ({
         url: `/posts/${postId}/comment/${commentId}/view`,
         method: "POST",
       }),
+      invalidatesTags: (result, error, { commentId }) => [{ type: "Comment", id: commentId }],
     }),
   }),
 });
