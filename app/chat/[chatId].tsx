@@ -21,7 +21,6 @@ import {
 
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useChatWebSocket } from "@/hooks/useChatWebSocket";
 
@@ -162,15 +161,11 @@ export default function ChatScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.7,
+      base64: true,
     });
-    if (!result.canceled && result.assets[0]) {
-      // Convert to base64 for upload
-      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-        encoding: FileSystem.EncodingType.Base64,
-        // encoding: FileSystem.EncodingType.Base64,
-      });
+    if (!result.canceled && result.assets[0]?.base64) {
       const mimeType = result.assets[0].mimeType || "image/jpeg";
-      setSelectedImage(`data:${mimeType};base64,${base64}`);
+      setSelectedImage(`data:${mimeType};base64,${result.assets[0].base64}`);
     }
   }, []);
 
