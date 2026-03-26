@@ -15,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   useGetPostsQuery,
   useLikePostMutation,
-  useCommentPostMutation,
+  useReplyPostMutation,
   useRepostPostMutation,
   useBookmarkPostMutation,
   useDeletePostMutation,
@@ -373,7 +373,7 @@ export default function FeedScreen() {
 
   const [likePost] = useLikePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
-  const [commentPost] = useCommentPostMutation();
+  const [replyPost] = useReplyPostMutation();
   const [repostPost] = useRepostPostMutation();
   const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
@@ -466,7 +466,7 @@ export default function FeedScreen() {
   const handleCommentSubmit = useCallback(async () => {
     if (!commentContent.trim() || !selectedPostId) return;
     try {
-      await commentPost({
+      await replyPost({
         postId: selectedPostId,
         content: commentContent,
       }).unwrap();
@@ -476,7 +476,7 @@ export default function FeedScreen() {
     } catch (err) {
       console.error("Comment failed", err);
     }
-  }, [commentContent, selectedPostId, commentPost]);
+  }, [commentContent, selectedPostId, replyPost]);
 
   const uniquePosts = Array.from(
     new Map(posts.map((item: any) => [item.id, item])).values(),

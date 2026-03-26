@@ -278,111 +278,38 @@ export const postApi = api.injectEndpoints({
       query: (id) => `/posts/${id}`,
       providesTags: ["Post"],
     }),
-    getComments: builder.query({
-      query: (id) => `/posts/${id}/comments`,
+    getThread: builder.query({
+      query: (id) => `/posts/${id}/thread`,
       providesTags: ["Post"],
     }),
-    commentPost: builder.mutation({
-      query: ({ postId, content, parentId }) => ({
-        url: `/posts/${postId}/comment`,
-        method: "POST",
-        body: { content, parentId },
-      }),
-      async onQueryStarted(
-        { postId, content, parentId },
-        { dispatch, queryFulfilled, getState },
-      ) {
-        const user = (getState() as any).auth.user;
-        const tempId = Date.now().toString();
-
-        // 1. Optimistically increment comment count in post lists/detail
-        const updateCount = (type: string) => {
-          return dispatch(
-            postApi.util.updateQueryData(
-              "getPosts",
-              { type } as any,
-              (draft) => {
-                if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === postId);
-                if (post) {
-                  post._count.comments += 1;
-                }
-              },
-            ),
-          );
-        };
-
-        const patchPublic = updateCount("public");
-        const patchPrivate = updateCount("private");
-        const patchPost = dispatch(
-          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
-            if (draft) {
-              draft._count.comments += 1;
-            }
-          }),
-        );
-
-        // ... (rest of legacy optimistic update logic if needed, but the main count update is key)
-
-        // 2. Optimistically add the comment to the comments list
-        const patchComments = dispatch(
-          postApi.util.updateQueryData(
-            "getComments" as any,
-            postId as any,
-            (draft: any) => {
-              if (draft && !parentId) {
-                // Only add to top-level comments if parentId is null
-                draft.unshift({
-                  id: tempId,
-                  content,
-                  userId: user.id,
-                  postId: postId,
-                  parentId: null,
-                  createdAt: new Date().toISOString(),
-                  user: {
-                    id: user.id,
-                    name: user.name,
-                    username: user.username,
-                    image: user.image,
-                  },
-                  replies: [],
-                });
-              } else if (draft && parentId) {
-                // If it's a reply, find the parent and add to its replies
-                const parent = draft.find((c: any) => c.id === parentId);
-                if (parent) {
-                  parent.replies = [
-                    ...(parent.replies || []),
-                    {
-                      id: tempId,
-                      content,
-                      userId: user.id,
-                      postId: postId,
-                      parentId,
-                      createdAt: new Date().toISOString(),
-                      user: {
-                        id: user.id,
-                        name: user.name,
-                        username: user.username,
-                        image: user.image,
-                      },
-                    },
-                  ];
-                }
-              }
-            },
-          ),
-        );
-
-        try {
-          await queryFulfilled;
-        } catch {
-          patchPublic.undo();
-          patchPrivate.undo();
-          patchPost.undo();
-          patchComments.undo();
-        }
+    getReplies: builder.query({
+      query: ({ id, cursor }) => {
+        let url = `/posts/${id}/replies`;
+        if (cursor) url += `?cursor=${cursor}`;
+        return url;
       },
+      serializeQueryArgs: ({ queryArgs }) => {
+        return `getReplies-${queryArgs.id}`;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) {
+          return newItems;
+        }
+        currentCache.posts.push(...newItems.posts);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
+      providesTags: ["Post"],
+    }),
+    replyPost: builder.mutation({
+      query: ({ postId, content }) => ({
+        url: `/posts/${postId}/reply`,
+        method: "POST",
+        body: { content },
+      }),
+      invalidatesTags: ["Post"],
     }),
 
     incrementViewCount: builder.mutation({
@@ -500,37 +427,7 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
-    getComment: builder.query({
-      query: (id) => `/posts/comment/${id}`,
-      providesTags: ["Post"],
-    }),
-    likeComment: builder.mutation({
-      query: ({ postId, commentId }) => ({
-        url: `/posts/${postId}/comment/${commentId}/like`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Post"],
-    }),
-    repostComment: builder.mutation({
-      query: ({ postId, commentId }) => ({
-        url: `/posts/${postId}/comment/${commentId}/repost`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Post"],
-    }),
-    deleteComment: builder.mutation({
-      query: ({ postId, commentId }) => ({
-        url: `/posts/${postId}/comment/${commentId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Post"],
-    }),
-    incrementCommentViewCount: builder.mutation({
-      query: ({ postId, commentId }) => ({
-        url: `/posts/${postId}/comment/${commentId}/view`,
-        method: "POST",
-      }),
-    }),
+    // removed legacy comment routes
   }),
 });
 
@@ -540,8 +437,9 @@ export const {
   useLikePostMutation,
   useRepostPostMutation,
   useGetPostQuery,
-  useGetCommentsQuery,
-  useCommentPostMutation,
+  useGetThreadQuery,
+  useGetRepliesQuery,
+  useReplyPostMutation,
   useDeletePostMutation,
   useIncrementViewCountMutation,
   useBookmarkPostMutation,
@@ -550,9 +448,4 @@ export const {
   useBlockUserMutation,
   useDeleteRepostMutation,
   useReportPostMutation,
-  useGetCommentQuery,
-  useLikeCommentMutation,
-  useRepostCommentMutation,
-  useDeleteCommentMutation,
-  useIncrementCommentViewCountMutation,
 } = postApi;
