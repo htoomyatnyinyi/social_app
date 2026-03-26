@@ -34,12 +34,14 @@ import PostOptionsModal from "../../components/PostOptionsModal";
 function buildThreadTree(posts: any[], rootId: string) {
   const map = new Map<string, any>();
   // Clone and add replies array
-  posts.forEach(p => map.set(p.id, { ...p, replies: [] }));
+  posts.forEach((p) => map.set(p.id, { ...p, replies: [] }));
 
   const rootReplies: any[] = [];
-  const sortedPosts = [...map.values()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const sortedPosts = [...map.values()].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
-  sortedPosts.forEach(p => {
+  sortedPosts.forEach((p) => {
     if (p.id === rootId) return;
 
     if (p.replyToId && map.has(p.replyToId)) {
@@ -74,7 +76,8 @@ const ReplyItem = memo(
     onReply: (postId: string, username: string) => void;
     onOptions: (item: any) => void;
   }) => {
-    const isDeepReply = !!item.replyToId && item.parent && item.parent.id !== item.conversationId;
+    const isDeepReply =
+      !!item.replyToId && item.parent && item.parent.id !== item.conversationId;
 
     const [likePost] = useLikePostMutation();
     const [repostPost] = useRepostPostMutation();
@@ -131,7 +134,9 @@ const ReplyItem = memo(
                   {item.author?.name || "User"}
                 </Text>
                 <Text className="text-gray-500 text-[13.5px]">
-                  @{item.author?.username || item.author?.name?.toLowerCase().replace(/\s+/g, "")}
+                  @
+                  {item.author?.username ||
+                    item.author?.name?.toLowerCase().replace(/\s+/g, "")}
                 </Text>
                 <Text className="text-gray-400 text-[13px] ml-1">
                   ·{" "}
@@ -152,13 +157,17 @@ const ReplyItem = memo(
 
             {isDeepReply && item.parent?.author && (
               <Text className="text-[#1d9bf0] text-[13.5px] mb-1">
-                Replying to @{item.parent.author.username || item.parent.author.name}
+                Replying to @
+                {item.parent.author.username || item.parent.author.name}
               </Text>
             )}
 
             <Text className="text-[15px] leading-6 text-gray-800">
               {(() => {
-                if (item.isDeleted) return <Text className="italic text-gray-500">[Deleted]</Text>;
+                if (item.isDeleted)
+                  return (
+                    <Text className="italic text-gray-500">[Deleted]</Text>
+                  );
                 if (!item.content) return null;
                 const parts = item.content.split(/(#[a-zA-Z0-9_]+)/g);
                 return parts.map((part: string, i: number) => {
@@ -183,7 +192,11 @@ const ReplyItem = memo(
             {/* Images */}
             {(() => {
               if (item.isDeleted) return null;
-              const imgs = item.images?.length ? item.images : item.image ? [item.image] : [];
+              const imgs = item.images?.length
+                ? item.images
+                : item.image
+                  ? [item.image]
+                  : [];
               if (imgs.length === 0) return null;
               if (imgs.length === 1) {
                 return (
@@ -215,7 +228,9 @@ const ReplyItem = memo(
             <View className="flex-row mt-3 items-center justify-between pr-4">
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => onReply(item.id, item.author?.username || item.author?.name)}
+                onPress={() =>
+                  onReply(item.id, item.author?.username || item.author?.name)
+                }
               >
                 <Ionicons name="chatbubble-outline" size={17} color="#6B7280" />
                 <Text className="text-xs text-gray-500 ml-1.5">
@@ -274,7 +289,7 @@ const ReplyItem = memo(
         </TouchableOpacity>
 
         {/* Nested replies */}
-        {item.replies && item.replies.length > 0 && (
+        {/* {item.replies && item.replies.length > 0 && (
           <View>
             {item.replies.map((reply: any) => (
               <ReplyItem
@@ -286,7 +301,7 @@ const ReplyItem = memo(
               />
             ))}
           </View>
-        )}
+        )} */}
       </View>
     );
   },
@@ -310,7 +325,11 @@ export default function PostDetailScreen() {
 
   const inputRef = useRef<TextInput>(null);
 
-  const { data: threadData, isLoading: threadLoading, refetch: refetchThread } = useGetThreadQuery(id!, {
+  const {
+    data: threadData,
+    isLoading: threadLoading,
+    refetch: refetchThread,
+  } = useGetThreadQuery(id!, {
     skip: !id,
   });
 
@@ -323,7 +342,8 @@ export default function PostDetailScreen() {
   const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
   const { rootPost, topLevelReplies } = useMemo(() => {
-    if (!threadData || !Array.isArray(threadData) || threadData.length === 0) return { rootPost: null, topLevelReplies: [] };
+    if (!threadData || !Array.isArray(threadData) || threadData.length === 0)
+      return { rootPost: null, topLevelReplies: [] };
     return buildThreadTree(threadData, id!);
   }, [threadData, id]);
 
@@ -383,7 +403,7 @@ export default function PostDetailScreen() {
 
   const handlePostShare = useCallback(async () => {
     try {
-      if(!rootPost) return;
+      if (!rootPost) return;
       const urlToShare = `https://oasis-social.com/post/${rootPost.id}`;
       await Share.share({
         message: `Check out this post by @${rootPost.author?.username || rootPost.author?.name}: "${rootPost.content}"\n${urlToShare}`,
@@ -394,7 +414,7 @@ export default function PostDetailScreen() {
   }, [rootPost]);
 
   const handlePostRepost = useCallback(async () => {
-    if(!rootPost) return;
+    if (!rootPost) return;
     try {
       await repostPost({ id: rootPost.id }).unwrap();
     } catch (err) {
@@ -455,7 +475,9 @@ export default function PostDetailScreen() {
                   className="mb-3"
                   onPress={() => router.push(`/post/${rootPost.replyToId}`)}
                 >
-                  <Text className="text-[#1d9bf0] text-[13.5px] font-medium">Show parent thread</Text>
+                  <Text className="text-[#1d9bf0] text-[13.5px] font-medium">
+                    Show parent post
+                  </Text>
                 </TouchableOpacity>
               )}
 
@@ -465,7 +487,8 @@ export default function PostDetailScreen() {
                   <Image
                     source={{
                       uri:
-                        rootPost.author?.image || "https://via.placeholder.com/48",
+                        rootPost.author?.image ||
+                        "https://via.placeholder.com/48",
                     }}
                     className="w-12 h-12 rounded-full mr-3 bg-gray-100"
                   />
@@ -476,7 +499,9 @@ export default function PostDetailScreen() {
                     <Text className="text-gray-500 text-[14.5px]">
                       @
                       {rootPost.author?.username ||
-                        rootPost.author?.name?.toLowerCase().replace(/\s+/g, "")}
+                        rootPost.author?.name
+                          ?.toLowerCase()
+                          .replace(/\s+/g, "")}
                     </Text>
                   </View>
                 </View>
@@ -496,23 +521,30 @@ export default function PostDetailScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {rootPost.author?.id === currentUser?.id && (
                   <TouchableOpacity
-                  onPress={() => {
-                    setSelectedItem(rootPost);
-                    setOptionsVisible(true);
-                  }}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={20} color="#6B7280" />
-                </TouchableOpacity>
+                    onPress={() => {
+                      setSelectedItem(rootPost);
+                      setOptionsVisible(true);
+                    }}
+                  >
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={20}
+                      color="#6B7280"
+                    />
+                  </TouchableOpacity>
                 )}
               </View>
 
               {/* Content */}
               <Text className="text-[17px] leading-6 text-gray-900 mb-4">
                 {(() => {
-                  if (rootPost.isDeleted) return <Text className="italic text-gray-500">[Deleted]</Text>;
+                  if (rootPost.isDeleted)
+                    return (
+                      <Text className="italic text-gray-500">[Deleted]</Text>
+                    );
                   if (!rootPost.content) return null;
                   const parts = rootPost.content.split(/(#[a-zA-Z0-9_]+)/g);
                   return parts.map((part: any, i: any) => {
@@ -631,7 +663,7 @@ export default function PostDetailScreen() {
                     color={hasLiked ? "#F91880" : "#6B7280"}
                   />
                   <Text
-                    className={`text-[15px] ml-2 ${hasLiked ? "text-[#F91880] font-medium" : "text-gray-600"}`}
+                    className={`text-[15px] ml-2 ${hasLiked ? "text-[#f91880] font-medium" : "text-gray-600"}`}
                   >
                     {rootPost._count?.likes ?? 0}
                   </Text>
@@ -727,9 +759,7 @@ export default function PostDetailScreen() {
           setOptionsVisible(false);
           setSelectedItem(null);
         }}
-        isOwner={
-          selectedItem?.author?.id === currentUser?.id
-        }
+        isOwner={selectedItem?.author?.id === currentUser?.id}
         onDelete={async () => {
           if (!selectedItem) return;
           try {
