@@ -25,12 +25,12 @@ const getNotificationConfig = (type: string) => {
   switch (type) {
     case "LIKE":
       return { icon: "heart", color: "#F91880", text: "liked your post" };
-    case "COMMENT":
-      return {
-        icon: "chatbubble",
-        color: "#1D9BF0",
-        text: "commented on your post",
-      };
+    // case "COMMENT":
+    //   return {
+    //     icon: "chatbubble",
+    //     color: "#1D9BF0",
+    //     text: "commented on your post",
+    //   };
     case "FOLLOW":
       return { icon: "person-add", color: "#00BA7C", text: "followed you" };
     case "REPOST":
@@ -41,7 +41,7 @@ const getNotificationConfig = (type: string) => {
       return {
         icon: "chatbubble-ellipses",
         color: "#1D9BF0",
-        text: "replied to your comment",
+        text: "replied to your reply",
       };
     case "MENTION":
       return {
