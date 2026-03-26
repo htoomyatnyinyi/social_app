@@ -1,28 +1,23 @@
 import { api } from "./api";
 
+// Reconstitute author objects from normalized `users` map
 const transformNormalizedResponse = (response: any) => {
   if (response.posts && response.users) {
     const mapUser = (post: any) => {
+      if (!post) return post;
       // Map author to post
       if (post.authorId && response.users[post.authorId]) {
         post.author = response.users[post.authorId];
       } else if (post.isDeleted) {
         post.author = { id: 'deleted', name: 'Deleted User', username: 'deleted', image: 'https://via.placeholder.com/48' };
       }
-
-      // Map author to quote
+      // Map author to quoted/original post
       if (post.originalPost) {
-        if (
-          post.originalPost.authorId &&
-          response.users[post.originalPost.authorId]
-        ) {
+        if (post.originalPost.authorId && response.users[post.originalPost.authorId]) {
           post.originalPost.author = response.users[post.originalPost.authorId];
-        } else if (post.originalPost.isDeleted) {
-          post.originalPost.author = { id: 'deleted', name: 'Deleted User', username: 'deleted', image: 'https://via.placeholder.com/48' };
         }
       }
-
-      // Map preview replies recursively
+      // Map preview replies
       if (post.previewReplies && Array.isArray(post.previewReplies)) {
         post.previewReplies = post.previewReplies.map(mapUser);
       }
@@ -53,7 +48,6 @@ export const postApi = api.injectEndpoints({
       },
       merge: (currentCache, newItems, { arg }) => {
         if (!arg.cursor) {
-          // Reset if no cursor (refresh)
           return newItems;
         }
         currentCache.posts.push(...newItems.posts);
@@ -72,9 +66,7 @@ export const postApi = api.injectEndpoints({
         return url;
       },
       transformResponse: transformNormalizedResponse,
-      serializeQueryArgs: ({ queryArgs }) => {
-        return "getFeed";
-      },
+      serializeQueryArgs: () => "getFeed",
       merge: (currentCache, newItems, { arg }) => {
         if (!arg.cursor) {
           return newItems;
@@ -107,54 +99,39 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${postId}/like`,
         method: "POST",
       }),
-      async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
-        const userId = (getState() as any).auth.user?.id;
-        if (!userId) return;
-
-        // We need to update both public and private lists if they exist in cache
-        const updateCache = (type: string) => {
-          return dispatch(
-            postApi.util.updateQueryData(
-              "getPosts",
-              { type } as any,
-              (draft) => {
-                if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === postId);
-                if (post) {
-                  const hasLiked = post.likes?.some(
-                    (l: any) => l.userId === userId,
-                  );
-                  if (hasLiked) {
-                    post._count.likes -= 1;
-                    post.likes = post.likes.filter(
-                      (l: any) => l.userId !== userId,
-                    );
-                  } else {
-                    post._count.likes += 1;
-                    post.likes = [...(post.likes || []), { userId }];
-                  }
+      async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
+        // Optimistic: toggle isLiked + _count.likes on all cached lists
+        const updateList = (endpointName: string, args: any) =>
+          dispatch(
+            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
+              if (!draft?.posts) return;
+              const post = draft.posts.find((p: any) => p.id === postId);
+              if (post) {
+                if (post.isLiked) {
+                  post.isLiked = false;
+                  if (post._count) post._count.likes = Math.max(0, (post._count.likes || 0) - 1);
+                } else {
+                  post.isLiked = true;
+                  if (post._count) post._count.likes = (post._count.likes || 0) + 1;
                 }
-              },
-            ),
+              }
+            }),
           );
-        };
 
-        const patchPublic = updateCache("public");
-        const patchPrivate = updateCache("private");
+        const patchPublic = updateList("getPosts", { type: "public" } as any);
+        const patchPrivate = updateList("getPosts", { type: "private" } as any);
+        const patchFeed = updateList("getFeed", { cursor: null } as any);
+
+        // Also update the single post detail view
         const patchPost = dispatch(
           postApi.util.updateQueryData("getPost", postId, (draft: any) => {
             if (draft) {
-              const hasLiked = draft.likes?.some(
-                (l: any) => l.userId === userId,
-              );
-              if (hasLiked) {
-                draft._count.likes -= 1;
-                draft.likes = draft.likes.filter(
-                  (l: any) => l.userId !== userId,
-                );
+              if (draft.isLiked) {
+                draft.isLiked = false;
+                if (draft._count) draft._count.likes = Math.max(0, (draft._count.likes || 0) - 1);
               } else {
-                draft._count.likes += 1;
-                draft.likes = [...(draft.likes || []), { userId }];
+                draft.isLiked = true;
+                if (draft._count) draft._count.likes = (draft._count.likes || 0) + 1;
               }
             }
           }),
@@ -165,6 +142,7 @@ export const postApi = api.injectEndpoints({
         } catch {
           patchPublic.undo();
           patchPrivate.undo();
+          patchFeed.undo();
           patchPost.undo();
         }
       },
@@ -176,9 +154,39 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${id}/bookmark`,
         method: "POST",
       }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const updateList = (endpointName: string, args: any) =>
+          dispatch(
+            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
+              if (!draft?.posts) return;
+              const post = draft.posts.find((p: any) => p.id === id);
+              if (post) {
+                post.isBookmarked = !post.isBookmarked;
+              }
+            }),
+          );
+
+        const patchPublic = updateList("getPosts", { type: "public" } as any);
+        const patchPrivate = updateList("getPosts", { type: "private" } as any);
+        const patchFeed = updateList("getFeed", { cursor: null } as any);
+        const patchPost = dispatch(
+          postApi.util.updateQueryData("getPost", id, (draft: any) => {
+            if (draft) draft.isBookmarked = !draft.isBookmarked;
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchPublic.undo();
+          patchPrivate.undo();
+          patchFeed.undo();
+          patchPost.undo();
+        }
+      },
       invalidatesTags: ["Post"],
     }),
-    
+
     repostPost: builder.mutation({
       query: ({ id, content, image, images }) => ({
         url: `/posts/${id}/repost`,
@@ -187,116 +195,77 @@ export const postApi = api.injectEndpoints({
       }),
       async onQueryStarted(
         { id, content },
-        { dispatch, queryFulfilled, getState },
+        { dispatch, queryFulfilled },
       ) {
         if (content) return; // Don't optimistically update quotes
 
-        const userId = (getState() as any).auth.user?.id;
-        if (!userId) return;
-
-        const updateCache = (draft: any) => {
-          if (!draft?.posts) return;
-          const post = draft.posts.find((p: any) => p.id === id);
-          if (post) {
-            post.repostsCount = (post.repostsCount || 0) + 1;
-            post.repostedByMe = true;
-            // Also update the array for UI consistency
-            if (post.repostedBy) {
-              // Avoid duplicates
-              if (!post.repostedBy.some((r: any) => r.userId === userId)) {
-                post.repostedBy.push({ userId });
+        const updateList = (endpointName: string, args: any) =>
+          dispatch(
+            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
+              if (!draft?.posts) return;
+              const post = draft.posts.find((p: any) => p.id === id);
+              if (post) {
+                post.repostedByMe = true;
+                post.repostsCount = (post.repostsCount || 0) + 1;
               }
-            } else {
-              post.repostedBy = [{ userId }];
-            }
-            if (post._count)
-              post._count.reposts = (post._count.reposts || 0) + 1;
-          }
-        };
+            }),
+          );
 
-        const patchGetPosts = dispatch(
-          postApi.util.updateQueryData(
-            "getPosts",
-            { type: "public", cursor: null } as any,
-            updateCache,
-          ),
-        );
-        const patchGetFeed = dispatch(
-          postApi.util.updateQueryData(
-            "getFeed",
-            { cursor: null } as any,
-            updateCache,
-          ),
-        );
+        const patchPosts = updateList("getPosts", { type: "public", cursor: null } as any);
+        const patchFeed = updateList("getFeed", { cursor: null } as any);
 
         try {
           await queryFulfilled;
         } catch {
-          patchGetPosts.undo();
-          patchGetFeed.undo();
+          patchPosts.undo();
+          patchFeed.undo();
         }
       },
       invalidatesTags: ["Post"],
     }),
+
     deleteRepost: builder.mutation({
       query: (id) => ({
         url: `/posts/${id}/repost`,
         method: "DELETE",
       }),
-      async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
-        const userId = (getState() as any).auth.user?.id;
-        if (!userId) return;
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const updateList = (endpointName: string, args: any) =>
+          dispatch(
+            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
+              if (!draft?.posts) return;
+              const post = draft.posts.find((p: any) => p.id === id);
+              if (post) {
+                post.repostedByMe = false;
+                post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
+              }
+            }),
+          );
 
-        const updateCache = (draft: any) => {
-          if (!draft?.posts) return;
-          const post = draft.posts.find((p: any) => p.id === id);
-          if (post) {
-            post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
-            post.repostedByMe = false;
-            // Remove from array
-            if (post.repostedBy) {
-              post.repostedBy = post.repostedBy.filter(
-                (r: any) => r.userId !== userId,
-              );
-            }
-            if (post._count)
-              post._count.reposts = Math.max(0, (post._count.reposts || 0) - 1);
-          }
-        };
-
-        const patchGetPosts = dispatch(
-          postApi.util.updateQueryData(
-            "getPosts",
-            { type: "public", cursor: null } as any,
-            updateCache,
-          ),
-        );
-        const patchGetFeed = dispatch(
-          postApi.util.updateQueryData(
-            "getFeed",
-            { cursor: null } as any,
-            updateCache,
-          ),
-        );
+        const patchPosts = updateList("getPosts", { type: "public", cursor: null } as any);
+        const patchFeed = updateList("getFeed", { cursor: null } as any);
 
         try {
           await queryFulfilled;
         } catch {
-          patchGetPosts.undo();
-          patchGetFeed.undo();
+          patchPosts.undo();
+          patchFeed.undo();
         }
       },
       invalidatesTags: ["Post"],
     }),
+
     getPost: builder.query({
       query: (id) => `/posts/${id}`,
       providesTags: ["Post"],
     }),
+
     getThread: builder.query({
       query: (id) => `/posts/${id}/thread`,
       transformResponse: (res: any) => transformNormalizedResponse(res).posts,
       providesTags: ["Post"],
     }),
+
     getReplies: builder.query({
       query: ({ id, cursor }) => {
         let url = `/posts/${id}/replies`;
@@ -304,13 +273,9 @@ export const postApi = api.injectEndpoints({
         return url;
       },
       transformResponse: transformNormalizedResponse,
-      serializeQueryArgs: ({ queryArgs }) => {
-        return `getReplies-${queryArgs.id}`;
-      },
+      serializeQueryArgs: ({ queryArgs }) => `getReplies-${queryArgs.id}`,
       merge: (currentCache, newItems, { arg }) => {
-        if (!arg.cursor) {
-          return newItems;
-        }
+        if (!arg.cursor) return newItems;
         currentCache.posts.push(...newItems.posts);
         currentCache.nextCursor = newItems.nextCursor;
       },
@@ -319,6 +284,7 @@ export const postApi = api.injectEndpoints({
       },
       providesTags: ["Post"],
     }),
+
     replyPost: builder.mutation({
       query: ({ postId, content }) => ({
         url: `/posts/${postId}/reply`,
@@ -334,79 +300,54 @@ export const postApi = api.injectEndpoints({
         method: "POST",
       }),
       async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
-        // Optimistically increment view/share count
-        const updateCache = (type: string) => {
-          return dispatch(
-            postApi.util.updateQueryData(
-              "getPosts",
-              { type } as any,
-              (draft) => {
-                if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === postId);
-                if (post) {
-                  post.views = (post.views || 0) + 1;
-                }
-              },
-            ),
+        const updateList = (endpointName: string, args: any) =>
+          dispatch(
+            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
+              if (!draft?.posts) return;
+              const post = draft.posts.find((p: any) => p.id === postId);
+              if (post) post.viewCount = (post.viewCount || 0) + 1;
+            }),
           );
-        };
 
-        updateCache("public");
-        updateCache("private");
+        updateList("getPosts", { type: "public" } as any);
+        updateList("getPosts", { type: "private" } as any);
         dispatch(
           postApi.util.updateQueryData("getPost", postId, (draft: any) => {
-            if (draft) {
-              draft.views = (draft.views || 0) + 1;
-            }
+            if (draft) draft.viewCount = (draft.viewCount || 0) + 1;
           }),
         );
 
         try {
           await queryFulfilled;
         } catch {
-          console.log("View count increment failed, keeping optimistic update");
+          console.log("View count increment failed");
         }
       },
     }),
+
     deletePost: builder.mutation({
       query: ({ id }) => ({
         url: `/posts/${id}`,
         method: "DELETE",
       }),
       async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
-        // Remove from Public Posts
         const patchPublic = dispatch(
-          postApi.util.updateQueryData(
-            "getPosts",
-            { type: "public", cursor: null } as any,
-            (draft) => {
-              if (draft?.posts) {
-                draft.posts = draft.posts.filter(
-                  (p: any) => p.id !== id && p.originalPost?.id !== id,
-                );
-              }
-            },
-          ),
+          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, (draft) => {
+            if (draft?.posts) {
+              draft.posts = draft.posts.filter((p: any) => p.id !== id && p.originalPost?.id !== id);
+            }
+          }),
         );
-
-        // Remove from Feed (handling virtual IDs "repost_ID" and plain IDs)
         const patchFeed = dispatch(
-          postApi.util.updateQueryData(
-            "getFeed",
-            { cursor: null } as any,
-            (draft) => {
-              if (draft?.posts) {
-                draft.posts = draft.posts.filter((p: any) => {
-                  // If it's a repost of this post, remove it?
-                  // Virtual ID logic: "repost_xyz". originalPost.id === id.
-                  if (p.isRepost && p.originalPost?.id === id) return false;
-                  // If it's the post itself
-                  if (p.id === id) return false;
-                  return true;
-                });
-              }
-            },
-          ),
+          postApi.util.updateQueryData("getFeed", { cursor: null } as any, (draft) => {
+            if (draft?.posts) {
+              draft.posts = draft.posts.filter((p: any) => {
+                if (p.isRepost && p.originalPost?.id === id) return false;
+                if (p.id === id) return false;
+                return true;
+              });
+            }
+          }),
         );
 
         try {
@@ -418,9 +359,11 @@ export const postApi = api.injectEndpoints({
       },
       invalidatesTags: ["Post"],
     }),
+
     getPostsByType: builder.query({
       query: (type) => `/posts?type=${type}`,
     }),
+
     reportPost: builder.mutation({
       query: ({ id, reason }) => ({
         url: `/posts/${id}/report`,
@@ -429,6 +372,7 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+
     blockPost: builder.mutation({
       query: ({ id }) => ({
         url: `/posts/${id}/block`,
@@ -436,6 +380,7 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
+
     blockUser: builder.mutation({
       query: ({ id }) => ({
         url: `/profile/${id}/block`,
@@ -443,7 +388,6 @@ export const postApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Post"],
     }),
-    // removed legacy comment routes
   }),
 });
 
