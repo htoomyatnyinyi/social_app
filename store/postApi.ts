@@ -1,5 +1,38 @@
 import { api } from "./api";
 
+const transformNormalizedResponse = (response: any) => {
+  if (response.posts && response.users) {
+    const mapUser = (post: any) => {
+      // Map author to post
+      if (post.authorId && response.users[post.authorId]) {
+        post.author = response.users[post.authorId];
+      } else if (post.isDeleted) {
+        post.author = { id: 'deleted', name: 'Deleted User', username: 'deleted', image: 'https://via.placeholder.com/48' };
+      }
+
+      // Map author to quote
+      if (post.originalPost) {
+        if (
+          post.originalPost.authorId &&
+          response.users[post.originalPost.authorId]
+        ) {
+          post.originalPost.author = response.users[post.originalPost.authorId];
+        } else if (post.originalPost.isDeleted) {
+          post.originalPost.author = { id: 'deleted', name: 'Deleted User', username: 'deleted', image: 'https://via.placeholder.com/48' };
+        }
+      }
+
+      // Map preview replies recursively
+      if (post.previewReplies && Array.isArray(post.previewReplies)) {
+        post.previewReplies = post.previewReplies.map(mapUser);
+      }
+      return post;
+    };
+    response.posts = response.posts.map(mapUser);
+  }
+  return response;
+};
+
 export const postApi = api.injectEndpoints({
   overrideExisting: process.env.NODE_ENV === "development",
   endpoints: (builder) => ({
@@ -14,6 +47,7 @@ export const postApi = api.injectEndpoints({
         if (cursor) url += `&cursor=${cursor}`;
         return url;
       },
+      transformResponse: transformNormalizedResponse,
       serializeQueryArgs: ({ queryArgs }) => {
         return `getPosts-${queryArgs.type}`;
       },
@@ -37,6 +71,7 @@ export const postApi = api.injectEndpoints({
         if (cursor) url += `?cursor=${cursor}`;
         return url;
       },
+      transformResponse: transformNormalizedResponse,
       serializeQueryArgs: ({ queryArgs }) => {
         return "getFeed";
       },
@@ -141,30 +176,9 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${id}/bookmark`,
         method: "POST",
       }),
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
-        // Optimistic toggle
-        const updateCache = (draft: any) => {
-          if (!draft?.posts) return;
-          const post = draft.posts.find((p: any) => p.id === id);
-          if (post) {
-            // We assume if it's being toggled, we flip the state.
-            // But checking if we have it bookmarked is hard if we don't have user ID or if we rely on array check.
-            // Simplified: invalidating tags handles the source of truth.
-            // But for UI response:
-            // Boolean toggle if we knew state.
-            // For now, let's stick to invalidation for bookmarks unless we track "bookmarkedByMe" field explicitly.
-            // User requested "Toggle icon correctly + optimistic update".
-            // If we depend on `post.bookmarks` array, we can toggle presence of dummy user?.
-            // Better: relying on backend return value.
-          }
-        };
-        // We'll leave optimistic update for bookmark for now as logic is "toggle" and current state might be unknown if not passed.
-        // But user asked for it.
-        // We can pass `isBookmarked` status to mutation to know which way to toggle.
-      },
       invalidatesTags: ["Post"],
     }),
-
+    
     repostPost: builder.mutation({
       query: ({ id, content, image, images }) => ({
         url: `/posts/${id}/repost`,
@@ -280,6 +294,7 @@ export const postApi = api.injectEndpoints({
     }),
     getThread: builder.query({
       query: (id) => `/posts/${id}/thread`,
+      transformResponse: (res: any) => transformNormalizedResponse(res).posts,
       providesTags: ["Post"],
     }),
     getReplies: builder.query({
@@ -288,6 +303,7 @@ export const postApi = api.injectEndpoints({
         if (cursor) url += `?cursor=${cursor}`;
         return url;
       },
+      transformResponse: transformNormalizedResponse,
       serializeQueryArgs: ({ queryArgs }) => {
         return `getReplies-${queryArgs.id}`;
       },
