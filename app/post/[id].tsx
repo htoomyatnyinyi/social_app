@@ -107,8 +107,8 @@ const ReplyItem = memo(
       }
     }, [item]);
 
-    const hasLiked = item.likes?.some((l: any) => l.userId === currentUserId) ?? false;
-    const hasReposted = item.repostedBy?.some((r: any) => r.userId === currentUserId) ?? false;
+    const hasLiked = item.isLiked ?? false;
+    const hasReposted = item.repostedByMe ?? false;
 
     return (
       <View
@@ -377,12 +377,9 @@ export default function PostDetailScreen() {
     }
   }, [rootPost?.author?.id, followUser]);
 
-  const hasLiked =
-    rootPost?.likes?.some((l: any) => l.userId === currentUser?.id) ?? false;
-  const hasReposted =
-    rootPost?.repostedBy?.some((r: any) => r.userId === currentUser?.id) ?? false;
-  const isBookmarked =
-    rootPost?.bookmarks?.some((b: any) => b.userId === currentUser?.id) ?? false;
+  const hasLiked = rootPost?.isLiked ?? false;
+  const hasReposted = rootPost?.repostedByMe ?? false;
+  const isBookmarked = rootPost?.isBookmarked ?? false;
 
   const handlePostShare = useCallback(async () => {
     try {

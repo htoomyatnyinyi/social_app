@@ -45,23 +45,25 @@ interface Post {
   images?: string[];
   createdAt: string;
   author: User;
+  authorId?: string;
   isRepost?: boolean;
   originalPost?: Post;
-  likes: { userId: string }[];
-  bookmarks: { userId: string }[];
-  repostedBy: { userId: string }[];
+  // Computed booleans from backend
+  isLiked?: boolean;
+  isBookmarked?: boolean;
+  repostedByMe?: boolean;
+  isAuthor?: boolean;
+  hasMoreReplies?: boolean;
+  isDeleted?: boolean;
   _count: {
-    comments: number;
+    replies: number;
     reposts: number;
     likes: number;
     quotes: number;
   };
-  views?: number;
-  repostedByMe?: boolean; // ← preferred flag (if backend provides it)
-  repostsCount?: number; // ← optional fallback
-  isDeleted?: boolean;
+  viewCount?: number;
+  repostsCount?: number;
   previewReplies?: Post[];
-  hasMoreReplies?: boolean;
 }
 
 // ────────────────────────────────────────────────
@@ -92,6 +94,7 @@ const PostCard = React.memo(
     onLike,
     onBookmark,
   }: PostCardProps) => {
+    const router = useRouter();
     // State for handling "See more" text expansion
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSeeMore, setShowSeeMore] = useState(false);
@@ -103,24 +106,11 @@ const PostCard = React.memo(
     const displayAuthor = displayPost.author;
     const displayId = displayPost.id;
 
-    const hasLiked = useMemo(
-      () => displayPost.likes?.some((l) => l.userId === user?.id) ?? false,
-      [displayPost.likes, user?.id],
-    );
+    const hasLiked = displayPost.isLiked ?? false;
 
-    const isBookmarked = useMemo(
-      () => (displayPost.bookmarks?.length ?? 0) > 0,
-      [displayPost.bookmarks],
-    );
+    const isBookmarked = displayPost.isBookmarked ?? false;
 
-    // Prefer repostedByMe flag if available, otherwise fallback to array check
-    const hasReposted = useMemo(
-      () =>
-        item.repostedByMe ??
-        displayPost.repostedBy?.some((r) => r.userId === user?.id) ??
-        false,
-      [item.repostedByMe, displayPost.repostedBy, user?.id],
-    );
+    const hasReposted = item.repostedByMe ?? false;
 
     const createdAtFormatted = useMemo(() => {
       if (!displayPost.createdAt) return "";
@@ -283,7 +273,7 @@ const PostCard = React.memo(
               >
                 <Ionicons name="chatbubble-outline" size={19} color="#6B7280" />
                 <Text className="text-xs text-gray-500 ml-1.5">
-                  {displayPost._count?.comments ?? 0}
+                  {displayPost._count?.replies ?? 0}
                 </Text>
               </TouchableOpacity>
 
@@ -329,7 +319,7 @@ const PostCard = React.memo(
                   color="#6B7280"
                 />
                 <Text className="text-xs text-gray-500 ml-1.5">
-                  {displayPost.views ?? 0}
+                  {displayPost.viewCount ?? 0}
                 </Text>
               </View>
 
@@ -444,9 +434,7 @@ export default function FeedScreen() {
       const realPostId =
         isRepostItem && post.originalPost ? post.originalPost.id : post.id;
 
-      const alreadyReposted =
-        post.repostedByMe ??
-        post.repostedBy?.some((r) => r.userId === user?.id);
+      const alreadyReposted = post.repostedByMe ?? false;
 
       if (alreadyReposted) {
         // Undo repost
@@ -494,7 +482,7 @@ export default function FeedScreen() {
         ]);
       }
     },
-    [user?.id, repostPost, deleteRepost, router],
+    [repostPost, deleteRepost, router],
   );
 
   const handleCommentSubmit = useCallback(async () => {
