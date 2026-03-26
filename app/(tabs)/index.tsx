@@ -59,6 +59,9 @@ interface Post {
   views?: number;
   repostedByMe?: boolean; // ← preferred flag (if backend provides it)
   repostsCount?: number; // ← optional fallback
+  isDeleted?: boolean;
+  previewReplies?: Post[];
+  hasMoreReplies?: boolean;
 }
 
 // ────────────────────────────────────────────────
@@ -339,6 +342,37 @@ const PostCard = React.memo(
                 />
               </TouchableOpacity>
             </View>
+
+            {/* Preview Replies */}
+            {displayPost.previewReplies && displayPost.previewReplies.length > 0 && (
+              <View className="mt-3 border-t border-gray-100 pt-2 pb-1">
+                {displayPost.previewReplies.map((reply: any) => (
+                  <TouchableOpacity 
+                    key={reply.id} 
+                    className="flex-row mt-2 items-start"
+                    onPress={() => onPressPost(displayId)}
+                  >
+                    <Image 
+                      source={{ uri: reply.author?.image || 'https://via.placeholder.com/24' }} 
+                      className="w-6 h-6 rounded-full bg-gray-100 mr-2 mt-0.5" 
+                    />
+                    <View className="flex-1">
+                      <Text className="font-bold text-[13px] text-gray-900 leading-tight">
+                        {reply.author?.name || 'User'} <Text className="font-normal text-gray-500">@{reply.author?.username || 'user'}</Text>
+                      </Text>
+                      <Text className="text-[13.5px] text-gray-800 leading-tight mt-0.5" numberOfLines={2}>
+                        {reply.isDeleted ? "[Deleted]" : reply.content}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+                {displayPost.hasMoreReplies && (
+                  <TouchableOpacity onPress={() => onPressPost(displayId)} className="mt-2.5 ml-8 mb-1">
+                    <Text className="text-[#1D9BF0] text-[13px] font-medium">Show more replies...</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>

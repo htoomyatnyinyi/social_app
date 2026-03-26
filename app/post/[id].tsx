@@ -158,6 +158,7 @@ const ReplyItem = memo(
 
             <Text className="text-[15px] leading-6 text-gray-800">
               {(() => {
+                if (item.isDeleted) return <Text className="italic text-gray-500">[Deleted]</Text>;
                 if (!item.content) return null;
                 const parts = item.content.split(/(#[a-zA-Z0-9_]+)/g);
                 return parts.map((part: string, i: number) => {
@@ -181,6 +182,7 @@ const ReplyItem = memo(
 
             {/* Images */}
             {(() => {
+              if (item.isDeleted) return null;
               const imgs = item.images?.length ? item.images : item.image ? [item.image] : [];
               if (imgs.length === 0) return null;
               if (imgs.length === 1) {
@@ -401,7 +403,7 @@ export default function PostDetailScreen() {
     } catch (err) {
       console.error("Repost failed", err);
     }
-  }, [rootPost?.id, repostPost]);
+  }, [rootPost, repostPost]);
 
   if (threadLoading) {
     return (
@@ -513,6 +515,7 @@ export default function PostDetailScreen() {
               {/* Content */}
               <Text className="text-[17px] leading-6 text-gray-900 mb-4">
                 {(() => {
+                  if (rootPost.isDeleted) return <Text className="italic text-gray-500">[Deleted]</Text>;
                   if (!rootPost.content) return null;
                   const parts = rootPost.content.split(/(#[a-zA-Z0-9_]+)/g);
                   return parts.map((part: any, i: any) => {
@@ -538,6 +541,7 @@ export default function PostDetailScreen() {
 
               {/* Images */}
               {(() => {
+                if (rootPost.isDeleted) return null;
                 const imgs = rootPost.images?.length
                   ? rootPost.images
                   : rootPost.image
