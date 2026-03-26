@@ -32,33 +32,57 @@ import PostOptionsModal from "../../components/PostOptionsModal";
 // Tree Builder helper
 // ────────────────────────────────────────────────
 function buildThreadTree(posts: any[], rootId: string) {
+  if (!posts || !rootId) return { rootPost: null, flatReplies: [] };
+
   const map = new Map<string, any>();
-  // Clone and add replies array
-  posts.forEach((p) => map.set(p.id, { ...p, replies: [] }));
-
-  const rootReplies: any[] = [];
-  const sortedPosts = [...map.values()].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-
-  sortedPosts.forEach((p) => {
-    if (p.id === rootId) return;
-
-    if (p.replyToId && map.has(p.replyToId)) {
-      const parent = map.get(p.replyToId);
-      p.parent = parent; // Link parent for UI
-      if (p.replyToId === rootId) {
-        rootReplies.push(p);
-      } else {
-        // Prevent deeply nested replies from breaking the view, map them sequentially by time or append to parent
-        parent.replies.push(p);
-      }
-    } else {
-      rootReplies.push(p);
+  // Clone each post and ensure ID is handled as string
+  posts.forEach((p) => {
+    if (p && p.id) {
+      map.set(String(p.id), { ...p, children: [] });
     }
   });
 
-  return { rootPost: map.get(rootId), topLevelReplies: rootReplies };
+  const targetId = String(rootId);
+  // Build parent→children links
+  map.forEach((p) => {
+    if (String(p.id) === targetId) return;
+    if (p.replyToId && map.has(String(p.replyToId))) {
+      const parent = map.get(String(p.replyToId));
+      p.parent = parent;
+      parent.children.push(p);
+    }
+  });
+
+  // Sort children of each node by createdAt ascending (oldest first)
+  map.forEach((p) => {
+    if (p.children && p.children.length > 0) {
+      p.children.sort(
+        (a: any, b: any) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    }
+  });
+
+  const flatReplies: any[] = [];
+  const rootNode = map.get(targetId);
+
+  function dfs(node: any, depth: number) {
+    if (!node) return;
+    flatReplies.push({ ...node, depth });
+    if (node.children) {
+      for (const child of node.children) {
+        dfs(child, depth + 1);
+      }
+    }
+  }
+
+  if (rootNode && rootNode.children) {
+    for (const child of rootNode.children) {
+      dfs(child, 0);
+    }
+  }
+
+  return { rootPost: rootNode, flatReplies };
 }
 
 // ────────────────────────────────────────────────
@@ -76,8 +100,10 @@ const ReplyItem = memo(
     onReply: (postId: string, username: string) => void;
     onOptions: (item: any) => void;
   }) => {
-    const isDeepReply =
-      !!item.replyToId && item.parent && item.parent.id !== item.conversationId;
+    const replyDepth = item.depth || 0;
+    const isDeepReply = replyDepth > 0;
+    // Cap indentation at 4 levels to prevent overflow on small screens
+    const indentLevel = Math.min(replyDepth, 4);
 
     const [likePost] = useLikePostMutation();
     const [repostPost] = useRepostPostMutation();
@@ -115,7 +141,8 @@ const ReplyItem = memo(
 
     return (
       <View
-        className={`${isDeepReply ? "ml-8 border-l-2 border-gray-200 pl-3" : "border-b border-gray-100"} bg-white`}
+        style={isDeepReply ? { marginLeft: indentLevel * 16 } : undefined}
+        className={`${isDeepReply ? "border-l-2 border-gray-200 pl-3" : "border-b border-gray-100"} bg-white`}
       >
         <TouchableOpacity
           onPress={() => router.push(`/post/${item.id}`)}
@@ -287,21 +314,6 @@ const ReplyItem = memo(
             </View>
           </View>
         </TouchableOpacity>
-
-        {/* Nested replies */}
-        {/* {item.replies && item.replies.length > 0 && (
-          <View>
-            {item.replies.map((reply: any) => (
-              <ReplyItem
-                key={reply.id}
-                item={reply}
-                currentUserId={currentUserId}
-                onReply={onReply}
-                onOptions={onOptions}
-              />
-            ))}
-          </View>
-        )} */}
       </View>
     );
   },
@@ -341,9 +353,9 @@ export default function PostDetailScreen() {
   const [incrementViewCount] = useIncrementViewCountMutation();
   const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
-  const { rootPost, topLevelReplies } = useMemo(() => {
+  const { rootPost, flatReplies } = useMemo(() => {
     if (!threadData || !Array.isArray(threadData) || threadData.length === 0)
-      return { rootPost: null, topLevelReplies: [] };
+      return { rootPost: null, flatReplies: [] };
     return buildThreadTree(threadData, id!);
   }, [threadData, id]);
 
@@ -457,7 +469,7 @@ export default function PostDetailScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
         <FlatList
-          data={topLevelReplies}
+          data={flatReplies}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ReplyItem
