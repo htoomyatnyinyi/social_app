@@ -63,7 +63,12 @@ export default function AuthScreen() {
         setError("");
       }
     } catch (err: any) {
-      setError(err.data?.message || "Authentication failed. Please try again.");
+      if (err.data?.requiresVerification) {
+        setActiveTab(2);
+        setError("Please verify your email to continue. We've sent a new OTP.");
+      } else {
+        setError(err.data?.message || "Authentication failed. Please try again.");
+      }
     }
   };
 
