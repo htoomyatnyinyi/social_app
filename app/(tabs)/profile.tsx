@@ -21,6 +21,7 @@ import {
   useLikePostMutation,
   useRepostPostMutation,
   useBookmarkPostMutation,
+  useDeletePostMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -49,6 +50,7 @@ export default function ProfileScreen() {
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
+  const [deletePost] = useDeletePostMutation();
 
   const {
     data: postData,
@@ -66,10 +68,13 @@ export default function ProfileScreen() {
     skip: !user?.id || activeTab !== "likes",
   });
 
-  const { data: replyData, isLoading: isRepliesLoading } =
-    useGetUserRepliesQuery(user?.id, {
-      skip: !user?.id || activeTab !== "replies",
-    });
+  const {
+    data: replyData,
+    isLoading: isRepliesLoading,
+    refetch: refetchReplies,
+  } = useGetUserRepliesQuery(user?.id, {
+    skip: !user?.id || activeTab !== "replies",
+  });
 
   const handleLogout = () => {
     dispatch(logout());
@@ -80,6 +85,7 @@ export default function ProfileScreen() {
     refetchProfile();
     if (activeTab === "posts") refetchPosts();
     if (activeTab === "likes") refetchLikes();
+    if (activeTab === "replies") refetchReplies();
   };
 
   const posts =
@@ -363,8 +369,7 @@ export default function ProfileScreen() {
         onDelete={async () => {
           if (!postForOptions?.id) return;
           try {
-            // Need deletePost mutation in store/postApi.ts - checking...
-            // For now, just close. I should verify if deletePost is available.
+            await deletePost({ id: postForOptions.id }).unwrap();
             setOptionsModalVisible(false);
           } catch (err) {
             console.error("Delete failed", err);

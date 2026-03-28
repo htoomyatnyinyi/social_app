@@ -30,6 +30,8 @@ export interface Post {
   isAuthor?: boolean;
   hasMoreReplies?: boolean;
   isDeleted?: boolean;
+  isReply?: boolean;
+  parentPost?: Post;
   _count: {
     replies: number;
     reposts: number;
@@ -187,6 +189,20 @@ const PostCard = React.memo(
                 />
               </TouchableOpacity>
             </View>
+
+            {/* Replying to... */}
+            {displayPost.parentPost && !isRepost && (
+              <View className="mb-0.5">
+                <Text className="text-[13.5px] text-gray-500">
+                  Replying to{" "}
+                  <Text className="text-[#1D9BF0]">
+                    @
+                    {displayPost.parentPost.author?.username ||
+                      displayPost.parentPost.author?.name?.toLowerCase().replace(/\s/g, "")}
+                  </Text>
+                </Text>
+              </View>
+            )}
 
             {/* Content with See More Logic */}
             <View className="mb-3">

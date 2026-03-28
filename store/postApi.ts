@@ -17,6 +17,15 @@ const transformNormalizedResponse = (response: any) => {
           post.originalPost.author = response.users[post.originalPost.authorId];
         }
       }
+      // Map author to parent post (for Replies tab)
+      if (post.parentPost) {
+        if (
+          post.parentPost.authorId &&
+          response.users[post.parentPost.authorId]
+        ) {
+          post.parentPost.author = response.users[post.parentPost.authorId];
+        }
+      }
       // Map preview replies
       if (post.previewReplies && Array.isArray(post.previewReplies)) {
         post.previewReplies = post.previewReplies.map(mapUser);

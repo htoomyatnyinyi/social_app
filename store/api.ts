@@ -7,11 +7,11 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // 2. For iOS Simulator / Android Emulator
 // const DEV_URL = "http://localhost:8080";
-// const DEV_URL = "http://192.168.1.248:8080";
+const DEV_URL = "http://192.168.1.241:8080";
 
 // 3. For Production
 // const DEV_URL = "https://noble.oasislab.de5.net";
-const DEV_URL = "https://jobs.jobdiary.us.ci";
+// const DEV_URL = "https://jobs.jobdiary.us.ci";
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || DEV_URL;
 // ---------------------

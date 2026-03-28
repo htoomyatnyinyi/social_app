@@ -162,6 +162,14 @@ import { useGlobalSearchQuery } from "../../store/searchApi";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FollowerSuggestions from "@/components/FollowerSuggestions";
+import PostCard from "../../components/PostCard";
+import PostOptionsModal from "../../components/PostOptionsModal";
+import {
+  useLikePostMutation,
+  useRepostPostMutation,
+  useBookmarkPostMutation,
+  useDeletePostMutation,
+} from "../../store/postApi";
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -174,6 +182,13 @@ export default function ExploreScreen() {
   const { data, isLoading } = useGlobalSearchQuery(search, {
     skip: search.length < 2,
   });
+  const [likePost] = useLikePostMutation();
+  const [repostPost] = useRepostPostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
+  const [deletePost] = useDeletePostMutation();
+
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [postForOptions, setPostForOptions] = useState<any>(null);
 
   const currentUser = useSelector((state: any) => state.auth.user);
 
@@ -198,26 +213,24 @@ export default function ExploreScreen() {
   );
 
   const renderPost = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/post/${item.id}`)}
-      className="p-4 border-b border-gray-50 bg-white"
-    >
-      <View className="flex-row items-center mb-2">
-        <Image
-          source={{
-            uri: item.author.image || "https://via.placeholder.com/50",
-          }}
-          className="w-8 h-8 rounded-full bg-gray-200 mr-2"
-        />
-        <Text className="font-bold text-gray-900">{item.author.name}</Text>
-        <Text className="text-gray-500 text-sm ml-1">
-          @{item.author.username}
-        </Text>
-      </View>
-      <Text className="text-gray-800 text-base" numberOfLines={3}>
-        {item.content}
-      </Text>
-    </TouchableOpacity>
+    <PostCard
+      item={item}
+      user={currentUser}
+      onPressPost={(id) => router.push(`/post/${id}`)}
+      onPressProfile={(id) =>
+        id === currentUser?.id
+          ? router.push("/profile")
+          : router.push(`/profile/${id}`)
+      }
+      onPressOptions={(p) => {
+        setPostForOptions(p);
+        setOptionsModalVisible(true);
+      }}
+      onPressComment={(id) => router.push(`/post/${id}`)}
+      onPressRepost={(p) => repostPost({ id: p.id })}
+      onLike={(id) => likePost({ postId: id }).unwrap()}
+      onBookmark={(id) => bookmarkPost(id).unwrap()}
+    />
   );
 
   const renderHashtag = ({ item }: { item: any }) => (
@@ -285,7 +298,7 @@ export default function ExploreScreen() {
         <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5">
           <Ionicons name="search" size={20} color="#6B7280" />
           <TextInput
-            placeholder="Search Ananta"
+            placeholder="Search Ananta..."
             placeholderTextColor="#6B7280"
             className="flex-1 ml-3 text-[16px] text-gray-900"
             value={search}
@@ -323,7 +336,7 @@ export default function ExploreScreen() {
               Posts
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             className={`flex-1 py-3 items-center border-b-2 ${activeTab === "hashtags" ? "border-[#1d9bf0]" : "border-transparent"}`}
             onPress={() => setActiveTab("hashtags")}
           >
@@ -332,12 +345,27 @@ export default function ExploreScreen() {
             >
               Tags
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       )}
 
       {/* Content */}
-      <View className="flex-1 bg-gray-50">{renderContent()}</View>
+      <View className="flex-1">{renderContent()}</View>
+
+      <PostOptionsModal
+        isVisible={optionsModalVisible}
+        onClose={() => setOptionsModalVisible(false)}
+        isOwner={postForOptions?.author?.id === currentUser?.id}
+        onDelete={async () => {
+          if (!postForOptions?.id) return;
+          try {
+            await deletePost({ id: postForOptions.id }).unwrap();
+            setOptionsModalVisible(false);
+          } catch (err) {
+            console.error("Delete failed", err);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }

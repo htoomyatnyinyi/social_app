@@ -323,14 +323,14 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Tabs Placeholder */}
-      <View className="flex-row border-b border-gray-50">
+      {/* <View className="flex-row border-b border-gray-50">
         <TouchableOpacity className="flex-1 items-center py-3 border-b-4 border-[#1d9bf0]">
           <Text className="font-bold text-[15px] text-gray-900">All</Text>
         </TouchableOpacity>
         <TouchableOpacity className="flex-1 items-center py-3">
           <Text className="font-bold text-[15px] text-gray-500">Mentions</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center">

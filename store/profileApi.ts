@@ -18,6 +18,15 @@ const transformNormalizedResponse = (response: any) => {
           post.originalPost.author = response.users[post.originalPost.authorId];
         }
       }
+      // Map author for parent post
+      if (post.parentPost) {
+        if (
+          post.parentPost.authorId &&
+          response.users[post.parentPost.authorId]
+        ) {
+          post.parentPost.author = response.users[post.parentPost.authorId];
+        }
+      }
       return post;
     };
     response.posts = response.posts.map(mapUser);
