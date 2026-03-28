@@ -342,7 +342,7 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+      <SafeAreaView style={{ flex: 1 }}>
         <View
           style={{
             position: "absolute",
@@ -350,7 +350,7 @@ export default function ChatScreen() {
             left: 0,
             right: 0,
             zIndex: 50,
-            paddingTop: 48,
+            paddingTop: insets.top + 8,
             paddingBottom: 16,
             paddingHorizontal: 20,
             borderBottomWidth: 1,
@@ -418,8 +418,8 @@ export default function ChatScreen() {
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 90}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
           <FlatList
             inverted
@@ -434,17 +434,25 @@ export default function ChatScreen() {
               />
             )}
             keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={{ paddingTop: 110, paddingBottom: 20 }}
+            contentContainerStyle={{
+              paddingTop: 110,
+              paddingBottom: 20,
+            }}
             showsVerticalScrollIndicator={false}
           />
 
-          <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+          <View
+            style={{
+              paddingHorizontal: 16,
+              paddingBottom: Platform.OS === "ios" ? 0 : 12,
+            }}
+          >
             {replyContext && (
               <Animated.View
                 entering={SlideInDown}
                 exiting={SlideOutDown}
                 style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
                   borderWidth: 1,
                   borderColor: "#F1F5F9",
                   padding: 12,
@@ -452,6 +460,7 @@ export default function ChatScreen() {
                   borderTopRightRadius: 24,
                   flexDirection: "row",
                   alignItems: "center",
+                  borderBottomWidth: 0,
                 }}
               >
                 <View
@@ -542,9 +551,14 @@ export default function ChatScreen() {
                 borderColor: "#F1F5F9",
                 paddingHorizontal: 8,
                 paddingVertical: 8,
-                marginBottom: 8,
+                marginBottom: 12,
                 borderTopLeftRadius: replyContext ? 0 : 28,
                 borderTopRightRadius: replyContext ? 0 : 28,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+                elevation: 2,
               }}
             >
               <Pressable
@@ -555,25 +569,25 @@ export default function ChatScreen() {
                   borderRadius: 20,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: "#F9FAFB",
+                  backgroundColor: "#F8FAFC",
                 }}
               >
                 <Ionicons name="image" size={20} color="#64748B" />
               </Pressable>
 
               <TextInput
-                placeholder="Breathe and type..."
+                placeholder="Message..."
                 placeholderTextColor="#94A3B8"
                 value={inputText}
                 onChangeText={handleTextChange}
                 multiline
                 style={{
                   flex: 1,
-                  paddingHorizontal: 16,
+                  paddingHorizontal: 12,
                   fontSize: 16,
                   color: "#111827",
                   fontWeight: "500",
-                  maxHeight: 128,
+                  maxHeight: 120,
                 }}
               />
 
@@ -588,12 +602,12 @@ export default function ChatScreen() {
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor:
-                      inputText.trim() || selectedImage ? "#0EA5E9" : "#F3F4F6",
-                    opacity: pressed ? 0.7 : 1,
+                      inputText.trim() || selectedImage ? "#0EA5E9" : "#E2E8F0",
+                    opacity: pressed ? 0.5 : 1,
                   },
                 ]}
               >
-                <Ionicons name="send" size={18} color="white" />
+                <Ionicons name="send" size={30} color="skyblue" />
               </Pressable>
             </View>
           </View>
