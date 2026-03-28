@@ -15,9 +15,19 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
+import { 
+  useGetMeditationStatsQuery, 
+  useRecordSessionMutation, 
+  useUpdateMeditationStatusMutation 
+} from '../../store/meditationApi';
+
 const BELL_SOUND = require('../../assets/sounds/bell.mp3');
 
 const MeditationTimer = () => {
+  const { data: stats } = useGetMeditationStatsQuery();
+  const [recordSession] = useRecordSessionMutation();
+  const [updateStatus] = useUpdateMeditationStatusMutation();
+
   const [intervalTime, setIntervalTime] = useState(30); // 30 or 60 minutes
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30 * 60); // In seconds
@@ -72,14 +82,19 @@ const MeditationTimer = () => {
       }, 1000);
     } else if (isActive && timeLeft === 0) {
       playBell();
+      
+      // Record session to backend
+      recordSession({ duration: intervalTime }).catch(console.error);
+
       if (repeat) {
         setTimeLeft(intervalTime * 60);
       } else {
         setIsActive(false);
+        updateStatus({ isMeditating: false }).catch(console.error);
       }
     }
     return () => clearInterval(timer);
-  }, [isActive, timeLeft, repeat, intervalTime, playBell]);
+  }, [isActive, timeLeft, repeat, intervalTime, playBell, recordSession, updateStatus]);
 
   useEffect(() => {
     if (isActive) {
@@ -104,18 +119,21 @@ const MeditationTimer = () => {
   });
 
   const toggleTimer = () => {
-    if (!isActive) {
+    const nextState = !isActive;
+    if (nextState) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setIsActive(!isActive);
+    setIsActive(nextState);
+    updateStatus({ isMeditating: nextState }).catch(console.error);
   };
 
   const resetTimer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsActive(false);
     setTimeLeft(intervalTime * 60);
+    updateStatus({ isMeditating: false }).catch(console.error);
   };
 
   const selectInterval = (time: number) => {
@@ -123,6 +141,7 @@ const MeditationTimer = () => {
     setIntervalTime(time);
     setTimeLeft(time * 60);
     setIsActive(false);
+    updateStatus({ isMeditating: false }).catch(console.error);
   };
 
   const formatTime = (seconds: number) => {
@@ -173,6 +192,20 @@ const MeditationTimer = () => {
         </View>
 
         <View style={styles.controls}>
+          {stats?.totalMinutes > 0 && (
+            <View style={styles.statsRow}>
+              <View className="items-center">
+                <Text style={styles.statsValue}>{stats.totalMinutes}</Text>
+                <Text style={styles.statsLabel}>Minutes</Text>
+              </View>
+              <View style={styles.statsDivider} />
+              <View className="items-center">
+                <Text style={styles.statsValue}>{stats.sessionsCount}</Text>
+                <Text style={styles.statsLabel}>Sessions</Text>
+              </View>
+            </View>
+          )}
+
           <View style={styles.intervalOptions}>
             <TouchableOpacity 
               onPress={() => selectInterval(30)}
@@ -311,6 +344,35 @@ const styles = StyleSheet.create({
   controls: {
     width: '100%',
     alignItems: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  statsValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  statsLabel: {
+    fontSize: 10,
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  statsDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   intervalOptions: {
     flexDirection: 'row',
