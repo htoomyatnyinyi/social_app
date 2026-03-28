@@ -1,729 +1,380 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Slider from "@react-native-community/slider";
-import { Audio } from "expo-av";
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Audio } from 'expo-av';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  withRepeat, 
+  withSequence,
+  Easing,
+  interpolate,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
-export default function MeditationScreen() {
-  const [isRunning, setIsRunning] = useState(false);
-  const [intervalTime, setIntervalTime] = useState(30); // in minutes
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // in seconds
-  const [isAudioLoaded, setIsAudioLoaded] = useState(false);
+const BELL_SOUND = require('../../assets/sounds/bell.mp3');
 
-  const [enableDhammaAudio, setEnableDhammaAudio] = useState(false);
-  const [volume, setVolume] = useState(0.5);
+const MeditationTimer = () => {
+  const [intervalTime, setIntervalTime] = useState(30); // 30 or 60 minutes
+  const [isActive, setIsActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30 * 60); // In seconds
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [repeat, setRepeat] = useState(true);
+  
+  const pulse = useSharedValue(1);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const bellSound = useRef<Audio.Sound | null>(null);
-  const dhammaSound = useRef<Audio.Sound | null>(null);
+  const loadSound = React.useCallback(async () => {
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+      const { sound: newSound } = await Audio.Sound.createAsync(BELL_SOUND);
+      setSound(newSound);
+    } catch {
+      // Failed to load sound
+    }
+  }, [sound]);
 
-  const theme = {
-    background: "#ffffff",
-    primary: "#4a90e2",
-    secondary: "#50c878",
-    text: "#333333",
-    icon: "#888888",
-    surface: "#f5f5f5",
-  };
-
-  // 1. Initialize Audio on Mount
   useEffect(() => {
-    let isMounted = true;
-
-    const setupAudio = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: true,
-        });
-
-        const { sound: bell } = await Audio.Sound.createAsync({
-          uri: "http://192.168.1.241:3000/u/Am5YNQ.mp3",
-        });
-
-        const { sound: dhamma } = await Audio.Sound.createAsync({
-          uri: "http://192.168.1.241:3000/u/dONVU2.mp3",
-        });
-
-        if (isMounted) {
-          bellSound.current = bell;
-          dhammaSound.current = dhamma;
-          await bellSound.current.setVolumeAsync(volume);
-          await dhammaSound.current.setVolumeAsync(volume);
-          setIsAudioLoaded(true);
-        }
-      } catch (error) {
-        console.error("Failed to load audio", error);
+    loadSound();
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
       }
     };
-
-    setupAudio();
-
-    // Cleanup on unmount
-    return () => {
-      isMounted = false;
-      if (bellSound.current) bellSound.current.unloadAsync();
-      if (dhammaSound.current) dhammaSound.current.unloadAsync();
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Handle Volume Changes Dynamically
-  useEffect(() => {
-    const updateVolume = async () => {
-      if (bellSound.current) await bellSound.current.setVolumeAsync(volume);
-      if (dhammaSound.current) await dhammaSound.current.setVolumeAsync(volume);
-    };
-    updateVolume();
-  }, [volume]);
-
-  // 3. Audio Playback Helpers
-  const playBell = async () => {
-    if (bellSound.current) {
-      await bellSound.current.replayAsync(); // replayAsync ensures it plays from the beginning
-    }
-  };
-
-  const manageDhammaAudio = async (shouldPlay: boolean) => {
-    if (!dhammaSound.current) return;
-
-    if (shouldPlay && enableDhammaAudio) {
-      await dhammaSound.current.playAsync();
+  const playBell = React.useCallback(async () => {
+    if (sound) {
+      try {
+        await sound.replayAsync();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        // Reload sound if it failed
+        const { sound: newSound } = await Audio.Sound.createAsync(BELL_SOUND);
+        setSound(newSound);
+        await newSound.playAsync();
+      }
     } else {
-      await dhammaSound.current.pauseAsync();
+      loadSound().then(() => playBell());
     }
-  };
+  }, [sound, loadSound]);
 
-  // 4. Timer Logic
   useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          // Timer finished
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            playBell();
-            manageDhammaAudio(false);
-            setIsRunning(false);
-            return 0;
-          }
-
-          // Intermediate interval bell (e.g., if 60m session, rings at 30m mark)
-          const isIntermediateBell =
-            prev !== intervalTime * 60 && prev % (30 * 60) === 0;
-
-          if (isIntermediateBell) {
-            playBell();
-          }
-
-          return prev - 1;
-        });
+    let timer: any;
+    if (isActive && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
       }, 1000);
-
-      manageDhammaAudio(true);
-    } else {
-      // Clear interval if paused
-      if (timerRef.current) clearInterval(timerRef.current);
-      manageDhammaAudio(false);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning, enableDhammaAudio]);
-
-  // 5. Controls
-  const toggleTimer = () => {
-    if (!isRunning && timeLeft === intervalTime * 60) {
-      // Ring bell exactly when starting a fresh session
+    } else if (isActive && timeLeft === 0) {
       playBell();
+      if (repeat) {
+        setTimeLeft(intervalTime * 60);
+      } else {
+        setIsActive(false);
+      }
     }
-    setIsRunning(!isRunning);
+    return () => clearInterval(timer);
+  }, [isActive, timeLeft, repeat, intervalTime, playBell]);
+
+  useEffect(() => {
+    if (isActive) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        true
+      );
+    } else {
+      pulse.value = withTiming(1);
+    }
+  }, [isActive, pulse]);
+
+  const animatedCircleStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: pulse.value }],
+      opacity: interpolate(pulse.value, [1, 1.1], [0.6, 0.4]),
+    };
+  });
+
+  const toggleTimer = () => {
+    if (!isActive) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsActive(!isActive);
   };
 
-  const resetTimer = async () => {
-    setIsRunning(false);
-    if (timerRef.current) clearInterval(timerRef.current);
+  const resetTimer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setIsActive(false);
     setTimeLeft(intervalTime * 60);
-
-    // Stop and reset dhamma audio back to beginning
-    if (dhammaSound.current) {
-      await dhammaSound.current.stopAsync();
-    }
   };
 
-  const changeInterval = (minutes: number) => {
-    if (!isRunning) {
-      setIntervalTime(minutes);
-      setTimeLeft(minutes * 60);
-    }
+  const selectInterval = (time: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIntervalTime(time);
+    setTimeLeft(time * 60);
+    setIsActive(false);
   };
 
-  // 6. Formatting
-  const formatTime = () => {
-    const m = Math.floor(timeLeft / 60);
-    const s = timeLeft % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  if (!isAudioLoaded) {
-    return (
-      <View
-        style={[
-          styles.container,
-          styles.centerAll,
-          { backgroundColor: theme.background },
-        ]}
-      >
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={{ marginTop: 10, color: theme.icon }}>
-          Loading sounds...
-        </Text>
-      </View>
-    );
-  }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.container}>
+      <Stack.Screen 
+        options={{ 
+          title: 'Meditation Timer',
+          headerTransparent: true,
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: '600' }
+        }} 
+      />
+      <LinearGradient
+        colors={['#0f172a', '#1e293b', '#334155']}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.primary }]}>
-            MEDITATION
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.icon }]}>
-            May all beings be well, happy, and peaceful.
-          </Text>
+          <Text style={styles.title}>Zen Bell</Text>
+          <TouchableOpacity 
+            onPress={() => setRepeat(!repeat)}
+            style={[styles.repeatToggle, repeat && styles.repeatToggleActive]}
+          >
+            <Ionicons 
+              name={repeat ? "repeat" : "repeat-outline"} 
+              size={20} 
+              color={repeat ? "#fff" : "#94a3b8"} 
+            />
+            <Text style={[styles.repeatText, repeat && styles.repeatTextActive]}>
+              {repeat ? 'Continuous' : 'Single Session'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.timerContainer}>
+        <View style={styles.timerWrapper}>
+          <Animated.View style={[styles.pulseCircle, animatedCircleStyle]} />
           <View style={styles.timerCircle}>
-            <Text style={styles.timerText}>{formatTime()}</Text>
-            <Text style={styles.timerLabel}>Meditation</Text>
-          </View>
-
-          <View style={styles.timerButtons}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                { backgroundColor: isRunning ? theme.icon : theme.primary },
-              ]}
-              onPress={toggleTimer}
-            >
-              <Text style={styles.buttonText}>
-                {isRunning ? "Pause" : "Start"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.icon }]}
-              onPress={resetTimer}
-            >
-              <Text style={styles.buttonText}>Reset</Text>
-            </TouchableOpacity>
+            <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+            <Text style={styles.timerSubheader}>{isActive ? 'Breathe Deeply' : 'Peaceful Mind'}</Text>
           </View>
         </View>
 
-        <View
-          style={[styles.settingsContainer, { backgroundColor: theme.surface }]}
-        >
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Settings
-          </Text>
-
-          {/* Interval Setting */}
-          <View style={styles.settingRow}>
-            <Text style={[styles.settingLabel, { color: theme.text }]}>
-              Duration
-            </Text>
-            <View style={styles.intervalToggle}>
-              <TouchableOpacity onPress={() => changeInterval(30)}>
-                <Text
-                  style={[
-                    styles.intervalOption,
-                    {
-                      color: intervalTime === 30 ? theme.secondary : theme.icon,
-                    },
-                  ]}
-                >
-                  30m
-                </Text>
-              </TouchableOpacity>
-              <Text style={{ color: theme.icon }}> | </Text>
-              <TouchableOpacity onPress={() => changeInterval(60)}>
-                <Text
-                  style={[
-                    styles.intervalOption,
-                    {
-                      color: intervalTime === 60 ? theme.secondary : theme.icon,
-                    },
-                  ]}
-                >
-                  1h
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.controls}>
+          <View style={styles.intervalOptions}>
+            <TouchableOpacity 
+              onPress={() => selectInterval(30)}
+              style={[styles.intervalBtn, intervalTime === 30 && styles.intervalBtnActive]}
+            >
+              <Text style={[styles.intervalBtnText, intervalTime === 30 && styles.intervalBtnTextActive]}>30 Min</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => selectInterval(60)}
+              style={[styles.intervalBtn, intervalTime === 60 && styles.intervalBtnActive]}
+            >
+              <Text style={[styles.intervalBtnText, intervalTime === 60 && styles.intervalBtnTextActive]}>1 Hour</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Dhamma Audio Setting */}
-          <View style={styles.settingRow}>
-            <View>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>
-                Dhamma Audio
-              </Text>
-              <Text style={[styles.settingDescription, { color: theme.icon }]}>
-                အာနာပါနသမထ လမ်းညွှန် အသံ
-              </Text>
-            </View>
-            <Switch
-              value={enableDhammaAudio}
-              onValueChange={setEnableDhammaAudio}
-              trackColor={{ false: "#ccc", true: theme.secondary }}
-              thumbColor={Platform.OS === "android" ? "#fff" : undefined}
-            />
-          </View>
+          <View style={styles.actionRow}>
+            <TouchableOpacity onPress={resetTimer} style={styles.secondaryBtn}>
+              <Ionicons name="refresh-outline" size={24} color="#94a3b8" />
+            </TouchableOpacity>
 
-          {/* Volume Setting */}
-          <View style={styles.volumeContainer}>
-            <Text style={[styles.volumeLabel, { color: theme.text }]}>
-              Volume: {Math.round(volume * 100)}%
-            </Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={1}
-              step={0.01}
-              value={volume}
-              onValueChange={setVolume}
-              minimumTrackTintColor={theme.primary}
-              maximumTrackTintColor={theme.icon}
-              thumbTintColor={theme.primary}
-            />
+            <TouchableOpacity onPress={toggleTimer} style={styles.mainBtn}>
+              <View style={styles.playIconBox}>
+                <Ionicons 
+                  name={isActive ? "pause" : "play"} 
+                  size={32} 
+                  color="#fff" 
+                  style={{ marginLeft: isActive ? 0 : 4 }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={playBell} 
+              style={styles.secondaryBtn}
+            >
+              <Ionicons name="notifications-outline" size={24} color="#94a3b8" />
+            </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centerAll: { justifyContent: "center", alignItems: "center" },
-  scrollContent: { padding: 24, paddingBottom: 50 },
-  header: { marginTop: 20, marginBottom: 40, alignItems: "center" },
-  title: { fontSize: 32, fontWeight: "300", letterSpacing: 2 },
-  subtitle: {
-    fontSize: 14,
-    marginTop: 8,
-    fontStyle: "italic",
-    textAlign: "center",
+  container: {
+    flex: 1,
+    backgroundColor: '#0f172a',
   },
-  timerContainer: { alignItems: "center", marginBottom: 50 },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: '#fff',
+    letterSpacing: 8,
+    textTransform: 'uppercase',
+    marginBottom: 16,
+  },
+  repeatToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  repeatToggleActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  repeatText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  repeatTextActive: {
+    color: '#fff',
+  },
+  timerWrapper: {
+    width: 280,
+    height: 280,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 60,
+  },
   timerCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  timerText: { fontSize: 48, fontWeight: "300" },
-  timerLabel: { fontSize: 16, color: "#888", marginTop: 4 },
-  timerButtons: { flexDirection: "row", gap: 15 },
-  button: {
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-    minWidth: 100,
-    alignItems: "center",
+  pulseCircle: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  buttonText: { color: "white", fontSize: 16, fontWeight: "600" },
-  settingsContainer: { padding: 20, borderRadius: 16, gap: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: "600", marginBottom: -4 },
-  settingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  timerText: {
+    fontSize: 54,
+    fontWeight: '200',
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 2,
   },
-  settingLabel: { fontSize: 16, fontWeight: "500" },
-  settingDescription: { fontSize: 12, marginTop: 4 },
-  intervalToggle: { flexDirection: "row", alignItems: "center" },
-  intervalOption: { fontSize: 16, padding: 5, fontWeight: "600" },
-  volumeContainer: { width: "100%", alignItems: "stretch", marginTop: 10 },
-  volumeLabel: { marginBottom: 12, fontSize: 14, fontWeight: "500" },
-  slider: { width: "100%", height: 40 },
+  timerSubheader: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 4,
+    marginTop: 8,
+  },
+  controls: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  intervalOptions: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 6,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  intervalBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  intervalBtnActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  intervalBtnText: {
+    color: '#94a3b8',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  intervalBtnTextActive: {
+    color: '#fff',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 40,
+  },
+  mainBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  playIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  secondaryBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  }
 });
-// import React, { useState, useEffect, useRef } from "react";
-// import {
-//   ScrollView,
-//   StyleSheet,
-//   Switch,
-//   Text,
-//   View,
-//   TouchableOpacity,
-// } from "react-native";
-// import { SafeAreaView } from "react-native-safe-area-context";
-// import Slider from "@react-native-community/slider";
-// import { Audio } from "expo-av";
 
-// export default function MeditationScreen() {
-//   const [isRunning, setIsRunning] = useState(false);
-//   const [interval, setIntervalTime] = useState(30);
-//   const [timeLeft, setTimeLeft] = useState(30 * 60);
-
-//   const [enableDhammaAudio, setEnableDhammaAudio] = useState(false);
-//   const [volume, setVolume] = useState(0.5);
-
-//   const timerRef = useRef(null);
-//   const bellSound = useRef(null);
-//   const dhammaSound = useRef(null);
-
-//   const theme = {
-//     background: "#ffffff",
-//     primary: "#4a90e2",
-//     secondary: "#50c878",
-//     text: "#333333",
-//     icon: "#888888",
-//     surface: "#f5f5f5",
-//   };
-
-//   // Load sounds
-//   useEffect(() => {
-//     loadSounds();
-
-//     return () => {
-//       if (bellSound.current) bellSound.current.unloadAsync();
-//       if (dhammaSound.current) dhammaSound.current.unloadAsync();
-//     };
-//   }, []);
-
-//   const loadSounds = async () => {
-//     const { sound } = await Audio.Sound.createAsync({
-//       uri: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_1b52c8f2f7.mp3",
-//     });
-
-//     bellSound.current = sound;
-
-//     const { sound: dhamma } = await Audio.Sound.createAsync({
-//       uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-//     });
-
-//     dhammaSound.current = dhamma;
-//   };
-
-//   const playBell = async () => {
-//     if (bellSound.current) {
-//       await bellSound.current.setVolumeAsync(volume);
-//       await bellSound.current.replayAsync();
-//     }
-//   };
-
-//   const playDhamma = async () => {
-//     if (enableDhammaAudio && dhammaSound.current) {
-//       await dhammaSound.current.setVolumeAsync(volume);
-//       await dhammaSound.current.playAsync();
-//     }
-//   };
-
-//   // Timer logic
-//   useEffect(() => {
-//     if (isRunning) {
-//       timerRef.current = setInterval(() => {
-//         setTimeLeft((prev) => {
-//           if (prev <= 1) {
-//             clearInterval(timerRef.current);
-//             playBell();
-//             setIsRunning(false);
-//             return 0;
-//           }
-
-//           if (prev % (interval * 60) === 0) {
-//             playBell();
-//           }
-
-//           return prev - 1;
-//         });
-//       }, 1000);
-
-//       playDhamma();
-//     }
-
-//     return () => clearInterval(timerRef.current);
-//   }, [isRunning]);
-
-//   const startTimer = () => setIsRunning(true);
-
-//   const resetTimer = () => {
-//     setIsRunning(false);
-//     clearInterval(timerRef.current);
-//     setTimeLeft(interval * 60);
-//   };
-
-//   const formatTime = () => {
-//     const m = Math.floor(timeLeft / 60);
-//     const s = timeLeft % 60;
-
-//     return `${m}:${s < 10 ? "0" : ""}${s}`;
-//   };
-
-//   return (
-//     <SafeAreaView
-//       style={[styles.container, { backgroundColor: theme.background }]}
-//     >
-//       <ScrollView contentContainerStyle={styles.scrollContent}>
-//         <View style={styles.header}>
-//           <Text style={[styles.title, { color: theme.primary }]}>
-//             MEDITATION
-//           </Text>
-//           {/* <Text style={[styles.title, { color: theme.primary }]}>ဗုဒ္ဓံ</Text>
-//           <Text style={[styles.title, { color: theme.primary }]}>ဓမ္မံ</Text>
-//           <Text style={[styles.title, { color: theme.primary }]}>သံဃံ</Text> */}
-//           {/* <Text style={[styles.subtitle, { color: theme.icon }]}>
-//             Find your inner peace
-//           </Text> */}
-//           <Text style={[styles.subtitle, { color: theme.icon }]}>
-//             may all being be well, happy, and peaceful.
-//           </Text>
-//         </View>
-
-//         <View style={styles.timerContainer}>
-//           <View style={styles.timerCircle}>
-//             <Text style={styles.timerText}>{formatTime()}</Text>
-//             <Text style={styles.timerLabel}>Meditation</Text>
-//           </View>
-
-//           <View style={styles.timerButtons}>
-//             <TouchableOpacity
-//               style={[styles.button, { backgroundColor: theme.primary }]}
-//               onPress={startTimer}
-//             >
-//               <Text style={styles.buttonText}>Start</Text>
-//             </TouchableOpacity>
-
-//             <TouchableOpacity
-//               style={[styles.button, { backgroundColor: theme.icon }]}
-//               onPress={resetTimer}
-//             >
-//               <Text style={styles.buttonText}>Reset</Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-
-//         <View
-//           style={[styles.settingsContainer, { backgroundColor: theme.surface }]}
-//         >
-//           <Text style={[styles.sectionTitle, { color: theme.text }]}>
-//             Settings
-//           </Text>
-
-//           {/* Interval */}
-//           <View style={styles.settingRow}>
-//             <Text style={[styles.settingLabel, { color: theme.text }]}>
-//               Bell Interval
-//             </Text>
-
-//             <View style={styles.intervalToggle}>
-//               <Text
-//                 style={[
-//                   styles.intervalOption,
-//                   { color: interval === 30 ? theme.secondary : theme.icon },
-//                 ]}
-//                 onPress={() => {
-//                   if (!isRunning) {
-//                     setIntervalTime(30);
-//                     setTimeLeft(30 * 60);
-//                   }
-//                 }}
-//               >
-//                 30m
-//               </Text>
-
-//               <Text style={{ color: theme.icon }}> | </Text>
-
-//               <Text
-//                 style={[
-//                   styles.intervalOption,
-//                   { color: interval === 60 ? theme.secondary : theme.icon },
-//                 ]}
-//                 onPress={() => {
-//                   if (!isRunning) {
-//                     setIntervalTime(60);
-//                     setTimeLeft(60 * 60);
-//                   }
-//                 }}
-//               >
-//                 1h
-//               </Text>
-//             </View>
-//           </View>
-
-//           {/* Dhamma Audio */}
-//           {/* <View style={styles.settingRow}>
-//             <View>
-//               <Text style={[styles.settingLabel, { color: theme.text }]}>
-//                 Dhamma Audio
-//               </Text>
-
-//               <Text style={[styles.settingDescription, { color: theme.icon }]}>
-//                 အာနာပါနသမထ လမ်းညွှန် အသံ
-//               </Text>
-//             </View>
-
-//             <Switch
-//               value={enableDhammaAudio}
-//               onValueChange={setEnableDhammaAudio}
-//               trackColor={{ false: theme.icon, true: theme.secondary }}
-//             />
-//           </View> */}
-
-//           {/* Volume */}
-//           {/* <View style={styles.volumeContainer}>
-//             <Text style={[styles.volumeLabel, { color: theme.text }]}>
-//               Volume: {Math.round(volume * 100)}%
-//             </Text>
-
-//             <Slider
-//               style={styles.slider}
-//               minimumValue={0}
-//               maximumValue={1}
-//               step={0.01}
-//               value={volume}
-//               onValueChange={setVolume}
-//             />
-//           </View> */}
-//         </View>
-//       </ScrollView>
-//     </SafeAreaView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: { flex: 1 },
-
-//   scrollContent: {
-//     padding: 24,
-//     minHeight: "100%",
-//   },
-
-//   header: {
-//     marginTop: 20,
-//     marginBottom: 40,
-//     alignItems: "center",
-//   },
-
-//   title: {
-//     fontSize: 32,
-//     fontWeight: "300",
-//   },
-
-//   subtitle: {
-//     fontSize: 14,
-//     marginTop: 8,
-//     fontStyle: "italic",
-//   },
-
-//   timerContainer: {
-//     alignItems: "center",
-//     marginBottom: 50,
-//   },
-
-//   timerCircle: {
-//     width: 200,
-//     height: 200,
-//     borderRadius: 100,
-//     backgroundColor: "#f5f5f5",
-//     justifyContent: "center",
-//     alignItems: "center",
-//     marginBottom: 20,
-//   },
-
-//   timerText: {
-//     fontSize: 48,
-//     fontWeight: "300",
-//   },
-
-//   timerLabel: {
-//     fontSize: 16,
-//     color: "#888",
-//   },
-
-//   timerButtons: {
-//     flexDirection: "row",
-//     gap: 15,
-//   },
-
-//   button: {
-//     paddingHorizontal: 30,
-//     paddingVertical: 12,
-//     borderRadius: 25,
-//   },
-
-//   buttonText: {
-//     color: "white",
-//     fontSize: 16,
-//   },
-
-//   settingsContainer: {
-//     padding: 20,
-//     borderRadius: 16,
-//     gap: 20,
-//   },
-
-//   sectionTitle: {
-//     fontSize: 18,
-//     fontWeight: "600",
-//   },
-
-//   settingRow: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//   },
-
-//   settingLabel: {
-//     fontSize: 16,
-//   },
-
-//   settingDescription: {
-//     fontSize: 12,
-//   },
-
-//   intervalToggle: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//   },
-
-//   intervalOption: {
-//     fontSize: 16,
-//     padding: 5,
-//   },
-
-//   volumeContainer: {
-//     width: "100%",
-//     alignItems: "center",
-//   },
-
-//   volumeLabel: {
-//     marginBottom: 8,
-//   },
-
-//   slider: {
-//     width: 300,
-//   },
-// });
+export default MeditationTimer;
