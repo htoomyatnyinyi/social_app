@@ -6,14 +6,18 @@ import { useGetUnreadCountQuery } from "../../store/notificationApi";
 import { useUpdatePushTokenMutation } from "../../store/profileApi";
 import { API_URL, api } from "../../store/api";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 
 export default function TabLayout() {
   const token = useSelector((state: any) => state.auth.token);
   const dispatch = useDispatch();
+
   const { data: notificationData, refetch: refetchUnread } =
     useGetUnreadCountQuery(undefined, {
-      pollingInterval: 30000, // Reduced polling — WS handles real-time
+      pollingInterval: 30000,
+      skip: !token,
     });
 
   const { expoPushToken } = usePushNotifications();
@@ -25,7 +29,6 @@ export default function TabLayout() {
     }
   }, [expoPushToken, token, updatePushToken]);
 
-  // Keep refetch in a ref to avoid re-creating the WS connection
   const refetchRef = useRef(refetchUnread);
   useEffect(() => {
     refetchRef.current = refetchUnread;
@@ -35,7 +38,7 @@ export default function TabLayout() {
     if (!token) return;
 
     let isCleanedUp = false;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let reconnectTimer: any = null;
     let socketRef: WebSocket | null = null;
 
     const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
@@ -43,46 +46,23 @@ export default function TabLayout() {
 
     const connect = () => {
       if (isCleanedUp) return;
-
       const socket = new WebSocket(
         `${wsProtocol}://${cleanBase}/notifications/ws?token=${token}`,
       );
       socketRef = socket;
 
-      socket.onopen = () => {
-        console.log("✅ Notification WS connected");
-      };
-
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === "refresh") {
-            console.log("🔔 Notification refresh signal received");
-            // Refetch unread count (badge)
             refetchRef.current();
-            // Invalidate the full notification list so it refetches when the screen is visited
-            dispatch(api.util.invalidateTags(["Notification"]));
-            // Also invalidate Chat tag so the chat list refreshes with new message previews
-            dispatch(api.util.invalidateTags(["Chat"]));
+            dispatch(api.util.invalidateTags(["Notification", "Chat"]));
           }
-        } catch (e) {
-          console.error("Error parsing notification WS message", e);
-        }
+        } catch (e) {}
       };
 
-      socket.onerror = (e) => {
-        console.error("❌ Notification WS error", e);
-      };
-
-      socket.onclose = (e) => {
-        console.log(
-          `🔌 Notification WS closed. Code: ${e.code}, Reason: ${e.reason}`,
-        );
-        socketRef = null;
-        // Auto-reconnect after 5 seconds unless we cleaned up
-        if (!isCleanedUp) {
-          reconnectTimer = setTimeout(connect, 5000);
-        }
+      socket.onclose = () => {
+        if (!isCleanedUp) reconnectTimer = setTimeout(connect, 5000);
       };
     };
 
@@ -92,104 +72,140 @@ export default function TabLayout() {
       isCleanedUp = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       socketRef?.close();
-      socketRef = null;
     };
-  }, [token, dispatch]); // Only reconnect when token changes, not on refetch
+  }, [token, dispatch]);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#1d9bf0",
-        tabBarInactiveTintColor: "#6B7280",
-        // tabBarShowLabel: false,
+        tabBarActiveTintColor: "#fffff",
+        tabBarInactiveTintColor: "#94A3B8",
+        tabBarShowLabel: true,
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: "#f3f4f6",
-          elevation: 8,
-          shadowOpacity: 0.1,
-          backgroundColor: "#ffffff",
-          height: Platform.OS === "ios" ? 88 : 60,
-          display: "flex",
-        },
-        headerStyle: {
-          borderBottomWidth: 1,
-          borderBottomColor: "#f3f4f6",
+          position: "absolute",
+          borderTopWidth: 0,
           elevation: 0,
-          shadowOpacity: 0,
+          height: Platform.OS === "ios" ? 90 : 70,
+          backgroundColor: "transparent",
         },
-        headerTitleStyle: {
-          fontWeight: "bold",
-          fontSize: 18,
-        },
+        tabBarBackground: () => (
+          <BlurView
+            intensity={95}
+            tint="light"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderTopWidth: 1,
+              borderTopColor: "rgba(226, 232, 240, 0.5)",
+            }}
+          />
+        ),
         headerShown: false,
+      }}
+      screenListeners={{
+        tabPress: () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={26}
-              color={color}
-            />
+            <View style={{ paddingTop: 12 }}>
+              <View
+                className={focused ? "bg-sky-500 p-2 rounded-[16px]" : "p-2"}
+              >
+                <Ionicons
+                  name={focused ? "home" : "home-outline"}
+                  size={26}
+                  color={color}
+                />
+              </View>
+            </View>
           ),
-          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
-          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "search" : "search-outline"}
-              size={26}
-              color={color}
-            />
+            <View style={{ paddingTop: 12 }}>
+              <View
+                className={focused ? "bg-sky-500 p-2 rounded-[16px]" : "p-2"}
+              >
+                <Ionicons
+                  name={focused ? "search" : "search-outline"}
+                  size={26}
+                  color={color}
+                />
+              </View>
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: "Notifications",
           tabBarBadge:
             notificationData?.count > 0 ? notificationData.count : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: "#F43F5E",
+            fontSize: 10,
+            color: "white",
+            marginTop: 4,
+          },
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "notifications" : "notifications-outline"}
-              size={26}
-              color={color}
-            />
+            <View style={{ paddingTop: 12 }}>
+              <View
+                className={focused ? "bg-sky-500 p-2 rounded-[16px]" : "p-2"}
+              >
+                <Ionicons
+                  name={focused ? "notifications" : "notifications-outline"}
+                  size={26}
+                  color={color}
+                />
+              </View>
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Messages",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "mail" : "mail-outline"}
-              size={26}
-              color={color}
-            />
+            <View style={{ paddingTop: 12 }}>
+              <View
+                className={focused ? "bg-sky-500 p-2 rounded-[16px]" : "p-2"}
+              >
+                <Ionicons
+                  name={focused ? "mail" : "mail-outline"}
+                  size={26}
+                  color={color}
+                />
+              </View>
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={26}
-              color={color}
-            />
+            <View style={{ paddingTop: 12 }}>
+              <View
+                className={focused ? "bg-sky-500 p-2 rounded-[16px]" : "p-2"}
+              >
+                <Ionicons
+                  name={focused ? "person" : "person-outline"}
+                  size={26}
+                  color={color}
+                />
+              </View>
+            </View>
           ),
         }}
       />

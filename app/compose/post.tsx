@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   TextInput,
   Text,
   TouchableOpacity,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -21,15 +20,14 @@ import {
   useRepostPostMutation,
   useReplyPostMutation,
 } from "../../store/postApi";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements"; // Using this helps calculate exact header offsets
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 
 export default function ComposePostScreen() {
   const router = useRouter();
-
-  // For precise keyboard offset calculation if you are using a navigation header
-  const headerHeight = useHeaderHeight();
-
+  const insets = useSafeAreaInsets();
   const {
     replyToId,
     replyToName,
@@ -40,7 +38,7 @@ export default function ComposePostScreen() {
   const user = useSelector((state: any) => state.auth.user);
 
   const [content, setContent] = useState("");
-  const [images, setImages] = useState<{uri: string, base64: string}[]>([]);
+  const [images, setImages] = useState<{ uri: string; base64: string }[]>([]);
   const [locationTag, setLocationTag] = useState<string | null>(null);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
@@ -48,10 +46,10 @@ export default function ComposePostScreen() {
   const [repostPost, { isLoading: isReposting }] = useRepostPostMutation();
   const [replyPost, { isLoading: isReplying }] = useReplyPostMutation();
 
-  const isLoading =
-    isCreating || isReposting || isReplying || isFetchingLocation;
+  const isLoading = isCreating || isReposting || isReplying || isFetchingLocation;
 
-  const pickImage = async () => {
+  const handlePickImage = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Permission denied", "Media library access is required.");
@@ -77,7 +75,8 @@ export default function ComposePostScreen() {
     }
   };
 
-  const takePhoto = async () => {
+  const handleTakePhoto = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Permission denied", "Camera access is required.");
@@ -91,17 +90,20 @@ export default function ComposePostScreen() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
-      setImages((prev) => [
-        ...prev,
-        {
-          uri: result.assets[0].uri,
-          base64: `data:image/jpeg;base64,${result.assets[0].base64}`,
-        },
-      ].slice(0, 4));
+      setImages((prev) =>
+        [
+          ...prev,
+          {
+            uri: result.assets[0].uri,
+            base64: `data:image/jpeg;base64,${result.assets[0].base64}`,
+          },
+        ].slice(0, 4)
+      );
     }
   };
 
-  const fetchLocation = async () => {
+  const handleFetchLocation = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsFetchingLocation(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -122,18 +124,16 @@ export default function ComposePostScreen() {
       }
     } catch (error) {
       Alert.alert("Error", "Could not fetch your location.");
-      console.error("Location Error", error);
     } finally {
       setIsFetchingLocation(false);
     }
   };
 
   const handlePost = async () => {
-    if (!content.trim() && images.length === 0) return;
+    if ((!content.trim() && images.length === 0) || isLoading) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const finalContent = locationTag
-      ? `${content}\n\n📍 ${locationTag}`.trim()
-      : content.trim();
+    const finalContent = locationTag ? `${content}\n\n📍 ${locationTag}`.trim() : content.trim();
 
     try {
       if (quoteId) {
@@ -156,78 +156,87 @@ export default function ComposePostScreen() {
       }
       router.back();
     } catch (e) {
-      Alert.alert("Error", "Failed to post. Please try again.");
-      console.error("Post Error", e);
+      Alert.alert("Error", "Failed to manifest your thoughts. Please try again.");
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-50">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text className="text-[16px] text-gray-700">Cancel</Text>
+    <View className="flex-1 bg-[#F8FAFC]">
+      {/* Premium Header */}
+      <BlurView
+        intensity={80}
+        tint="light"
+        className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100/50 z-50"
+        style={{ paddingTop: insets.top }}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
+          className="px-4 py-2"
+        >
+          <Text className="text-gray-500 font-bold uppercase tracking-widest text-xs">Cancel</Text>
         </TouchableOpacity>
 
         <View className="flex-row items-center">
           {content.length > 0 && (
-            <Text
-              className={`mr-4 text-xs ${content.length > 250 ? "text-red-500" : "text-gray-400"}`}
-            >
-              {280 - content.length}
-            </Text>
+            <View className="mr-5 items-center justify-center">
+               <Text className={`font-black text-[10px] ${content.length > 250 ? "text-rose-500" : "text-gray-300"}`}>
+                {280 - content.length}
+              </Text>
+            </View>
           )}
           <TouchableOpacity
             onPress={handlePost}
             disabled={(!content.trim() && images.length === 0) || isLoading}
-            className={`px-6 py-1.5 rounded-full ${
-              (!content.trim() && images.length === 0) || isLoading
-                ? "bg-sky-200"
-                : "bg-[#1d9bf0]"
+            className={`px-8 py-2.5 rounded-2xl shadow-lg ${
+              (!content.trim() && images.length === 0) || isLoading 
+                ? "bg-gray-100 shadow-none" 
+                : "bg-sky-500 shadow-sky-200"
             }`}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Text className="text-white font-bold text-[15px]">Post</Text>
+              <Text className="text-white font-black uppercase tracking-widest text-xs">Manifest</Text>
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </BlurView>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        // Adding the headerHeight ensures exact calculation if a navigation bar exists above
-        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight || 40 : 0}
-        className="flex-1 flex-col"
+        className="flex-1"
       >
         <ScrollView
-          className="flex-1 px-4 pt-4"
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
-          // flexGrow ensures the scrollview expands, and paddingBottom gives a bit of breathing room
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
         >
-          <View className="flex-row flex-1">
-            {/* Left Column: Avatar + Thread Line */}
-            <View className="items-center mr-3">
-              <Image
-                source={{
-                  uri: user?.image || "https://via.placeholder.com/40",
-                }}
-                className="w-10 h-10 rounded-full bg-gray-100"
-              />
-              {replyToId && (
-                <View className="w-[2px] bg-gray-100 flex-1 my-2" />
-              )}
+          <View className="p-5 flex-row">
+            {/* Avatar Column */}
+            <View className="items-center mr-4">
+              <View className="shadow-md shadow-sky-100">
+                <Image
+                  source={{
+                    uri: user?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.id}`,
+                  }}
+                  className="w-12 h-12 rounded-[20px] bg-white border border-gray-100"
+                  contentFit="cover"
+                />
+              </View>
+              {replyToId && <View className="w-[1.5px] bg-sky-100 flex-1 my-3 rounded-full" />}
             </View>
 
-            {/* Right Column: Content Input */}
-            <View className="flex-1">
+            {/* Input Column */}
+            <View className="flex-1 pt-1">
               {replyToName && (
-                <Text className="text-gray-500 text-[14px] mb-2">
-                  Replying to{" "}
-                  <Text className="text-[#1d9bf0]">@{replyToName}</Text>
-                </Text>
+                <View className="bg-sky-50 self-start px-3 py-1 rounded-xl mb-3 border border-sky-100/50">
+                  <Text className="text-sky-600 font-bold text-[11px] uppercase tracking-wider">
+                    Echoing @{replyToName}
+                  </Text>
+                </View>
               )}
 
               <TextInput
@@ -235,65 +244,72 @@ export default function ComposePostScreen() {
                 multiline
                 placeholder={
                   replyToName
-                    ? "Post your reply"
+                    ? "What is your resonance?"
                     : quoteId
-                      ? "Add a comment!"
-                      : "What's happening?"
+                    ? "Add your perspective..."
+                    : "What artifact will you share today?"
                 }
-                placeholderTextColor="#9CA3AF"
-                className="text-[19px] leading-6 text-gray-900 mb-4 min-h-[120px]"
+                placeholderTextColor="#94A3B8"
+                className="text-[18px] leading-7 text-gray-900 font-medium mb-6 min-h-[160px]"
                 value={content}
                 onChangeText={setContent}
                 textAlignVertical="top"
-                // Ensure text input doesn't restrict its own height awkwardly
                 style={{ flexShrink: 1 }}
               />
 
-              {/* Location Tag Preview */}
+              {/* Extras Row (Location) */}
               {locationTag && (
-                <View className="flex-row items-center mb-4 self-start bg-sky-50 rounded-full px-3 py-1">
-                  <Ionicons name="location" size={14} color="#1d9bf0" />
-                  <Text className="text-[#1d9bf0] text-sm ml-1 font-medium">
+                <View className="flex-row items-center mb-6 self-start bg-emerald-50 rounded-[14px] px-3 py-1.5 border border-emerald-100/50">
+                  <Ionicons name="location" size={14} color="#10B981" />
+                  <Text className="text-emerald-600 text-[12px] ml-1.5 font-black uppercase tracking-wider">
                     {locationTag}
                   </Text>
                   <TouchableOpacity
-                    onPress={() => setLocationTag(null)}
-                    className="ml-2"
+                    onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setLocationTag(null);
+                    }}
+                    className="ml-3 w-5 h-5 items-center justify-center rounded-full bg-white shadow-sm"
                   >
-                    <Ionicons name="close-circle" size={16} color="#1d9bf0" />
+                    <Ionicons name="close" size={12} color="#10B981" />
                   </TouchableOpacity>
                 </View>
               )}
 
-              {/* Quote Context Preview */}
+              {/* Quote Artifact Preview */}
               {quoteId && (
-                <View className="border border-gray-200 rounded-2xl p-3 mb-4">
-                  <View className="flex-row items-center mb-1">
-                    <Text className="font-bold text-sm text-gray-900">
+                <View className="border border-gray-100 bg-white rounded-[32px] p-5 mb-6 shadow-sm shadow-gray-100">
+                  <View className="flex-row items-center mb-2">
+                    <Text className="font-black text-[14px] text-gray-900 tracking-tight">
                       {quoteAuthor}
                     </Text>
+                    <Text className="text-sky-500 font-bold text-[10px] ml-2 uppercase tracking-widest">Quote</Text>
                   </View>
-                  <Text className="text-gray-600 text-sm" numberOfLines={3}>
+                  <Text className="text-gray-500 font-medium text-[14px] leading-5" numberOfLines={4}>
                     {quoteContent}
                   </Text>
                 </View>
               )}
 
-              {/* Image Previews */}
+              {/* Image Artifact Previews */}
               {images.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 flex-row">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8">
                   {images.map((img, idx) => (
-                    <View key={idx} className="relative mr-2">
+                    <View key={idx} className="relative mr-4 shadow-lg shadow-gray-200">
                       <Image
                         source={{ uri: img.uri }}
-                        className="w-48 h-56 rounded-2xl bg-gray-100"
-                        resizeMode="cover"
+                        className="w-56 h-64 rounded-[32px] bg-white border border-gray-100"
+                        contentFit="cover"
+                        transition={400}
                       />
                       <TouchableOpacity
-                        onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-                        className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-full"
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setImages((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-3 right-3 bg-white/90 w-8 h-8 items-center justify-center rounded-full shadow-md"
                       >
-                        <Ionicons name="close" size={16} color="white" />
+                        <Ionicons name="close" size={16} color="#64748B" />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -303,657 +319,44 @@ export default function ComposePostScreen() {
           </View>
         </ScrollView>
 
-        {/* Toolbar - Pinned strictly to the bottom of KeyboardAvoidingView */}
-        <View className="border-t border-gray-100 px-4 py-2 flex-row items-center bg-white w-full">
-          <TouchableOpacity onPress={pickImage} className="p-2 mr-2">
-            <Ionicons name="image-outline" size={24} color="#1d9bf0" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={takePhoto} className="p-2 mr-2">
-            <Ionicons name="camera-outline" size={24} color="#1d9bf0" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={fetchLocation} className="p-2 mr-2">
-            <Ionicons
-              name={locationTag ? "location" : "location-outline"}
-              size={24}
-              color="#1d9bf0"
-            />
-          </TouchableOpacity>
-          <View className="flex-1" />
-          <TouchableOpacity className="flex-row items-center">
-            <Ionicons name="earth" size={16} color="#1d9bf0" />
-            <Text className="text-[#1d9bf0] font-bold text-xs ml-1">
-              Everyone can reply
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Premium Tool Dock */}
+        <BlurView intensity={90} tint="light" className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 bg-white/50">
+            <View className="px-5 py-4 flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                    <TouchableOpacity 
+                        onPress={handlePickImage} 
+                        className="w-12 h-12 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm mr-3"
+                    >
+                        <Ionicons name="image-outline" size={22} color="#64748B" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        onPress={handleTakePhoto} 
+                        className="w-12 h-12 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm mr-3"
+                    >
+                        <Ionicons name="camera-outline" size={22} color="#64748B" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        onPress={handleFetchLocation} 
+                        className={`w-12 h-12 items-center justify-center rounded-2xl border shadow-sm ${locationTag ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-gray-100'}`}
+                    >
+                        <Ionicons
+                            name={locationTag ? "location" : "location-outline"}
+                            size={22}
+                            color={locationTag ? "#10B981" : "#64748B"}
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity className="flex-row items-center bg-gray-50 px-4 py-2 rounded-xl">
+                    <Ionicons name="earth" size={16} color="#94A3B8" />
+                    <Text className="text-gray-400 font-black uppercase tracking-widest text-[10px] ml-2">
+                        Global Diffusion
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            <View style={{ height: Math.max(insets.bottom, 10) }} />
+        </BlurView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
-// 1
-// import React, { useState } from "react";
-// import {
-//   View,
-//   TextInput,
-//   Text,
-//   TouchableOpacity,
-//   Image,
-//   KeyboardAvoidingView,
-//   Platform,
-//   ScrollView,
-//   ActivityIndicator,
-//   Alert,
-// } from "react-native";
-// import { Ionicons } from "@expo/vector-icons";
-// import { useRouter, useLocalSearchParams } from "expo-router";
-// import * as ImagePicker from "expo-image-picker";
-// import * as Location from "expo-location";
-// import { useSelector } from "react-redux";
-// import {
-//   useCreatePostMutation,
-//   useRepostPostMutation,
-//   useCommentPostMutation,
-// } from "../../store/postApi";
-// import { SafeAreaView } from "react-native-safe-area-context";
-
-// export default function ComposePostScreen() {
-//   const router = useRouter();
-//   // parentId is crucial for the nested comment logic we built in RTK
-//   const {
-//     replyToId,
-//     parentId,
-//     replyToName,
-//     quoteId,
-//     quoteContent,
-//     quoteAuthor,
-//   } = useLocalSearchParams();
-//   const user = useSelector((state: any) => state.auth.user);
-
-//   const [content, setContent] = useState("");
-//   const [image, setImage] = useState<string | null>(null);
-//   const [base64Image, setBase64Image] = useState<string | null>(null);
-//   const [locationTag, setLocationTag] = useState<string | null>(null);
-//   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-
-//   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
-//   const [repostPost, { isLoading: isReposting }] = useRepostPostMutation();
-//   const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
-
-//   const isLoading =
-//     isCreating || isReposting || isCommenting || isFetchingLocation;
-
-//   const pickImage = async () => {
-//     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-//     if (status !== "granted") {
-//       Alert.alert("Permission denied", "Media library access is required.");
-//       return;
-//     }
-
-//     const result = await ImagePicker.launchImageLibraryAsync({
-//       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-//       allowsEditing: true,
-//       quality: 0.6, // Compressed for faster upload
-//       base64: true,
-//     });
-
-//     if (!result.canceled && result.assets[0].base64) {
-//       setImage(result.assets[0].uri);
-//       setBase64Image(`data:image/jpeg;base64,${result.assets[0].base64}`);
-//     }
-//   };
-
-//   const takePhoto = async () => {
-//     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-//     if (status !== "granted") {
-//       Alert.alert("Permission denied", "Camera access is required.");
-//       return;
-//     }
-
-//     const result = await ImagePicker.launchCameraAsync({
-//       allowsEditing: true,
-//       quality: 0.6,
-//       base64: true,
-//     });
-
-//     if (!result.canceled && result.assets[0].base64) {
-//       setImage(result.assets[0].uri);
-//       setBase64Image(`data:image/jpeg;base64,${result.assets[0].base64}`);
-//     }
-//   };
-
-//   const fetchLocation = async () => {
-//     setIsFetchingLocation(true);
-//     try {
-//       const { status } = await Location.requestForegroundPermissionsAsync();
-//       if (status !== "granted") {
-//         Alert.alert("Permission denied", "Location permission is required.");
-//         return;
-//       }
-
-//       const location = await Location.getCurrentPositionAsync({});
-//       const [geocode] = await Location.reverseGeocodeAsync({
-//         latitude: location.coords.latitude,
-//         longitude: location.coords.longitude,
-//       });
-
-//       if (geocode) {
-//         const city = geocode.city || geocode.region;
-//         setLocationTag(`${city}, ${geocode.country}`);
-//       }
-//     } catch (error) {
-//       Alert.alert("Error", "Could not fetch your location.");
-//       console.error("Location Error", error);
-//     } finally {
-//       setIsFetchingLocation(false);
-//     }
-//   };
-
-//   const handlePost = async () => {
-//     if (!content.trim() && !image) return;
-
-//     const finalContent = locationTag
-//       ? `${content}\n\n📍 ${locationTag}`.trim()
-//       : content.trim();
-
-//     try {
-//       if (quoteId) {
-//         // --- QUOTE POST ---
-//         await repostPost({
-//           id: quoteId as string,
-//           content: finalContent,
-//           image: base64Image || undefined,
-//         }).unwrap();
-//       } else if (replyToId) {
-//         // --- REPLY POST ---
-//         // We pass 'id' as the post we are looking at,
-//         // and 'parentId' as the specific comment we are replying to
-//         await commentPost({
-//           id: replyToId as string,
-//           parentId: parentId as string,
-//           content: finalContent,
-//         }).unwrap();
-//       } else {
-//         // --- REGULAR POST ---
-//         await createPost({
-//           content: finalContent,
-//           image: base64Image || undefined,
-//           isPublic: true,
-//         }).unwrap();
-//       }
-//       router.back();
-//     } catch (e) {
-//       Alert.alert("Error", "Failed to post. Please try again.,");
-//       console.error("Post Error", e);
-//     }
-//   };
-
-//   return (
-//     <SafeAreaView className="flex-1 bg-white">
-//       {/* Header */}
-//       <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-50">
-//         <TouchableOpacity onPress={() => router.back()}>
-//           <Text className="text-[16px] text-gray-700">Cancel</Text>
-//         </TouchableOpacity>
-
-//         <View className="flex-row items-center">
-//           {content.length > 0 && (
-//             <Text
-//               className={`mr-4 text-xs ${content.length > 250 ? "text-red-500" : "text-gray-400"}`}
-//             >
-//               {280 - content.length}
-//             </Text>
-//           )}
-//           <TouchableOpacity
-//             onPress={handlePost}
-//             disabled={(!content.trim() && !image) || isLoading}
-//             className={`px-6 py-1.5 rounded-full ${
-//               (!content.trim() && !image) || isLoading
-//                 ? "bg-sky-200"
-//                 : "bg-[#1d9bf0]"
-//             }`}
-//           >
-//             {isLoading ? (
-//               <ActivityIndicator size="small" color="white" />
-//             ) : (
-//               <Text className="text-white font-bold text-[15px]">Post</Text>
-//             )}
-//           </TouchableOpacity>
-//         </View>
-//       </View>
-
-//       <KeyboardAvoidingView
-//         behavior={Platform.OS === "ios" ? "padding" : "height"}
-//         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
-//         className="flex-1"
-//       >
-//         <ScrollView
-//           className="flex-1 px-4 pt-4"
-//           keyboardShouldPersistTaps="handled"
-//         >
-//           <View className="flex-row">
-//             {/* Left Column: Avatar + Thread Line */}
-//             <View className="items-center mr-3">
-//               <Image
-//                 source={{
-//                   uri: user?.image || "https://via.placeholder.com/40",
-//                 }}
-//                 className="w-10 h-10 rounded-full bg-gray-100"
-//               />
-//               {/* This is the X-Style Thread Line while composing a reply */}
-//               {replyToId && (
-//                 <View className="w-[2px] bg-gray-100 flex-1 my-2" />
-//               )}
-//             </View>
-
-//             {/* Right Column: Content Input */}
-//             <View className="flex-1">
-//               {replyToName && (
-//                 <Text className="text-gray-500 text-[14px] mb-2">
-//                   Replying to{" "}
-//                   <Text className="text-[#1d9bf0]">@{replyToName}</Text>
-//                 </Text>
-//               )}
-
-//               <TextInput
-//                 autoFocus
-//                 multiline
-//                 placeholder={
-//                   replyToName
-//                     ? "Post your reply"
-//                     : quoteId
-//                       ? "Add a comment!"
-//                       : "What's happening?"
-//                 }
-//                 placeholderTextColor="#9CA3AF"
-//                 className="text-[19px] leading-6 text-gray-900 mb-4 min-h-[120px]"
-//                 value={content}
-//                 onChangeText={setContent}
-//                 textAlignVertical="top"
-//               />
-
-//               {/* Location Tag Preview */}
-//               {locationTag && (
-//                 <View className="flex-row items-center mb-4 self-start bg-sky-50 rounded-full px-3 py-1">
-//                   <Ionicons name="location" size={14} color="#1d9bf0" />
-//                   <Text className="text-[#1d9bf0] text-sm ml-1 font-medium">
-//                     {locationTag}
-//                   </Text>
-//                   <TouchableOpacity
-//                     onPress={() => setLocationTag(null)}
-//                     className="ml-2"
-//                   >
-//                     <Ionicons name="close-circle" size={16} color="#1d9bf0" />
-//                   </TouchableOpacity>
-//                 </View>
-//               )}
-
-//               {/* Quote Context Preview */}
-//               {quoteId && (
-//                 <View className="border border-gray-200 rounded-2xl p-3 mb-4">
-//                   <View className="flex-row items-center mb-1">
-//                     <Text className="font-bold text-sm text-gray-900">
-//                       {quoteAuthor}
-//                     </Text>
-//                   </View>
-//                   <Text className="text-gray-600 text-sm" numberOfLines={3}>
-//                     {quoteContent}
-//                   </Text>
-//                 </View>
-//               )}
-
-//               {/* Image Preview */}
-//               {image && (
-//                 <View className="relative mb-6">
-//                   <Image
-//                     source={{ uri: image }}
-//                     className="w-full h-72 rounded-2xl bg-gray-100"
-//                     resizeMode="cover"
-//                   />
-//                   <TouchableOpacity
-//                     onPress={() => {
-//                       setImage(null);
-//                       setBase64Image(null);
-//                     }}
-//                     className="absolute top-3 right-3 bg-black/70 p-1.5 rounded-full"
-//                   >
-//                     <Ionicons name="close" size={20} color="white" />
-//                   </TouchableOpacity>
-//                 </View>
-//               )}
-//             </View>
-//           </View>
-//         </ScrollView>
-
-//         {/* Toolbar */}
-//         <View className="border-t border-gray-100 px-4 py-2 flex-row items-center bg-white">
-//           <TouchableOpacity onPress={pickImage} className="p-2 mr-2">
-//             <Ionicons name="image-outline" size={24} color="#1d9bf0" />
-//           </TouchableOpacity>
-//           <TouchableOpacity onPress={takePhoto} className="p-2 mr-2">
-//             <Ionicons name="camera-outline" size={24} color="#1d9bf0" />
-//           </TouchableOpacity>
-//           <TouchableOpacity onPress={fetchLocation} className="p-2 mr-2">
-//             <Ionicons
-//               name={locationTag ? "location" : "location-outline"}
-//               size={24}
-//               color="#1d9bf0"
-//             />
-//           </TouchableOpacity>
-//           <View className="flex-1" />
-//           {/* Privacy Indicator (X style) */}
-//           <TouchableOpacity className="flex-row items-center">
-//             <Ionicons name="earth" size={16} color="#1d9bf0" />
-//             <Text className="text-[#1d9bf0] font-bold text-xs ml-1">
-//               Everyone can reply
-//             </Text>
-//           </TouchableOpacity>
-//         </View>
-//       </KeyboardAvoidingView>
-//     </SafeAreaView>
-//   );
-// }
-
-// // import React, { useState } from "react";
-// // import {
-// //   View,
-// //   TextInput,
-// //   Text,
-// //   TouchableOpacity,
-// //   Image,
-// //   KeyboardAvoidingView,
-// //   Platform,
-// //   ScrollView,
-// //   ActivityIndicator,
-// //   Alert,
-// // } from "react-native";
-// // import { Ionicons } from "@expo/vector-icons";
-// // import { useRouter, useLocalSearchParams } from "expo-router";
-// // import * as ImagePicker from "expo-image-picker";
-// // import * as Location from "expo-location";
-// // import { useSelector } from "react-redux";
-// // import {
-// //   useCreatePostMutation,
-// //   useRepostPostMutation,
-// //   useCommentPostMutation,
-// // } from "../../store/postApi";
-// // import { SafeAreaView } from "react-native-safe-area-context";
-
-// // export default function ComposePostScreen() {
-// //   const router = useRouter();
-// //   const { replyToId, replyToName, quoteId, quoteContent, quoteAuthor } =
-// //     useLocalSearchParams();
-// //   const user = useSelector((state: any) => state.auth.user);
-
-// //   const [content, setContent] = useState("");
-// //   const [image, setImage] = useState<string | null>(null);
-// //   const [base64Image, setBase64Image] = useState<string | null>(null);
-// //   const [locationTag, setLocationTag] = useState<string | null>(null);
-// //   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-
-// //   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
-// //   const [repostPost, { isLoading: isReposting }] = useRepostPostMutation();
-// //   const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
-
-// //   const isLoading =
-// //     isCreating || isReposting || isCommenting || isFetchingLocation;
-
-// //   // 1. Image Gallery Picker
-// //   const pickImage = async () => {
-// //     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-// //     if (status !== "granted") {
-// //       Alert.alert(
-// //         "Permission denied",
-// //         "Sorry, we need camera roll permissions to make this work!",
-// //       );
-// //       return;
-// //     }
-
-// //     const result = await ImagePicker.launchImageLibraryAsync({
-// //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-// //       allowsEditing: true,
-// //       quality: 0.7,
-// //       base64: true,
-// //     });
-
-// //     if (!result.canceled && result.assets[0].base64) {
-// //       setImage(result.assets[0].uri);
-// //       setBase64Image(`data:image/jpeg;base64,${result.assets[0].base64}`);
-// //     }
-// //   };
-
-// //   // 2. Camera Capture
-// //   const takePhoto = async () => {
-// //     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-// //     if (status !== "granted") {
-// //       Alert.alert(
-// //         "Permission denied",
-// //         "Sorry, we need camera permissions to take a photo!",
-// //       );
-// //       return;
-// //     }
-
-// //     const result = await ImagePicker.launchCameraAsync({
-// //       allowsEditing: true,
-// //       quality: 0.7,
-// //       base64: true,
-// //     });
-
-// //     if (!result.canceled && result.assets[0].base64) {
-// //       setImage(result.assets[0].uri);
-// //       setBase64Image(`data:image/jpeg;base64,${result.assets[0].base64}`);
-// //     }
-// //   };
-
-// //   // 3. Location Fetcher
-// //   const fetchLocation = async () => {
-// //     setIsFetchingLocation(true);
-// //     try {
-// //       const { status } = await Location.requestForegroundPermissionsAsync();
-// //       if (status !== "granted") {
-// //         Alert.alert("Permission denied", "Location permission is required.");
-// //         setIsFetchingLocation(false);
-// //         return;
-// //       }
-
-// //       const location = await Location.getCurrentPositionAsync({});
-// //       const [geocode] = await Location.reverseGeocodeAsync({
-// //         latitude: location.coords.latitude,
-// //         longitude: location.coords.longitude,
-// //       });
-
-// //       if (geocode) {
-// //         // e.g., "Bangkok, Thailand"
-// //         const city = geocode.city || geocode.region || geocode.subregion;
-// //         const country = geocode.country;
-// //         setLocationTag(`${city}, ${country}`);
-// //       }
-// //     } catch (error) {
-// //       Alert.alert("Error", "Could not fetch your location.");
-// //       console.log(error);
-// //     } finally {
-// //       setIsFetchingLocation(false);
-// //     }
-// //   };
-
-// //   const handlePost = async () => {
-// //     if (!content.trim() && !image) return;
-
-// //     // Optional: Append location to the text if your backend doesn't have a specific location field
-// //     const finalContent = locationTag
-// //       ? `${content}\n\n📍 ${locationTag}`.trim()
-// //       : content.trim();
-
-// //     try {
-// //       if (quoteId) {
-// //         // Quote Tweet
-// //         await repostPost({
-// //           id: quoteId as string,
-// //           content: finalContent,
-// //           image: base64Image || undefined,
-// //         }).unwrap();
-// //       } else if (replyToId) {
-// //         // Reply
-// //         await commentPost({
-// //           id: replyToId as string,
-// //           content: finalContent,
-// //         }).unwrap();
-// //       } else {
-// //         // Regular Post
-// //         await createPost({
-// //           content: finalContent,
-// //           image: base64Image || undefined,
-// //           isPublic: true,
-// //         }).unwrap();
-// //       }
-// //       router.back();
-// //     } catch (e) {
-// //       console.error(e);
-// //       Alert.alert("Error", "Failed to post. Please try again.");
-// //     }
-// //   };
-
-// //   return (
-// //     <SafeAreaView className="flex-1 bg-white">
-// //       {/* Header */}
-// //       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
-// //         <TouchableOpacity onPress={() => router.back()}>
-// //           <Text className="text-[17px] text-gray-900">Cancel</Text>
-// //         </TouchableOpacity>
-// //         <TouchableOpacity
-// //           onPress={handlePost}
-// //           disabled={(!content.trim() && !image) || isLoading}
-// //           className={`px-5 py-1.5 rounded-full ${
-// //             (!content.trim() && !image) || isLoading
-// //               ? "bg-sky-200"
-// //               : "bg-[#1d9bf0]"
-// //           }`}
-// //         >
-// //           {isLoading ? (
-// //             <ActivityIndicator size="small" color="white" />
-// //           ) : (
-// //             <Text className="text-white font-bold text-[15px]">Post</Text>
-// //           )}
-// //         </TouchableOpacity>
-// //       </View>
-
-// //       <KeyboardAvoidingView
-// //         behavior={Platform.OS === "ios" ? "padding" : undefined}
-// //         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-// //         className="flex-1"
-
-// //         // behavior={Platform.OS === "ios" ? "padding" : "height"}
-// //         // // If it still stays too low, increase the offset for Android (e.g., 20 or 47)
-// //         // keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 47}
-// //         // className="flex-1"
-// //       >
-// //         <ScrollView
-// //           className="flex-1 px-4 pt-4"
-// //           keyboardShouldPersistTaps="handled"
-// //         >
-// //           <View className="flex-row">
-// //             <Image
-// //               source={{ uri: user?.image || "https://via.placeholder.com/40" }}
-// //               className="w-10 h-10 rounded-full mr-3 bg-gray-100"
-// //             />
-// //             <View className="flex-1 pb-10">
-// //               {replyToName && (
-// //                 <Text className="text-gray-500 text-sm mb-2">
-// //                   Replying to{" "}
-// //                   <Text className="text-[#1d9bf0]">@{replyToName}</Text>
-// //                 </Text>
-// //               )}
-
-// //               <TextInput
-// //                 autoFocus
-// //                 multiline
-// //                 placeholder={
-// //                   replyToName
-// //                     ? "Post your reply"
-// //                     : quoteId
-// //                       ? "Add a comment!"
-// //                       : "What's happening?"
-// //                 }
-// //                 placeholderTextColor="#9CA3AF"
-// //                 className="text-[18px] leading-6 text-gray-900 mb-4 min-h-[100px]"
-// //                 value={content}
-// //                 onChangeText={setContent}
-// //                 textAlignVertical="top"
-// //               />
-
-// //               {/* Location Tag Preview */}
-// //               {locationTag && (
-// //                 <View className="flex-row items-center mb-4 self-start bg-gray-100 rounded-full px-3 py-1.5">
-// //                   <Ionicons name="location" size={14} color="#1d9bf0" />
-// //                   <Text className="text-[#1d9bf0] text-sm ml-1 font-medium">
-// //                     {locationTag}
-// //                   </Text>
-// //                   <TouchableOpacity
-// //                     onPress={() => setLocationTag(null)}
-// //                     className="ml-2"
-// //                   >
-// //                     <Ionicons name="close-circle" size={16} color="#9CA3AF" />
-// //                   </TouchableOpacity>
-// //                 </View>
-// //               )}
-
-// //               {/* Quote Context Preview */}
-// //               {quoteId && (
-// //                 <View className="border border-gray-200 rounded-xl p-3 mb-4 bg-gray-50">
-// //                   <View className="flex-row items-center mb-1">
-// //                     <Image
-// //                       source={{ uri: "https://via.placeholder.com/20" }}
-// //                       className="w-5 h-5 rounded-full mr-2"
-// //                     />
-// //                     <Text className="font-bold text-sm text-gray-900">
-// //                       {quoteAuthor}
-// //                     </Text>
-// //                   </View>
-// //                   <Text className="text-gray-600 text-sm" numberOfLines={3}>
-// //                     {quoteContent}
-// //                   </Text>
-// //                 </View>
-// //               )}
-
-// //               {/* Image Preview */}
-// //               {image && (
-// //                 <View className="relative mb-4">
-// //                   <Image
-// //                     source={{ uri: image }}
-// //                     className="w-full h-60 rounded-2xl bg-gray-100"
-// //                     resizeMode="cover"
-// //                   />
-// //                   <TouchableOpacity
-// //                     onPress={() => {
-// //                       setImage(null);
-// //                       setBase64Image(null);
-// //                     }}
-// //                     className="absolute top-2 right-2 bg-black/60 p-1 rounded-full"
-// //                   >
-// //                     <Ionicons name="close" size={20} color="white" />
-// //                   </TouchableOpacity>
-// //                 </View>
-// //               )}
-// //             </View>
-// //           </View>
-// //         </ScrollView>
-
-// //         {/* Toolbar */}
-// //         <View className="border-t border-gray-100 p-3 flex-row items-center bg-white">
-// //           <TouchableOpacity onPress={pickImage} className="p-2 mr-4">
-// //             <Ionicons name="image-outline" size={24} color="#1d9bf0" />
-// //           </TouchableOpacity>
-// //           <TouchableOpacity onPress={takePhoto} className="p-2 mr-4">
-// //             <Ionicons name="camera-outline" size={24} color="#1d9bf0" />
-// //           </TouchableOpacity>
-// //           <TouchableOpacity onPress={fetchLocation} className="p-2 mr-4">
-// //             <Ionicons
-// //               name={locationTag ? "location" : "location-outline"}
-// //               size={24}
-// //               color="#1d9bf0"
-// //             />
-// //           </TouchableOpacity>
-// //         </View>
-// //       </KeyboardAvoidingView>
-// //     </SafeAreaView>
-// //   );
-// // }

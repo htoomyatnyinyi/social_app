@@ -23,7 +23,10 @@ import {
   useBookmarkPostMutation,
   useDeletePostMutation,
 } from "../../store/postApi";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
@@ -144,7 +147,8 @@ export default function ProfileScreen() {
           <Image
             source={{ uri: profile.coverImage }}
             className="w-full h-full"
-            contentMode="cover"
+            // contentMode="cover"
+            contentFit="cover"
             transition={500}
           />
         ) : (
@@ -174,15 +178,16 @@ export default function ProfileScreen() {
                   "https://api.dicebear.com/7.x/avataaars/png?seed=user",
               }}
               className="w-28 h-28 rounded-[40px] border-4 border-white bg-white"
-              contentMode="cover"
+              // contentMode="cover"
+              contentFit="cover"
               transition={300}
             />
             {/* Online Status Indicator */}
             <View className="absolute bottom-1 right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white" />
           </View>
-          
+
           <View className="flex-row items-center mb-1 space-x-2">
-             <TouchableOpacity
+            <TouchableOpacity
               onPress={() => router.push("/profile/update")}
               className="bg-white px-5 py-2.5 rounded-2xl border border-gray-100 shadow-sm"
             >
@@ -197,7 +202,7 @@ export default function ProfileScreen() {
             >
               <Ionicons name="settings-outline" size={20} color="#64748B" />
             </TouchableOpacity>
- 
+
             <TouchableOpacity
               onPress={handleLogout}
               className="bg-rose-50 w-11 h-11 border border-rose-100 items-center justify-center rounded-2xl"
@@ -213,7 +218,7 @@ export default function ProfileScreen() {
               {profile?.name || user?.name || "Member"}
             </Text>
             {profile?.isVerified && (
-               <Ionicons name="checkmark-circle" size={22} color="#0EA5E9" />
+              <Ionicons name="checkmark-circle" size={22} color="#0EA5E9" />
             )}
           </View>
           <Text className="text-sky-600 font-bold text-[15px] -mt-1">
@@ -227,7 +232,11 @@ export default function ProfileScreen() {
 
         <View className="flex-row flex-wrap mt-4">
           {profile?.location && (
-            <BlurView intensity={30} tint="light" className="flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border border-white/50 bg-white/20">
+            <BlurView
+              intensity={30}
+              tint="light"
+              className="flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border border-white/50 bg-white/20"
+            >
               <Ionicons name="location" size={14} color="#64748B" />
               <Text className="text-gray-500 ml-1.5 text-[13px] font-bold">
                 {profile.location}
@@ -237,7 +246,13 @@ export default function ProfileScreen() {
           <View className="flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border border-white/50 bg-white/20">
             <Ionicons name="calendar" size={14} color="#64748B" />
             <Text className="text-gray-500 ml-1.5 text-[13px] font-bold">
-              Joined {profile?.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'short', year: 'numeric' }) : '2026'}
+              Joined{" "}
+              {profile?.createdAt
+                ? new Date(profile.createdAt).toLocaleString("default", {
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "2026"}
             </Text>
           </View>
         </View>
@@ -246,22 +261,36 @@ export default function ProfileScreen() {
         <View className="flex-row mt-4 space-x-6">
           <TouchableOpacity
             className="flex-row items-baseline"
-            onPress={() => router.push({ pathname: "/profile/following", params: { userId: user?.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/profile/following",
+                params: { userId: user?.id },
+              })
+            }
           >
             <Text className="text-xl font-black text-gray-900">
               {profile?._count?.following || 0}
             </Text>
-            <Text className="text-gray-400 font-bold ml-1 text-xs uppercase tracking-widest">Following</Text>
+            <Text className="text-gray-400 font-bold ml-1 text-xs uppercase tracking-widest">
+              Following
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             className="flex-row items-baseline"
-            onPress={() => router.push({ pathname: "/profile/followers", params: { userId: user?.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/profile/followers",
+                params: { userId: user?.id },
+              })
+            }
           >
             <Text className="text-xl font-black text-gray-900">
               {profile?._count?.followers || 0}
             </Text>
-            <Text className="text-gray-400 font-bold ml-1 text-xs uppercase tracking-widest">Followers</Text>
+            <Text className="text-gray-400 font-bold ml-1 text-xs uppercase tracking-widest">
+              Followers
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -278,8 +307,10 @@ export default function ProfileScreen() {
               }}
               className="flex-1 items-center"
             >
-               <View className={`px-4 py-2.5 rounded-2xl ${activeTab === tab ? 'bg-white shadow-sm border border-gray-100' : ''}`}>
-                 <Text
+              <View
+                className={`px-4 py-2.5 rounded-2xl ${activeTab === tab ? "bg-white shadow-sm border border-gray-100" : ""}`}
+              >
+                <Text
                   className={`font-black text-[13px] uppercase tracking-widest ${
                     activeTab === tab ? "text-sky-500" : "text-gray-400"
                   }`}
@@ -302,11 +333,13 @@ export default function ProfileScreen() {
         ListHeaderComponent={Header}
         renderItem={({ item }) => (
           <View className="px-5 mt-4">
-             <PostCard
+            <PostCard
               item={item}
               user={user}
               onPressPost={(id) => router.push(`/post/${id}`)}
-              onPressProfile={(id) => id !== user?.id && router.push(`/profile/${id}`)}
+              onPressProfile={(id) =>
+                id !== user?.id && router.push(`/profile/${id}`)
+              }
               onPressOptions={(p) => {
                 setPostForOptions(p);
                 setOptionsModalVisible(true);
@@ -331,9 +364,11 @@ export default function ProfileScreen() {
         ListEmptyComponent={
           <View className="items-center py-20 px-10">
             <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
-               <Ionicons name="chatbubbles-outline" size={32} color="#94A3B8" />
+              <Ionicons name="chatbubbles-outline" size={32} color="#94A3B8" />
             </View>
-            <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">No {activeTab} yet</Text>
+            <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">
+              No {activeTab} yet
+            </Text>
             <Text className="text-gray-400 text-center mt-2 font-medium leading-5">
               Your {activeTab} will weave the social fabric of the oasis.
             </Text>
