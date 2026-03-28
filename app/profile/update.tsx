@@ -17,9 +17,11 @@ import { useRouter } from "expo-router";
 import { useSelector, useDispatch } from "react-redux";
 import { useUpdateProfileMutation } from "../../store/profileApi";
 import { setCredentials } from "../../store/authSlice";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Haptics from "expo-haptics";
+import { BlurView } from "expo-blur";
 
 interface User {
   id: string;
@@ -36,6 +38,7 @@ interface User {
 export default function UpdateProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const user = useSelector((state: any) => state.auth.user) as User | null;
   const token = useSelector((state: any) => state.auth.token);
 
@@ -45,7 +48,6 @@ export default function UpdateProfileScreen() {
   const [location, setLocation] = useState(user?.location || "");
   const [website, setWebsite] = useState(user?.website || "");
   
-  // Date of Birth state
   const [dob, setDob] = useState<Date>(user?.dob ? new Date(user.dob) : new Date(2000, 0, 1));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -71,6 +73,7 @@ export default function UpdateProfileScreen() {
   }, [user]);
 
   const pickImage = async (isCover: boolean = false) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
@@ -82,7 +85,7 @@ export default function UpdateProfileScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: isCover ? [16, 9] : [1, 1],
       quality: 0.5,
@@ -100,20 +103,22 @@ export default function UpdateProfileScreen() {
         setProfileImage(uri);
         setProfileBase64(base64);
       }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
   const handleUpdate = async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Name cannot be empty");
+      Alert.alert("Error", "Your name is part of your identity. Please provide it.");
       return;
     }
     if (!username.trim()) {
-      Alert.alert("Error", "Username cannot be empty");
+      Alert.alert("Error", "Choose a unique username to be found.");
       return;
     }
 
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const updatedUser = await updateProfile({
         name,
         username,
@@ -132,41 +137,49 @@ export default function UpdateProfileScreen() {
         }),
       );
 
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (error: any) {
       console.error("Update failed", error);
       Alert.alert(
         "Update Failed",
-        error?.data?.message || "Something went wrong",
+        error?.data?.message || "The universe encountered a temporary glitch. Please try again.",
       );
     }
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') setShowDatePicker(false);
     if (selectedDate) {
       setDob(selectedDate);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={26} color="black" />
+    <View className="flex-1 bg-[#F8FAFC]">
+      {/* Premium Header */}
+      <View 
+        style={{ paddingTop: insets.top }} 
+        className="bg-white/80 border-b border-gray-100 flex-row items-center justify-between px-5 py-4"
+      >
+        <TouchableOpacity 
+          onPress={() => router.back()}
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-gray-50 border border-gray-100"
+        >
+          <Ionicons name="close-outline" size={24} color="#64748B" />
         </TouchableOpacity>
-        <Text className="text-[19px] font-extrabold text-gray-900">
-          Edit Profile
+        <Text className="text-xl font-black text-gray-900 tracking-tight uppercase">
+          Refine Profile
         </Text>
         <TouchableOpacity
           onPress={handleUpdate}
           disabled={isLoading}
-          className={`px-5 py-2 rounded-full ${isLoading ? "bg-gray-300" : "bg-black"}`}
+          className={`px-6 py-2.5 rounded-2xl shadow-sm ${isLoading ? "bg-gray-100" : "bg-sky-500 shadow-sky-200"}`}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator size="small" color="#0EA5E9" />
           ) : (
-            <Text className="text-white font-bold">Save</Text>
+            <Text className="text-white font-black text-[13px] uppercase tracking-wider">Save</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -176,126 +189,153 @@ export default function UpdateProfileScreen() {
         className="flex-1"
       >
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <View className="relative h-44 bg-gray-200">
+          {/* Banner Edit */}
+          <View className="relative h-48 bg-sky-100">
             {coverImage ? (
               <Image
                 source={{ uri: coverImage }}
                 className="w-full h-full"
-                contentFit="cover"
+                contentMode="cover"
+                transition={500}
               />
             ) : (
               <LinearGradient
-                colors={["#1d9bf0", "#0ea5e9"]}
+                colors={["#38BDF8", "#0EA5E9"]}
                 className="w-full h-full"
               />
             )}
-            <View className="absolute inset-0 items-center justify-center bg-black/20">
+            <View className="absolute inset-0 items-center justify-center bg-black/10">
               <TouchableOpacity
                 onPress={() => pickImage(true)}
-                className="bg-black/40 p-3 rounded-full border border-white/20"
+                className="bg-white/90 p-4 rounded-3xl shadow-lg border border-white"
               >
-                <Ionicons name="camera-outline" size={30} color="white" />
+                <Ionicons name="camera" size={28} color="#0EA5E9" />
               </TouchableOpacity>
             </View>
           </View>
 
-          <View className="px-4 -mt-12 mb-6">
-            <View className="relative w-24 h-24">
+          {/* Profile Photo Edit */}
+          <View className="px-5 -mt-14 mb-8">
+            <View className="relative w-28 h-28 shadow-2xl shadow-sky-300">
               <Image
-                source={{ uri: profileImage || "https://via.placeholder.com/150" }}
-                className="w-24 h-24 rounded-full border-4 border-white bg-gray-200"
+                source={{ uri: profileImage || "https://api.dicebear.com/7.x/avataaars/png?seed=user" }}
+                className="w-28 h-28 rounded-[40px] border-4 border-white bg-white"
+                contentMode="cover"
+                transition={300}
               />
-              <View className="absolute inset-0 items-center justify-center bg-black/10 rounded-full">
-                <TouchableOpacity
-                  onPress={() => pickImage(false)}
-                  className="bg-black/30 p-2 rounded-full"
-                >
-                  <Ionicons name="camera-outline" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => pickImage(false)}
+                className="absolute bottom-0 right-0 bg-white p-2.5 rounded-2xl shadow-md border border-gray-100"
+              >
+                <Ionicons name="camera" size={20} color="#0EA5E9" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View className="px-4 space-y-5">
-            <View>
-              <Text className="text-sm font-bold text-gray-500 mb-1 ml-1">Name</Text>
+          {/* Form Fields */}
+          <View className="px-5 space-y-6">
+            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Full Identity</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Name"
-                className="w-full border-b border-gray-200 py-2 text-[16px] text-gray-900"
+                placeholder="What should we call you?"
+                placeholderTextColor="#94A3B8"
+                className="w-full px-1 text-[16px] text-gray-900 font-bold"
               />
             </View>
 
-            <View>
-              <Text className="text-sm font-bold text-gray-500 mb-1 ml-1">Username</Text>
+            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Unique Handle</Text>
               <TextInput
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
-                placeholder="@username"
-                className="w-full border-b border-gray-200 py-2 text-[16px] text-gray-900"
+                placeholder="@handle"
+                placeholderTextColor="#94A3B8"
+                className="w-full px-1 text-[16px] text-gray-900 font-bold"
               />
             </View>
 
-            <View>
-              <Text className="text-sm font-bold text-gray-500 mb-1 ml-1">Bio</Text>
+            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Your Story (Bio)</Text>
               <TextInput
                 value={bio}
                 onChangeText={setBio}
                 multiline
-                placeholder="Add a bio"
-                className="w-full border-b border-gray-200 py-2 text-[16px] text-gray-900 min-h-[60px]"
+                placeholder="A few words about your journey..."
+                placeholderTextColor="#94A3B8"
+                className="w-full px-1 text-[16px] text-gray-900 font-medium min-h-[80px]"
+                textAlignVertical="top"
               />
             </View>
 
-            <View>
-              <Text className="text-sm font-bold text-gray-500 mb-1 ml-1">Location</Text>
-              <TextInput
-                value={location}
-                onChangeText={setLocation}
-                placeholder="Location"
-                className="w-full border-b border-gray-200 py-2 text-[16px] text-gray-900"
-              />
+            <View className="flex-row space-x-4">
+              <View className="flex-1 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+                <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Presence (Location)</Text>
+                <TextInput
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="Where are you?"
+                  placeholderTextColor="#94A3B8"
+                  className="w-full px-1 text-[16px] text-gray-900 font-bold"
+                />
+              </View>
             </View>
 
-            <View>
-              <Text className="text-sm font-bold text-gray-500 mb-1 ml-1">Website</Text>
+            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Digital Garden (Website)</Text>
               <TextInput
                 value={website}
                 onChangeText={setWebsite}
                 autoCapitalize="none"
                 keyboardType="url"
-                placeholder="Add your website"
-                className="w-full border-b border-gray-200 py-2 text-[16px] text-gray-900"
+                placeholder="https://yourpage.com"
+                placeholderTextColor="#94A3B8"
+                className="w-full px-1 text-[16px] text-gray-900 font-bold"
               />
             </View>
 
-            <View>
-              <Text className="text-sm font-bold text-gray-500 mb-1 ml-1">Birth date</Text>
+            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Inception (Birth Date)</Text>
               <TouchableOpacity 
-                onPress={() => setShowDatePicker(true)}
-                className="w-full border-b border-gray-200 py-2"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowDatePicker(true);
+                }}
+                className="w-full px-1 py-1 flex-row items-center justify-between"
               >
-                <Text className="text-[16px] text-gray-900">
+                <Text className="text-[16px] text-gray-900 font-bold">
                   {dob.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </Text>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
+              
               {showDatePicker && (
-                <DateTimePicker
-                  value={dob}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onDateChange}
-                  maximumDate={new Date()}
-                />
+                <View className="mt-2 border-t border-gray-50 pt-2">
+                  <DateTimePicker
+                    value={dob}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity 
+                      onPress={() => setShowDatePicker(false)}
+                      className="items-center py-2"
+                    >
+                      <Text className="text-sky-500 font-black uppercase text-xs tracking-widest">Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </View>
           </View>
 
-          <View className="h-20" />
+          <View className="h-32" />
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

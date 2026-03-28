@@ -11,6 +11,10 @@ import migrations from "../drizzle/migrations";
 
 import "../global.css";
 import { Text, View, ActivityIndicator } from "react-native";
+import { configureCSSInterop } from "../components/CssInterop";
+
+// Configure CSS interop before the app starts
+configureCSSInterop();
 
 // Prevent the splash screen from hiding automatically
 SplashScreen.preventAutoHideAsync();
