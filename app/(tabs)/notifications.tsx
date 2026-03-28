@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import * as Linking from "expo-linking";
 import {
   View,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -19,60 +20,36 @@ import {
 } from "../../store/notificationApi";
 import { useCreateChatRoomMutation } from "../../store/chatApi";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import Animated, { 
+    FadeInDown, 
+    useSharedValue, 
+    useAnimatedStyle, 
+    withSpring 
+} from "react-native-reanimated";
 
-// Utilities extracted outside the component to avoid recreation on every render
+const { width } = Dimensions.get('window');
+
 const getNotificationConfig = (type: string) => {
   switch (type) {
     case "LIKE":
-      return { icon: "heart", color: "#F91880", text: "liked your post" };
-    // case "COMMENT":
-    //   return {
-    //     icon: "chatbubble",
-    //     color: "#1D9BF0",
-    //     text: "commented on your post",
-    //   };
+      return { icon: "heart", color: "#F43F5E", text: "liked your post", bg: "rgba(244, 63, 94, 0.05)" };
     case "FOLLOW":
-      return { icon: "person-add", color: "#00BA7C", text: "followed you" };
+      return { icon: "person-add", color: "#10B981", text: "followed you", bg: "rgba(16, 185, 129, 0.05)" };
     case "REPOST":
-      return { icon: "repeat", color: "#00BA7C", text: "reposted your post" };
+      return { icon: "repeat", color: "#0EA5E9", text: "reposted your post", bg: "rgba(14, 165, 233, 0.05)" };
     case "QUOTE":
-      return { icon: "repeat", color: "#00BA7C", text: "quoted your post" };
+      return { icon: "repeat", color: "#8B5CF6", text: "quoted your post", bg: "rgba(139, 92, 246, 0.05)" };
     case "REPLY":
-      return {
-        icon: "chatbubble-ellipses",
-        color: "#1D9BF0",
-        text: "replied to your reply",
-      };
+      return { icon: "chatbubble-ellipses", color: "#0EA5E9", text: "replied to your post", bg: "rgba(14, 165, 233, 0.05)" };
     case "MENTION":
-      return {
-        icon: "at",
-        color: "#1D9BF0",
-        text: "mentioned you",
-      };
+      return { icon: "at", color: "#F59E0B", text: "mentioned you", bg: "rgba(245, 158, 11, 0.05)" };
     case "MESSAGE":
-      return {
-        icon: "mail",
-        color: "#1D9BF0",
-        text: "sent you a message",
-      };
+      return { icon: "mail", color: "#0EA5E9", text: "sent you a message", bg: "rgba(14, 165, 233, 0.05)" };
     case "SYSTEM":
-      return {
-        icon: "information-circle",
-        color: "#1D9BF0",
-        text: "system notification",
-      };
-    case "UPDATE":
-      return {
-        icon: "cloud-download",
-        color: "#00BA7C",
-        text: "app update available",
-      };
+      return { icon: "sparkles", color: "#0EA5E9", text: "sent you a zen update", bg: "rgba(14, 165, 233, 0.05)" };
     default:
-      return {
-        icon: "notifications",
-        color: "#6B7280",
-        text: "interacted with you",
-      };
+      return { icon: "notifications", color: "#64748B", text: "interacted with you", bg: "rgba(100, 116, 139, 0.05)" };
   }
 };
 
@@ -84,94 +61,88 @@ const formatTimeAgo = (dateString: string) => {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 1) return "just now";
+  if (diffMins < 1) return "now";
   if (diffMins < 60) return `${diffMins}m`;
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays < 7) return `${diffDays}d`;
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 };
 
-// Memoized NotificationItem for partial rendering performance optimization
 const NotificationItem = React.memo(function NotificationItem({
   item,
+  index,
   onPress,
   onPressProfile,
 }: {
   item: any;
+  index: number;
   onPress: (item: any) => void;
   onPressProfile: (issuerId: string) => void;
 }) {
   const config = getNotificationConfig(item.type);
 
   return (
-    <TouchableOpacity
-      onPress={() => onPress(item)}
-      activeOpacity={0.8}
-      className={`flex-row p-4 border-b border-gray-50 items-start ${item.read ? "bg-white" : "bg-sky-50/50"}`}
-    >
-      <View className="mr-3 pt-1">
-        <Ionicons name={config.icon as any} size={26} color={config.color} />
-      </View>
-
-      <View className="flex-1">
-        <View className="flex-row items-center mb-1">
-          <TouchableOpacity onPress={() => onPressProfile(item.issuer.id)}>
-            <Image
-              source={{
-                uri: item.issuer.image || "https://via.placeholder.com/48",
-              }}
-              className="w-10 h-10 rounded-full mr-2 bg-gray-100"
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-baseline min-w-0 pr-2">
-          <Text className="text-[15px] text-gray-900 leading-5 flex-shrink">
-            <Text className="font-extrabold">{item.issuer.name}</Text>{" "}
-            {config.text}
-          </Text>
-          {item._groupCount > 1 && (
-            <View className="bg-sky-100 px-1.5 py-0.5 rounded-md ml-1.5 flex-row items-center self-center">
-              <Text className="text-sky-600 text-[10px] font-bold">
-                +{item._groupCount - 1}
-              </Text>
+    <Animated.View entering={FadeInDown.delay(index * 40)}>
+        <TouchableOpacity
+            onPress={() => onPress(item)}
+            activeOpacity={0.7}
+            className={`flex-row p-5 mb-1 ${item.read ? "bg-white" : config.bg} items-start`}
+            style={{ borderLeftWidth: item.read ? 0 : 4, borderLeftColor: config.color }}
+        >
+            <View className="mr-4 pt-1">
+                <View 
+                    className="w-10 h-10 rounded-2xl items-center justify-center shadow-sm"
+                    style={{ backgroundColor: 'white', shadowColor: config.color, shadowOpacity: 0.1, shadowRadius: 10 }}
+                >
+                    <Ionicons name={config.icon as any} size={22} color={config.color} />
+                </View>
             </View>
-          )}
-        </View>
 
-        {item.post && (
-          <Text
-            className="text-gray-500 text-[14px] mt-2 leading-4"
-            numberOfLines={2}
-          >
-            {item.post.content}
-          </Text>
-        )}
+            <View className="flex-1">
+                <View className="flex-row items-center justify-between mb-2">
+                    <TouchableOpacity 
+                        onPress={() => onPressProfile(item.issuer.id)}
+                        className="flex-row items-center"
+                    >
+                        <Image
+                            source={{ uri: item.issuer.image || "https://via.placeholder.com/48" }}
+                            className="w-6 h-6 rounded-full mr-2 bg-gray-100"
+                        />
+                        <Text className="font-black text-gray-900 text-[14px]">{item.issuer.name}</Text>
+                    </TouchableOpacity>
+                    <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">
+                        {formatTimeAgo(item.createdAt)}
+                    </Text>
+                </View>
 
-        {item.comment && (
-          <View className="mt-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
-            <Text
-              className="text-gray-600 text-[13px] leading-4"
-              numberOfLines={2}
-            >
-              &quot;{item.comment.content}&quot;
-            </Text>
-          </View>
-        )}
+                <Text className="text-[15px] text-gray-700 leading-5">
+                    {config.text}
+                    {item._groupCount > 1 && (
+                        <Text className="text-sky-500 font-black"> & {item._groupCount - 1} others</Text>
+                    )}
+                </Text>
 
-        <Text className="text-gray-400 text-xs mt-3">
-          {formatTimeAgo(item.createdAt)}
-        </Text>
-      </View>
-      {!item.read && (
-        <View className="w-2 h-2 bg-[#1d9bf0] rounded-full mt-2" />
-      )}
-    </TouchableOpacity>
+                {item.post && (
+                    <View className="mt-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
+                        <Text className="text-gray-500 text-[13px] leading-4 italic" numberOfLines={2}>
+                        &quot;{item.post.content}&quot;
+                        </Text>
+                    </View>
+                )}
+            </View>
+
+            {!item.read && (
+                <View className="w-2 h-2 rounded-full absolute top-5 right-5" style={{ backgroundColor: config.color }} />
+            )}
+        </TouchableOpacity>
+    </Animated.View>
   );
 });
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"all" | "verified" | "mentions">("all");
+  
   const {
     data: notificationsData,
     isLoading,
@@ -189,29 +160,9 @@ export default function NotificationsScreen() {
     }, [refetch]),
   );
 
-  useEffect(() => {
-    if (notificationsData) {
-      console.log("--- API DATA DEBUG ---");
-      console.log("Type of notificationsData:", typeof notificationsData);
-      console.log("Is Array?:", Array.isArray(notificationsData));
-      if (notificationsData.notifications) {
-        console.log("Has notifications array?: true");
-        console.log(
-          "Notifications Count:",
-          notificationsData.notifications.length,
-        );
-      }
-      console.log("Full Data:", JSON.stringify(notificationsData, null, 2));
-    }
-  }, [notificationsData]);
-
-  // Use stable reference with useCallback to not break NotificationItem memoization
   const handleNotificationPress = useCallback(
     async (notification: any) => {
-      if (
-        !notification.read ||
-        (notification._groupUnreadCount && notification._groupUnreadCount > 0)
-      ) {
+      if (!notification.read || (notification._groupUnreadCount && notification._groupUnreadCount > 0)) {
         markAsRead(notification.id);
       }
 
@@ -221,152 +172,108 @@ export default function NotificationsScreen() {
           router.push(`/chat/${room.id}`);
           return;
         } catch (e) {
-          console.error("Failed to find chat room", e);
+             console.error(e);
         }
       }
 
-      if (notification.postId) {
-        router.push(`/post/${notification.postId}`);
-      } else if (notification.link) {
-        if (
-          notification.link.startsWith("http://") ||
-          notification.link.startsWith("https://")
-        ) {
-          Linking.openURL(notification.link);
-        } else {
-          router.push(notification.link as any);
-        }
-      } else if (notification.issuerId) {
-        router.push(`/profile/${notification.issuerId}`);
-      }
+      if (notification.postId) router.push(`/post/${notification.postId}`);
+      else if (notification.link) Linking.openURL(notification.link);
+      else if (notification.issuerId) router.push(`/profile/${notification.issuerId}`);
     },
     [markAsRead, createChatRoom, router],
   );
 
-  const handleProfilePress = useCallback(
-    (issuerId: string) => {
-      router.push(`/profile/${issuerId}`);
-    },
-    [router],
-  );
-
   const groupedNotifications = React.useMemo(() => {
-    // Extract the array from the backend response object { notifications, nextCursor }
-    const notifications = Array.isArray(notificationsData)
-      ? notificationsData
-      : notificationsData?.notifications;
-
-    if (!notifications || !Array.isArray(notifications)) return [];
+    const notifications = notificationsData?.notifications || [];
+    if (!Array.isArray(notifications)) return [];
 
     const groups: Record<string, any[]> = {};
-
     notifications.forEach((n) => {
       const targetId = n.postId || n.commentId || "none";
       const key = `${n.type}-${n.issuerId}-${targetId}`;
-
-      if (!groups[key]) {
-        groups[key] = [];
-      }
+      if (!groups[key]) groups[key] = [];
       groups[key].push(n);
     });
 
     return Object.values(groups)
       .map((group) => {
-        group.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-
         const latest = { ...group[0] };
         latest._groupCount = group.length;
         latest._groupUnreadCount = group.filter((n) => !n.read).length;
-
-        if (latest._groupUnreadCount > 0) {
-          latest.read = false;
-        }
-
+        if (latest._groupUnreadCount > 0) latest.read = false;
         return latest;
       })
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [notificationsData]);
 
-  // Stable key extractor and renderItem
-  const keyExtractor = useCallback((item: any) => item.id.toString(), []);
+  const indicatorPos = useSharedValue(0);
+  const handleTabChange = (tab: any, index: number) => {
+      setActiveTab(tab);
+      indicatorPos.value = withSpring(index * (width / 3));
+  };
 
-  const renderItem = useCallback(
-    ({ item }: { item: any }) => (
-      <NotificationItem
-        item={item}
-        onPress={handleNotificationPress}
-        onPressProfile={handleProfilePress}
-      />
-    ),
-    [handleNotificationPress, handleProfilePress],
-  );
+  const indicatorStyle = useAnimatedStyle(() => ({
+      transform: [{ translateX: indicatorPos.value }],
+  }));
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-50">
-        <Text className="text-xl font-extrabold text-gray-900">
-          Notifications
-        </Text>
-        <TouchableOpacity onPress={() => markAllAsRead({})} className="p-1">
-          <View className="flex-row items-center space-x-2">
-            <Ionicons name="checkmark-done-outline" size={22} color="#1d9bf0" />
-            <Text className="text-[15px] text-gray-900">Mark all as read</Text>
+    <SafeAreaView className="flex-1 bg-[#F8FAFC]">
+      <BlurView intensity={90} tint="light" className="absolute top-0 left-0 right-0 z-50 pt-12 pb-4 px-5 border-b border-gray-100 flex-row justify-between items-center bg-white/80">
+          <View>
+              <Text className="text-2xl font-black text-gray-900 tracking-tighter">Activity</Text>
+              <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Your Zen Pulse</Text>
           </View>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            onPress={() => markAllAsRead({})} 
+            className="w-10 h-10 rounded-2xl bg-sky-50 items-center justify-center border border-sky-100"
+          >
+              <Ionicons name="checkmark-done" size={20} color="#0EA5E9" />
+          </TouchableOpacity>
+      </BlurView>
 
-      {/* Tabs Placeholder */}
-      {/* <View className="flex-row border-b border-gray-50">
-        <TouchableOpacity className="flex-1 items-center py-3 border-b-4 border-[#1d9bf0]">
-          <Text className="font-bold text-[15px] text-gray-900">All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className="flex-1 items-center py-3">
-          <Text className="font-bold text-[15px] text-gray-500">Mentions</Text>
-        </TouchableOpacity>
-      </View> */}
+      <View className="mt-28 flex-row relative bg-white border-b border-gray-100">
+           {["all", "verified", "mentions"].map((tab, index) => (
+               <TouchableOpacity 
+                key={tab} 
+                className="flex-1 py-4 items-center" 
+                onPress={() => handleTabChange(tab as any, index)}
+               >
+                   <Text className={`font-black uppercase text-[11px] tracking-widest ${activeTab === tab ? 'text-sky-500' : 'text-gray-400'}`}>
+                       {tab}
+                   </Text>
+               </TouchableOpacity>
+           ))}
+           <Animated.View 
+            style={[{ position: 'absolute', bottom: 0, width: width / 3, height: 3, backgroundColor: '#0EA5E9', borderRadius: 3 }, indicatorStyle]} 
+           />
+      </View>
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#1D9BF0" />
+          <ActivityIndicator size="large" color="#0EA5E9" />
         </View>
       ) : (
         <FlatList
           data={groupedNotifications}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
-              tintColor="#1D9BF0"
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item, index }) => (
+            <NotificationItem
+              item={item}
+              index={index}
+              onPress={handleNotificationPress}
+              onPressProfile={(id) => router.push(`/profile/${id}`)}
             />
-          }
-          initialNumToRender={15}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          removeClippedSubviews={true}
+          )}
+          refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor="#0EA5E9" />}
+          contentContainerStyle={{ paddingTop: 10, paddingBottom: 100 }}
           ListEmptyComponent={
-            <View className="items-center justify-center mt-20 px-10">
-              <View className="w-24 h-24 bg-gray-50 rounded-full items-center justify-center mb-6">
-                <Ionicons
-                  name="notifications-off-outline"
-                  size={48}
-                  color="#D1D5DB"
-                />
+            <View className="items-center justify-center mt-32 px-12">
+              <View className="w-24 h-24 bg-white rounded-3xl items-center justify-center mb-8 shadow-sm border border-gray-100">
+                <Ionicons name="leaf-outline" size={48} color="#CBD5E1" />
               </View>
-              <Text className="text-2xl font-extrabold text-center mb-2 text-gray-900">
-                Nothing to see yet
-              </Text>
-              <Text className="text-gray-500 text-center text-lg leading-6">
-                From likes to reposts and a whole lot more, this is where all
-                the action happens.
+              <Text className="text-2xl font-black text-center mb-1 text-gray-900 tracking-tighter">Breathe Deeply</Text>
+              <Text className="text-gray-400 text-center text-[15px] font-medium leading-5">
+                Notifications are currently quiet. Enjoy the silence or start a new conversation.
               </Text>
             </View>
           }

@@ -9,7 +9,7 @@ export default function Index() {
   // If we don't check _persist.rehydrated, token might be null for a split second
   if (_persist && !_persist.rehydrated) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color="#1d9bf0" />
       </View>
     );

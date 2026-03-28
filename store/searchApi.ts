@@ -24,7 +24,11 @@ export const searchApi = api.injectEndpoints({
       },
       providesTags: ["User", "Post"],
     }),
+    getTrending: builder.query<any, void>({
+      query: () => "/search/trending",
+      providesTags: ["Post"],
+    }),
   }),
 });
 
-export const { useGlobalSearchQuery } = searchApi;
+export const { useGlobalSearchQuery, useGetTrendingQuery } = searchApi;

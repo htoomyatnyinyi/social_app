@@ -25,4 +25,11 @@ export const messages = sqliteTable("messages", {
 
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at"),
+
+  // Threading Support (Denormalized locally for fast UI)
+  replyToId: text("reply_to_id"),
+  replyToName: text("reply_to_name"),
+  replyToContent: text("reply_to_content"),
+
+  metadata: text("metadata"), // Stringified JSON for reactions
 });

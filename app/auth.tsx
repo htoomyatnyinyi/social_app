@@ -153,7 +153,7 @@ export default function AuthScreen() {
         >
           <View className="items-center mt-10 mb-12">
             <View className="w-16 h-16 bg-[#1d9bf0] rounded-2xl items-center justify-center shadow-xl shadow-sky-500/50">
-              <Image style={{ width: 40, height: 40 }} contentFit="contain" />
+              <Image source={require("../assets/images/icon.png")} style={{ width: 40, height: 40 }} contentFit="contain" />
             </View>
           </View>
 

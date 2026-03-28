@@ -1,152 +1,4 @@
-// import React, { useState, useCallback, memo } from "react";
-// import {
-//   View,
-//   TextInput,
-//   FlatList,
-//   Text,
-//   TouchableOpacity,
-//   Image,
-//   ActivityIndicator,
-// } from "react-native";
-// import { Ionicons } from "@expo/vector-icons";
-// import { useRouter } from "expo-router";
-// import { useSearchUsersQuery } from "../../store/authApi";
-// import { useSelector } from "react-redux";
-// import { SafeAreaView } from "react-native-safe-area-context";
-// import FollowerSuggestions from "@/components/FollowerSuggestions";
-// // import { useDebounce } from "use-debounce";
-
-// interface User {
-//   id: string;
-//   name: string;
-//   username: string;
-//   image?: string;
-// }
-
-// const UserItem = memo(
-//   ({ item, onPress }: { item: User; onPress: (id: string) => void }) => {
-//     return (
-//       <TouchableOpacity
-//         onPress={() => onPress(item.id)}
-//         className="flex-row items-center p-4 border-b border-gray-50 bg-white"
-//       >
-//         <Image
-//           source={{ uri: item.image || "https://via.placeholder.com/50" }}
-//           className="w-12 h-12 rounded-full bg-gray-200"
-//         />
-
-//         <View className="ml-3 flex-1">
-//           <Text className="font-bold text-base text-gray-900">{item.name}</Text>
-//           <Text className="text-gray-500 text-sm">@{item.username}</Text>
-//         </View>
-
-//         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-//       </TouchableOpacity>
-//     );
-//   },
-// );
-
-// UserItem.displayName = "UserItem";
-
-// export default function ExploreScreen() {
-//   const router = useRouter();
-//   const [search, setSearch] = useState("");
-
-//   const currentUser = useSelector((state: any) => state.auth.user);
-
-//   // const debouncedSearch = useDebounce(search, 400);
-
-//   // const { data: users = [], isLoading } = useSearchUsersQuery(debouncedSearch, {
-//   //   skip: !debouncedSearch,
-//   // });
-
-//   const { data: users = [], isLoading } = useSearchUsersQuery(search, {
-//     skip: !search,
-//   });
-
-//   // remove current user from results
-//   const filteredUsers = users.filter(
-//     (user: User) => user.id !== currentUser?.id,
-//   );
-
-//   const handleUserPress = useCallback(
-//     (id: string) => {
-//       router.push(`/profile/${id}`);
-//     },
-//     [router],
-//   );
-
-//   const renderItem = useCallback(
-//     ({ item }: { item: User }) => (
-//       <UserItem item={item} onPress={handleUserPress} />
-//     ),
-//     [handleUserPress],
-//   );
-
-//   const keyExtractor = useCallback((item: User) => item.id, []);
-
-//   return (
-//     <SafeAreaView className="flex-1 bg-white">
-//       {/* Search Header */}
-//       <View className="px-4 py-3 border-b border-gray-50">
-//         <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5">
-//           <Ionicons name="search" size={20} color="#6B7280" />
-
-//           <TextInput
-//             placeholder="Search Society"
-//             placeholderTextColor="#6B7280"
-//             className="flex-1 ml-3 text-[16px] text-gray-900"
-//             value={search}
-//             onChangeText={setSearch}
-//             autoCapitalize="none"
-//           />
-
-//           {search.length > 0 && (
-//             <TouchableOpacity onPress={() => setSearch("")}>
-//               <Ionicons name="close-circle" size={18} color="#6B7280" />
-//             </TouchableOpacity>
-//           )}
-//         </View>
-//       </View>
-
-//       {/* Content */}
-//       <FlatList
-//         data={filteredUsers}
-//         keyExtractor={keyExtractor}
-//         renderItem={renderItem}
-//         keyboardShouldPersistTaps="handled"
-//         contentContainerStyle={{ flexGrow: 1 }}
-//         ListHeaderComponent={!search ? <FollowerSuggestions /> : null}
-//         ListEmptyComponent={
-//           !isLoading ? (
-//             <View className="flex-1 items-center justify-center mt-20 px-8">
-//               {!search ? (
-//                 <>
-//                   <Text className="text-xl font-bold text-gray-900 mb-2">
-//                     Search for people
-//                   </Text>
-//                   <Text className="text-gray-500 text-center leading-5">
-//                     Find your friends, family, and favorite creators on Society.
-//                   </Text>
-//                 </>
-//               ) : (
-//                 <Text className="text-gray-500">
-//                   No users found for {search}
-//                 </Text>
-//               )}
-//             </View>
-//           ) : (
-//             <View className="mt-10">
-//               <ActivityIndicator size="small" color="#1d9bf0" />
-//             </View>
-//           )
-//         }
-//       />
-//     </SafeAreaView>
-//   );
-// }
-
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   TextInput,
@@ -155,13 +7,15 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Dimensions,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useGlobalSearchQuery } from "../../store/searchApi";
+import { useGlobalSearchQuery, useGetTrendingQuery } from "../../store/searchApi";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
-import FollowerSuggestions from "@/components/FollowerSuggestions";
+import { BlurView } from "expo-blur";
 import PostCard from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
 import {
@@ -170,18 +24,37 @@ import {
   useBookmarkPostMutation,
   useDeletePostMutation,
 } from "../../store/postApi";
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring 
+} from "react-native-reanimated";
+
+const { width } = Dimensions.get('window');
+
+const EXPLORE_CATEGORIES = [
+  { id: '1', name: 'Trending', icon: 'flame-outline' },
+  { id: '2', name: 'Mindful', icon: 'leaf-outline' },
+  { id: '3', name: 'Tech', icon: 'laptop-outline' },
+  { id: '4', name: 'Art', icon: 'color-palette-outline' },
+  { id: '5', name: 'Gaming', icon: 'game-controller-outline' },
+];
 
 export default function ExploreScreen() {
   const router = useRouter();
   const { q } = useLocalSearchParams<{ q?: string }>();
   const [search, setSearch] = useState(q || "");
-  const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
-    q?.startsWith("#") ? "posts" : "users",
-  );
+  const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">("users");
+  const [selectedCategory, setSelectedCategory] = useState('1');
 
-  const { data, isLoading } = useGlobalSearchQuery(search, {
+  const { data: searchResults, isLoading: isSearching } = useGlobalSearchQuery(search, {
     skip: search.length < 2,
   });
+
+  const { data: trendingData, isLoading: isTrendingLoading, refetch: refetchTrending } = useGetTrendingQuery();
+
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
@@ -192,165 +65,225 @@ export default function ExploreScreen() {
 
   const currentUser = useSelector((state: any) => state.auth.user);
 
-  const filteredUsers =
-    data?.users?.filter((user: any) => user.id !== currentUser?.id) || [];
+  const filteredUsers = useMemo(() => {
+    return searchResults?.users?.filter((user: any) => user.id !== currentUser?.id) || [];
+  }, [searchResults, currentUser]);
 
-  const renderUser = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/profile/${item.id}`)}
-      className="flex-row items-center p-4 border-b border-gray-50 bg-white"
-    >
-      <Image
-        source={{ uri: item.image || "https://via.placeholder.com/50" }}
-        className="w-12 h-12 rounded-full bg-gray-200"
-      />
-      <View className="ml-3 flex-1">
-        <Text className="font-bold text-base text-gray-900">{item.name}</Text>
-        <Text className="text-gray-500 text-sm">@{item.username}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-    </TouchableOpacity>
+  const indicatorPos = useSharedValue(0);
+
+  const handleTabChange = (tab: "users" | "posts" | "hashtags", index: number) => {
+    setActiveTab(tab);
+    indicatorPos.value = withSpring(index * (width / 3));
+  };
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorPos.value }],
+  }));
+
+  const renderTrendingHashtag = ({ item, index }: { item: any, index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 50)}>
+      <TouchableOpacity
+        onPress={() => {
+          setSearch(`#${item.name}`);
+          setActiveTab("posts");
+        }}
+        className="flex-row items-center p-4 border-b border-gray-50 bg-white justify-between"
+      >
+        <View>
+          <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Trending #{index + 1}</Text>
+          <Text className="font-bold text-[17px] text-gray-900">#{item.name}</Text>
+          <Text className="text-gray-500 text-xs mt-1">{item.count} posts</Text>
+        </View>
+        <TouchableOpacity className="bg-gray-50 w-8 h-8 rounded-full items-center justify-center">
+            <Ionicons name="ellipsis-horizontal" size={16} color="#9CA3AF" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
-  const renderPost = ({ item }: { item: any }) => (
-    <PostCard
-      item={item}
-      user={currentUser}
-      onPressPost={(id) => router.push(`/post/${id}`)}
-      onPressProfile={(id) =>
-        id === currentUser?.id
-          ? router.push("/profile")
-          : router.push(`/profile/${id}`)
-      }
-      onPressOptions={(p) => {
-        setPostForOptions(p);
-        setOptionsModalVisible(true);
-      }}
-      onPressComment={(id) => router.push(`/post/${id}`)}
-      onPressRepost={(p) => repostPost({ id: p.id })}
-      onLike={(id) => likePost({ postId: id }).unwrap()}
-      onBookmark={(id) => bookmarkPost(id).unwrap()}
+  const renderHeroTrending = () => {
+      if (!trendingData?.posts?.[0]) return null;
+      const hero = trendingData.posts[0];
+      return (
+          <TouchableOpacity 
+            className="mx-4 mt-2 mb-6 rounded-3xl overflow-hidden shadow-sm border border-gray-100"
+            onPress={() => router.push(`/post/${hero.id}`)}
+          >
+              {hero.image ? (
+                  <Image source={{ uri: hero.image }} className="w-full h-48" />
+              ) : (
+                  <View className="w-full h-32 bg-sky-500 items-center justify-center">
+                      <Ionicons name="sparkles" size={40} color="rgba(255,255,255,0.3)" />
+                  </View>
+              )}
+              <BlurView intensity={90} className="p-4 bg-white/60">
+                  <Text className="text-xs font-black text-sky-600 uppercase tracking-widest mb-1">Featured Moment</Text>
+                  <Text className="text-lg font-bold text-gray-900" numberOfLines={2}>{hero.content}</Text>
+                  <View className="flex-row items-center mt-3">
+                      <Image source={{ uri: hero.author?.image }} className="w-6 h-6 rounded-full mr-2" />
+                      <Text className="text-sm text-gray-500">by {hero.author?.name}</Text>
+                  </View>
+              </BlurView>
+          </TouchableOpacity>
+      );
+  };
+
+  const renderDefaultView = () => (
+    <FlatList
+      data={trendingData?.hashtags || []}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={() => (
+        <View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
+          >
+            {EXPLORE_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => setSelectedCategory(cat.id)}
+                className={`flex-row items-center px-5 py-2.5 rounded-2xl mr-3 ${
+                  selectedCategory === cat.id ? 'bg-sky-500 border-sky-600' : 'bg-gray-100 border-gray-200'
+                } border`}
+              >
+                <Ionicons 
+                  name={cat.icon as any} 
+                  size={16} 
+                  color={selectedCategory === cat.id ? 'white' : '#64748b'} 
+                />
+                <Text className={`ml-2 font-bold ${selectedCategory === cat.id ? 'text-white' : 'text-slate-600'}`}>
+                    {cat.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {renderHeroTrending()}
+
+          <View className="px-4 pb-2">
+            <Text className="text-xl font-black text-gray-900 tracking-tighter">Trending Topics</Text>
+          </View>
+        </View>
+      )}
+      renderItem={renderTrendingHashtag}
+      ListFooterComponent={() => (
+          <View className="p-8 items-center">
+              <TouchableOpacity className="px-6 py-3 bg-gray-50 rounded-full border border-gray-100">
+                  <Text className="text-gray-400 font-bold">Show more topics</Text>
+              </TouchableOpacity>
+          </View>
+      )}
+      refreshing={isTrendingLoading}
+      onRefresh={refetchTrending}
     />
   );
 
-  const renderHashtag = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => {
-        setSearch(`#${item.name}`);
-        setActiveTab("posts");
-      }}
-      className="flex-row items-center p-4 border-b border-gray-50 bg-white justify-between"
-    >
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-full bg-sky-50 items-center justify-center mr-3">
-          <Text className="text-xl font-bold text-sky-500">#</Text>
-        </View>
-        <Text className="font-bold text-lg text-gray-900">{item.name}</Text>
-      </View>
-      <Text className="text-gray-400 text-sm">{item.count} posts</Text>
-    </TouchableOpacity>
-  );
-
-  const renderContent = () => {
-    if (!search || search.length < 2) return <FollowerSuggestions />;
-    if (isLoading)
+  const renderSearchContent = () => {
+    if (isSearching)
       return (
-        <ActivityIndicator size="large" color="#1d9bf0" className="mt-10" />
+        <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#0EA5E9" />
+        </View>
       );
 
     let listData = [];
-    let renderItemFn: any;
-
-    if (activeTab === "users") {
-      listData = filteredUsers;
-      renderItemFn = renderUser;
-    } else if (activeTab === "posts") {
-      listData = data?.posts || [];
-      renderItemFn = renderPost;
-    } else {
-      listData = data?.hashtags || [];
-      renderItemFn = renderHashtag;
-    }
-
-    if (listData.length === 0) {
-      return (
-        <View className="flex-1 items-center justify-center mt-20 px-8">
-          <Text className="text-gray-500">No {activeTab} found for search</Text>
-        </View>
-      );
-    }
+    if (activeTab === "users") listData = filteredUsers;
+    else if (activeTab === "posts") listData = searchResults?.posts || [];
+    else listData = searchResults?.hashtags || [];
 
     return (
       <FlatList
         data={listData}
         keyExtractor={(item) => item.id}
-        renderItem={renderItemFn}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+        renderItem={({ item }) => {
+            if (activeTab === "users") {
+                return (
+                    <TouchableOpacity
+                     onPress={() => router.push(`/profile/${item.id}`)}
+                     className="flex-row items-center p-4 border-b border-gray-50 bg-white"
+                    >
+                        <Image source={{ uri: item.image || "https://via.placeholder.com/50" }} className="w-12 h-12 rounded-full bg-gray-200" />
+                        <View className="ml-3 flex-1">
+                            <Text className="font-bold text-base text-gray-900">{item.name}</Text>
+                            <Text className="text-gray-500 text-sm">@{item.username}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
+                );
+            }
+            return (
+                <PostCard
+                  item={item}
+                  user={currentUser}
+                  onPressPost={(id) => router.push(`/post/${id}`)}
+                  onPressProfile={(id) => router.push(id === currentUser?.id ? "/profile" : `/profile/${id}`)}
+                  onPressOptions={(p) => { setPostForOptions(p); setOptionsModalVisible(true); }}
+                  onPressComment={(id) => router.push(`/post/${id}`)}
+                  onPressRepost={(p) => repostPost({ id: p.id })}
+                  onLike={(id) => likePost({ postId: id }).unwrap()}
+                  onBookmark={(id) => bookmarkPost(id).unwrap()}
+                />
+            );
+        }}
+        ListEmptyComponent={() => (
+            <View className="flex-1 items-center justify-center mt-20 px-8">
+              <Text className="text-gray-400 font-medium">No results found for "{search}"</Text>
+            </View>
+        )}
       />
     );
   };
 
   return (
-    <SafeAreaView className="flex-1">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Search Header */}
-      <View className="px-4 py-3 border-b border-gray-100 bg-white shadow-sm z-10">
-        <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5">
-          <Ionicons name="search" size={20} color="#6B7280" />
+      <View className="px-4 py-3 border-b border-gray-50 z-10 bg-white">
+        <View className="flex-row items-center bg-gray-100 rounded-2xl px-4 py-3">
+          <Ionicons name="search" size={18} color="#64748b" />
           <TextInput
-            placeholder="Search Ananta..."
-            placeholderTextColor="#6B7280"
-            className="flex-1 ml-3 text-[16px] text-gray-900"
+            placeholder="Search Oasis..."
+            placeholderTextColor="#94a3b8"
+            className="flex-1 ml-3 text-[16px] text-gray-900 font-medium"
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={18} color="#6B7280" />
+              <Ionicons name="close-circle" size={18} color="#94a3b8" />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Tabs */}
+      {/* Modern Result Tabs */}
       {search.length >= 2 && (
-        <View className="flex-row border-b border-gray-100 bg-white">
-          <TouchableOpacity
-            className={`flex-1 py-3 items-center border-b-2 ${activeTab === "users" ? "border-[#1d9bf0]" : "border-transparent"}`}
-            onPress={() => setActiveTab("users")}
-          >
-            <Text
-              className={`font-bold ${activeTab === "users" ? "text-gray-900" : "text-gray-500"}`}
+        <View className="flex-row bg-white relative">
+          {["users", "posts", "hashtags"].map((tab, index) => (
+            <TouchableOpacity
+              key={tab}
+              className="flex-1 py-4 items-center"
+              onPress={() => handleTabChange(tab as any, index)}
             >
-              Accounts
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 items-center border-b-2 ${activeTab === "posts" ? "border-[#1d9bf0]" : "border-transparent"}`}
-            onPress={() => setActiveTab("posts")}
-          >
-            <Text
-              className={`font-bold ${activeTab === "posts" ? "text-gray-900" : "text-gray-500"}`}
-            >
-              Posts
-            </Text>
-          </TouchableOpacity>
-          {/* <TouchableOpacity
-            className={`flex-1 py-3 items-center border-b-2 ${activeTab === "hashtags" ? "border-[#1d9bf0]" : "border-transparent"}`}
-            onPress={() => setActiveTab("hashtags")}
-          >
-            <Text
-              className={`font-bold ${activeTab === "hashtags" ? "text-gray-900" : "text-gray-500"}`}
-            >
-              Tags
-            </Text>
-          </TouchableOpacity> */}
+              <Text className={`font-bold uppercase text-[12px] tracking-widest ${activeTab === tab ? "text-sky-500" : "text-gray-400"}`}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <Animated.View 
+            style={[
+                { position: 'absolute', bottom: 0, width: width / 3, height: 3, backgroundColor: '#0EA5E9', borderRadius: 3 },
+                indicatorStyle
+            ]} 
+          />
         </View>
       )}
 
       {/* Content */}
-      <View className="flex-1">{renderContent()}</View>
+      <View className="flex-1">
+        {search.length < 2 ? renderDefaultView() : renderSearchContent()}
+      </View>
 
       <PostOptionsModal
         isVisible={optionsModalVisible}

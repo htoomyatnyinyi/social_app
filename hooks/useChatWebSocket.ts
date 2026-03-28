@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { API_URL } from "../store/api";
 import { db } from "../db/client";
 import { messages as messagesTable } from "../db/schema";
+import { eq } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
 
 interface UseChatWebSocketProps {
@@ -51,31 +52,41 @@ export const useChatWebSocket = ({
       socket.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
+          
           if (data.type === "new_message") {
-            await db
-              .insert(messagesTable)
-              .values({
-                id: data.id,
-                chatId: chatId,
-                senderId: data.senderId,
-                content: data.content,
-                type: data.image ? "image" : "text",
-                mediaUrl: data.image || null,
-                read: data.read ? 1 : 0,
-                createdAt: new Date(data.createdAt).getTime(),
-                status: "synced",
-              })
-              .onConflictDoNothing();
+            await db.insert(messagesTable).values({
+              id: data.id,
+              chatId: chatId,
+              senderId: data.senderId,
+              content: data.content,
+              type: data.image ? "image" : "text",
+              mediaUrl: data.image || null,
+              read: data.read ? 1 : 0,
+              createdAt: new Date(data.createdAt).getTime(),
+              status: "synced",
+              replyToId: data.replyToId || null,
+              replyToName: data.replyTo?.sender?.name || null,
+              replyToContent: data.replyTo?.content || null,
+              metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+            }).onConflictDoNothing();
 
-            // Haptic feedback for incoming messages (not from self)
             if (currentUserId && data.senderId !== currentUserId) {
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
-
             onMessageReceivedRef.current?.();
-          } else if (data.type === "typing_start" && data.userId !== currentUserId) {
+          } 
+          else if (data.type === "message_deleted") {
+            await db.delete(messagesTable).where(eq(messagesTable.id, data.messageId));
+            onMessageReceivedRef.current?.();
+          }
+          else if (data.type === "reaction_update") {
+             const reactionsStr = JSON.stringify({ reactions: data.reactions });
+             await db.update(messagesTable)
+               .set({ metadata: reactionsStr })
+               .where(eq(messagesTable.id, data.messageId));
+             onMessageReceivedRef.current?.();
+          }
+          else if (data.type === "typing_start" && data.userId !== currentUserId) {
              onTypingStatusRef.current?.(data.userId);
           }
         } catch (e) {
@@ -105,7 +116,7 @@ export const useChatWebSocket = ({
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [chatId, token]);
+  }, [chatId, token, currentUserId]);
 
   const sendTyping = () => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -113,5 +124,17 @@ export const useChatWebSocket = ({
     }
   };
 
-  return { socket: socketRef.current, sendTyping };
+  const deleteMessage = (messageId: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "delete", chatId, messageId }));
+    }
+  };
+
+  const sendReaction = (messageId: string, emoji: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "reaction", chatId, messageId, content: emoji }));
+    }
+  };
+
+  return { socket: socketRef.current, sendTyping, deleteMessage, sendReaction };
 };

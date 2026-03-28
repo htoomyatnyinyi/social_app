@@ -39,6 +39,7 @@ export const syncMessages = async (
             chatId,
             content: msg.content,
             image: msg.mediaUrl || undefined,
+            replyToId: msg.replyToId || undefined,
           }),
         });
 
@@ -57,6 +58,10 @@ export const syncMessages = async (
               read: serverMsg.read ? 1 : 0,
               createdAt: new Date(serverMsg.createdAt).getTime(),
               status: "synced",
+              replyToId: serverMsg.replyToId || null,
+              replyToName: serverMsg.replyTo?.sender?.name || null,
+              replyToContent: serverMsg.replyTo?.content || null,
+              metadata: serverMsg.metadata ? JSON.stringify(serverMsg.metadata) : null,
             })
             .onConflictDoUpdate({
               target: messages.id,
@@ -65,6 +70,7 @@ export const syncMessages = async (
                 content: serverMsg.content,
                 read: serverMsg.read ? 1 : 0,
                 createdAt: new Date(serverMsg.createdAt).getTime(),
+                metadata: serverMsg.metadata ? JSON.stringify(serverMsg.metadata) : null,
               },
             });
 
@@ -119,6 +125,10 @@ export const syncMessages = async (
               read: msg.read ? 1 : 0,
               createdAt: new Date(msg.createdAt).getTime(),
               status: "synced",
+              replyToId: msg.replyToId || null,
+              replyToName: msg.replyTo?.sender?.name || null,
+              replyToContent: msg.replyTo?.content || null,
+              metadata: msg.metadata ? JSON.stringify(msg.metadata) : null,
             })
             .onConflictDoUpdate({
               target: messages.id,
@@ -127,6 +137,7 @@ export const syncMessages = async (
                 content: msg.content,
                 read: msg.read ? 1 : 0,
                 mediaUrl: msg.image || null,
+                metadata: msg.metadata ? JSON.stringify(msg.metadata) : null,
               },
             });
 

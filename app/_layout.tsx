@@ -1,36 +1,45 @@
+import { useEffect } from "react";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { Provider as ReduxProvider } from "react-redux";
 import { store, persistor } from "../store/store";
 import { PersistGate } from "redux-persist/integration/react";
-import { ActivityIndicator, View, Text } from "react-native";
-
-// Drizzle & SQLite Imports
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { db } from "../db/client";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import migrations from "../drizzle/migrations";
 
 import "../global.css";
+import { Text, View, ActivityIndicator } from "react-native";
+
+// Prevent the splash screen from hiding automatically
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // 1. Run migrations on app start
   const { success, error } = useMigrations(db, migrations);
 
-  // 2. Handle Migration Errors
+  useEffect(() => {
+    // Once migrations succeed (or fail), hide the splash screen
+    if (success || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [success, error]);
+
+  // If there's an error, we show a fallback
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center p-5">
-        <Text className="text-red-500 font-bold">Database Sync Error:</Text>
-        <Text>{error.message}</Text>
+      <View className="flex-1 items-center justify-center bg-white p-5">
+        <Text className="text-red-500 font-bold text-lg">Database Sync Error:</Text>
+        <Text className="text-gray-500 text-center mt-2">{error.message}</Text>
       </View>
     );
   }
 
-  // 3. Prevent rendering the app until the DB is ready
-  if (!success) {
+  if (!success && !error) {
     return (
-      <View className="flex-1 items-center justify-center">
+      <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color="#1d9bf0" />
-        <Text className="mt-2 text-gray-500">Preparing database...</Text>
+        <Text className="mt-4 text-gray-500 font-medium">Initializing Oasis...</Text>
       </View>
     );
   }
@@ -38,12 +47,16 @@ export default function RootLayout() {
   return (
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        />
+        <SafeAreaProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: "white" },
+            }}
+          />
+        </SafeAreaProvider>
       </PersistGate>
     </ReduxProvider>
   );
 }
+

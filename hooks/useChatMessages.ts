@@ -37,7 +37,7 @@ export const useChatMessages = (
   }, []); // Stable — uses ref internally
 
   const sendMessage = useCallback(
-    async (content: string, image?: string) => {
+    async (content: string, image?: string, replyTo?: { id: string, name: string, content: string }) => {
       if ((!content.trim() && !image) || !chatId) return;
 
       const tempId = Crypto.randomUUID();
@@ -53,6 +53,9 @@ export const useChatMessages = (
           mediaUrl: image || null,
           createdAt: Date.now(),
           status: "pending",
+          replyToId: replyTo?.id || null,
+          replyToName: replyTo?.name || null,
+          replyToContent: replyTo?.content || null,
         });
 
         // Immediately refresh UI with optimistic message
