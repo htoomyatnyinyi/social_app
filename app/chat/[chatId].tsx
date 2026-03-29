@@ -11,27 +11,22 @@ import {
   FlatList,
   Text,
   TextInput,
-  Pressable,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Alert,
+  Pressable,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { useMarkMessagesAsReadMutation } from "../../store/chatApi";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useChatWebSocket } from "@/hooks/useChatWebSocket";
-import Animated, {
-  FadeInUp,
-  SlideInDown,
-  SlideOutDown,
-} from "react-native-reanimated";
 
 type ReplyContext = {
   id: string;
@@ -61,7 +56,7 @@ const MessageBubble = memo(function MessageBubble({
     try {
       const meta = item.metadata ? JSON.parse(item.metadata) : {};
       return meta.reactions || {};
-    } catch (e) {
+    } catch {
       return {};
     }
   }, [item.metadata]);
@@ -70,55 +65,48 @@ const MessageBubble = memo(function MessageBubble({
 
   return (
     <View
-      style={{
-        flexDirection: "row",
-        marginBottom: 4,
-        paddingHorizontal: 20,
-        justifyContent: isMe ? "flex-end" : "flex-start",
-        marginTop: !isSameSenderAsPrev ? 16 : 0,
-      }}
+      className={`flex-row px-5 mb-1 ${isMe ? "justify-end" : "justify-start"} ${!isSameSenderAsPrev ? "mt-5" : "mt-0"}`}
     >
-      <Pressable
+      {!isMe && !isSameSenderAsPrev && (
+        <View className="mr-3 justify-end pb-1">
+          <Image
+            source={{
+              uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${item.senderId}`,
+            }}
+            className="w-8 h-8 rounded-[12px] bg-gray-100 border border-gray-50"
+            contentFit="cover"
+          />
+        </View>
+      )}
+      {isMe && !isSameSenderAsPrev && <View className="w-11" />}
+
+      <TouchableOpacity
+        activeOpacity={0.9}
         onLongPress={() => onLongPress(item)}
-        style={{
-          maxWidth: "85%",
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: isMe ? "#0EA5E9" : "white",
-          borderRadius: 24,
-          borderTopRightRadius: isMe ? 4 : 24,
-          borderTopLeftRadius: !isMe ? 4 : 24,
-          borderWidth: isMe ? 0 : 1,
-          borderColor: "#F1F5F9",
-          opacity: isPending ? 0.7 : 1,
-        }}
+        className={`max-w-[75%] px-4 py-3 rounded-[24px] shadow-sm ${
+          isMe ? "bg-[#0EA5E9] border-0" : "bg-white border border-gray-100"
+        } ${isMe ? (isSameSenderAsPrev ? "rounded-tr-[8px]" : "rounded-tr-[4px]") : isSameSenderAsPrev ? "rounded-tl-[8px]" : "rounded-tl-[4px]"} ${isPending ? "opacity-70" : "opacity-100"}`}
       >
         {item.replyToId && (
           <View
-            style={{
-              marginBottom: 8,
-              padding: 8,
-              borderRadius: 12,
-              backgroundColor: isMe ? "rgba(3, 105, 161, 0.5)" : "#F9FAFB",
-              borderLeftWidth: 4,
-              borderLeftColor: isMe ? "#BAE6FD" : "#0EA5E9",
-            }}
+            className={`mb-2 p-2.5 rounded-[12px] border-l-4 ${
+              isMe
+                ? "bg-sky-700/30 border-sky-200"
+                : "bg-gray-50 border-sky-500"
+            }`}
           >
             <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "900",
-                color: isMe ? "#BAE6FD" : "#0284C7",
-              }}
+              className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${
+                isMe ? "text-sky-100" : "text-sky-600"
+              }`}
             >
               {item.replyToName || "Reply"}
             </Text>
             <Text
-              style={{
-                fontSize: 12,
-                color: isMe ? "rgba(255, 255, 255, 0.8)" : "#6B7280",
-              }}
-              numberOfLines={1}
+              className={`text-[12px] font-medium leading-4 ${
+                isMe ? "text-white/80" : "text-gray-500"
+              }`}
+              numberOfLines={2}
             >
               {item.replyToContent}
             </Text>
@@ -128,45 +116,26 @@ const MessageBubble = memo(function MessageBubble({
         {item.mediaUrl && (
           <Image
             source={{ uri: item.mediaUrl }}
-            style={{
-              width: 208,
-              height: 208,
-              borderRadius: 16,
-              marginBottom: 8,
-              backgroundColor: "#F3F4F6",
-            }}
-            resizeMode="cover"
+            className="w-52 h-52 rounded-[16px] mb-2 bg-gray-100 shadow-inner"
+            contentFit="cover"
           />
         )}
 
         {item.content && (
           <Text
-            style={{
-              color: isMe ? "white" : "#111827",
-              fontSize: 16,
-              fontWeight: "500",
-              lineHeight: 20,
-            }}
+            className={`text-[15px] font-medium leading-[20px] ${
+              isMe ? "text-white" : "text-gray-800"
+            }`}
           >
             {item.content}
           </Text>
         )}
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            marginTop: 4,
-          }}
-        >
+        <View className="flex-row items-center justify-end mt-1.5 space-x-1">
           <Text
-            style={{
-              fontSize: 9,
-              fontWeight: "700",
-              letterSpacing: -0.5,
-              color: isMe ? "#BAE6FD" : "#9CA3AF",
-            }}
+            className={`text-[9px] font-bold tracking-tighter ${
+              isMe ? "text-sky-100/70" : "text-gray-400"
+            }`}
           >
             {new Date(item.createdAt).toLocaleTimeString([], {
               hour: "2-digit",
@@ -183,49 +152,28 @@ const MessageBubble = memo(function MessageBubble({
                     : "checkmark"
               }
               size={12}
-              color={isPending ? "#e0e0e0" : isRead ? "#bae6fd" : "#ffffff"}
-              style={{ marginLeft: 4 }}
+              color={isPending ? "#BAE6FD" : isRead ? "#BAE6FD" : "#FFFFFF"}
             />
           )}
         </View>
 
         {reactionEmojis.length > 0 && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: -8,
-              left: -8,
-              flexDirection: "row",
-              backgroundColor: "white",
-              borderRadius: 99,
-              paddingHorizontal: 6,
-              paddingVertical: 2,
-              borderWidth: 1,
-              borderColor: "#F1F5F9",
-            }}
-          >
+          <View className="absolute -bottom-2 -left-2 flex-row bg-white rounded-full px-2 py-0.5 border border-gray-100 shadow-sm">
             {Array.from(new Set(reactionEmojis))
               .slice(0, 3)
               .map((emoji: any, i) => (
-                <Text key={i} style={{ fontSize: 10 }}>
+                <Text key={i} className="text-[10px]">
                   {emoji}
                 </Text>
               ))}
             {reactionEmojis.length > 1 && (
-              <Text
-                style={{
-                  fontSize: 9,
-                  fontWeight: "900",
-                  color: "#9CA3AF",
-                  marginLeft: 4,
-                }}
-              >
+              <Text className="text-[9px] font-black text-gray-400 ml-1">
                 {reactionEmojis.length}
               </Text>
             )}
           </View>
         )}
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 });
@@ -311,11 +259,11 @@ export default function ChatScreen() {
     const isMe = item.senderId === user?.id;
 
     Alert.alert(
-      "Message Options",
+      "Message Resilience",
       "Breathe and choose an action.",
       [
         {
-          text: "Reply",
+          text: "Diffuse Reply",
           onPress: () =>
             setReplyContext({
               id: item.id,
@@ -323,298 +271,177 @@ export default function ChatScreen() {
               content: item.content,
             }),
         },
-        { text: "Heart React", onPress: () => sendReaction(item.id, "❤️") },
-        { text: "Laugh React", onPress: () => sendReaction(item.id, "😂") },
+        { text: "❤️ Echo", onPress: () => sendReaction(item.id, "❤️") },
+        { text: "✨ Spark", onPress: () => sendReaction(item.id, "✨") },
         isMe
           ? {
-              text: "Delete",
+              text: "Dissolve",
               style: "destructive",
               onPress: () => deleteMessage(item.id),
             }
           : {},
-        { text: "Cancel", style: "cancel" },
+        { text: "Keep", style: "cancel" },
       ].filter((o) => Object.keys(o).length > 0) as any,
     );
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#F8FAFC",
-      }}
-    >
+    <View className="flex-1 bg-[#F8FAFC]">
+      {/* Stabilized Header */}
       <View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-          paddingTop: insets.top + 8,
-          paddingBottom: 16,
-          paddingHorizontal: 20,
-          borderBottomWidth: 1,
-          borderBottomColor: "#F1F5F9",
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
-        }}
+        className="bg-white px-5 pb-4 border-b border-gray-100/50 shadow-sm"
+        style={{ paddingTop: insets.top + 8 }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 16,
-            backgroundColor: "white",
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1,
-            borderColor: "#F1F5F9",
-            marginRight: 16,
-          }}
-        >
-          <Ionicons name="chevron-back" size={20} color="#64748B" />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "900",
-              color: "#111827",
-              letterSpacing: -0.5,
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
             }}
+            className="w-10 h-10 rounded-2xl bg-gray-50 items-center justify-center border border-gray-100 mr-4"
           >
-            {title || "Conversation"}
-          </Text>
-          <Text
-            style={{
-              fontSize: 10,
-              color: "#10B981",
-              fontWeight: "900",
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              marginTop: 2,
-            }}
-          >
-            {isTyping ? "Typing serenity..." : "Active in Oasis"}
-          </Text>
+            <Ionicons name="chevron-back" size={20} color="#334155" />
+          </TouchableOpacity>
+          <View className="flex-1">
+            <Text
+              className="text-lg font-black text-gray-900 tracking-tight"
+              numberOfLines={1}
+            >
+              {title || "Conversation"}
+            </Text>
+            <View className="flex-row items-center mt-0.5">
+              <View
+                className={`w-2 h-2 rounded-full mr-1.5 ${isTyping ? "bg-sky-400" : "bg-emerald-500 shadow-sm shadow-emerald-200"}`}
+              />
+              <Text
+                className={`text-[10px] font-black uppercase tracking-widest ${isTyping ? "text-sky-500" : "text-emerald-500"}`}
+              >
+                {isTyping ? "Whispering..." : "Synchronized"}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity className="w-10 h-10 rounded-full bg-sky-50 items-center justify-center border border-sky-100">
+            <Ionicons name="call" size={18} color="#0EA5E9" />
+          </TouchableOpacity>
         </View>
-        <Pressable
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 16,
-            backgroundColor: "#F0F9FF",
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1,
-            borderColor: "#E0F2FE",
-          }}
-        >
-          <Ionicons name="call-outline" size={18} color="#0EA5E9" />
-        </Pressable>
       </View>
 
       <KeyboardAvoidingView
-        style={{
-          flex: 1,
-        }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <FlatList
           inverted
           data={reversedMessages}
           renderItem={({ item, index }) => (
-            <MessageBubble
-              item={item}
-              prevMessage={reversedMessages[index + 1] || null}
-              user={user}
-              onReply={(rep) => setReplyContext(rep)}
-              onLongPress={handleLongPress}
-            />
+            <View>
+              <MessageBubble
+                item={item}
+                prevMessage={reversedMessages[index + 1] || null}
+                user={user}
+                onReply={(rep) => setReplyContext(rep)}
+                onLongPress={handleLongPress}
+              />
+            </View>
           )}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{
-            paddingTop: insets.top + 90,
-            paddingBottom: insets.bottom + 20,
+            paddingBottom: 20,
           }}
           showsVerticalScrollIndicator={false}
         />
 
+        {/* Stable Footer Logic */}
         <View
-          style={{
-            paddingHorizontal: 16,
-            paddingBottom: Platform.OS === "ios" ? insets.bottom + 8 : insets.bottom + 16,
-          }}
+          className="bg-white border-t border-gray-100"
+          style={{ paddingBottom: insets.bottom + 8 }}
         >
           {replyContext && (
-            <Animated.View
-              entering={SlideInDown}
-              exiting={SlideOutDown}
-              style={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                borderWidth: 1,
-                borderColor: "#F1F5F9",
-                padding: 12,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                flexDirection: "row",
-                alignItems: "center",
-                borderBottomWidth: 0,
-              }}
-            >
-              <View
-                style={{
-                  width: 4,
-                  height: 40,
-                  backgroundColor: "#0EA5E9",
-                  borderRadius: 99,
-                  marginRight: 12,
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "900",
-                    color: "#0EA5E9",
-                    textTransform: "uppercase",
-                  }}
-                >
+            <View className="bg-sky-50 px-4 py-3 flex-row items-center border-b border-sky-100">
+              <View className="w-1 h-8 bg-sky-500 rounded-full mr-3" />
+              <View className="flex-1">
+                <Text className="text-[10px] font-black text-sky-600 uppercase tracking-widest">
                   Replying to {replyContext.name}
                 </Text>
                 <Text
-                  style={{ color: "#6B7280", fontSize: 12 }}
+                  className="text-gray-500 text-[12px] font-medium"
                   numberOfLines={1}
                 >
                   {replyContext.content}
                 </Text>
               </View>
-              <Pressable onPress={() => setReplyContext(null)}>
+              <TouchableOpacity onPress={() => setReplyContext(null)}>
                 <Ionicons name="close-circle" size={20} color="#94A3B8" />
-              </Pressable>
-            </Animated.View>
+              </TouchableOpacity>
+            </View>
           )}
 
           {selectedImage && (
-            <Animated.View
-              entering={FadeInUp}
-              style={{
-                backgroundColor: "white",
-                padding: 8,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: "#F1F5F9",
-                marginBottom: 8,
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <Image
-                source={{ uri: selectedImage }}
-                style={{ width: 64, height: 64, borderRadius: 12 }}
-              />
-              <Text
-                style={{
-                  marginLeft: 12,
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: "#9CA3AF",
-                }}
-              >
-                Image attached
+            <View className="px-4 py-3 flex-row items-center bg-gray-50 border-b border-gray-100">
+              <View className="relative">
+                <Image
+                  source={{ uri: selectedImage }}
+                  className="w-16 h-16 rounded-[16px] border border-gray-200"
+                />
+                <TouchableOpacity
+                  onPress={() => setSelectedImage(null)}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full items-center justify-center shadow-md border border-gray-100"
+                >
+                  <Ionicons name="close" size={14} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              <Text className="ml-4 text-[12px] font-bold text-gray-400 uppercase tracking-widest">
+                Media Aura Attached
               </Text>
-              <Pressable
-                onPress={() => setSelectedImage(null)}
-                style={{
-                  marginLeft: "auto",
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: "#F9FAFB",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="close" size={16} color="#64748B" />
-              </Pressable>
-            </Animated.View>
+            </View>
           )}
 
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "white",
-              borderRadius: 28,
-              borderWidth: 1,
-              borderColor: "#F1F5F9",
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-              marginBottom: 8,
-              borderTopLeftRadius: replyContext ? 0 : 28,
-              borderTopRightRadius: replyContext ? 0 : 28,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 10,
-              elevation: 2,
-            }}
-          >
-            <Pressable
+          <View className="flex-row items-center px-4 py-3">
+            <TouchableOpacity
               onPress={pickImage}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#F8FAFC",
-              }}
+              className="w-11 h-11 rounded-[18px] bg-gray-50 items-center justify-center border border-gray-100 mr-3"
             >
               <Ionicons name="image" size={20} color="#64748B" />
-            </Pressable>
+            </TouchableOpacity>
 
-            <TextInput
-              placeholder="Message..."
-              placeholderTextColor="#94A3B8"
-              value={inputText}
-              onChangeText={handleTextChange}
-              multiline
-              style={{
-                flex: 1,
-                paddingHorizontal: 12,
-                fontSize: 16,
-                color: "#111827",
-                fontWeight: "500",
-                maxHeight: 120,
-              }}
-            />
-
-            <Pressable
-              onPress={handleSend}
-              disabled={!inputText.trim() && !selectedImage}
-              style={({ pressed }) => [
-                {
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor:
-                    inputText.trim() || selectedImage ? "#0EA5E9" : "#E2E8F0",
-                  opacity: pressed ? 0.5 : 1,
-                },
-              ]}
-            >
-              <Ionicons name="send" size={30} color="skyblue" />
-            </Pressable>
+            <View className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-[28px] px-4 py-1.5">
+              <TextInput
+                placeholder="Diffuse an artifact..."
+                placeholderTextColor="#94A3B8"
+                value={inputText}
+                onChangeText={handleTextChange}
+                multiline
+                className="flex-1 text-[16px] text-gray-900 py-1.5"
+                selectionColor="#0EA5E9"
+              />
+              <Pressable
+                onPress={() => {
+                  try {
+                    handleSend();
+                  } catch (e) {
+                    console.error("Send failed:", e);
+                  }
+                }}
+                disabled={!inputText.trim() && !selectedImage}
+                className={`w-10 h-10 rounded-full items-center justify-center ${
+                  inputText.trim() || selectedImage
+                    ? "bg-sky-500"
+                    : "bg-gray-200"
+                }`}
+              >
+                <Ionicons
+                  name="arrow-up"
+                  size={20}
+                  color={
+                    inputText.trim() || selectedImage ? "white" : "#94A3B8"
+                  }
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
     </View>
   );
 }
+

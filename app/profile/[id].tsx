@@ -28,7 +28,7 @@ import {
   useDeletePostMutation,
   useBookmarkPostMutation,
 } from "../../store/postApi";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
 import { BlurView } from "expo-blur";
@@ -41,9 +41,9 @@ export default function UserProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: any) => state.auth.user);
-  
+
   const [activeTab, setActiveTab] = useState<"posts" | "replies" | "likes">(
-    (tab as any) || "posts"
+    (tab as any) || "posts",
   );
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   const [postForOptions, setPostForOptions] = useState<Post | null>(null);
@@ -54,26 +54,23 @@ export default function UserProfileScreen() {
     refetch: refetchProfile,
   } = useGetProfileQuery(id as string, { skip: !id });
 
-  const {
-    data: postData,
-    isLoading: isPostsLoading,
-    refetch: refetchPosts,
-  } = useGetUserPostsQuery(id as string, {
-    skip: !id || activeTab !== "posts",
-  });
+  const { data: postData, refetch: refetchPosts } = useGetUserPostsQuery(
+    id as string,
+    {
+      skip: !id || activeTab !== "posts",
+    },
+  );
 
-  const {
-    data: likeData,
-    isLoading: isLikesLoading,
-    refetch: refetchLikes,
-  } = useGetUserLikesQuery(id as string, {
-    skip: !id || activeTab !== "likes",
-  });
+  const { data: likeData, refetch: refetchLikes } = useGetUserLikesQuery(
+    id as string,
+    {
+      skip: !id || activeTab !== "likes",
+    },
+  );
 
-  const { data: replyData, isLoading: isRepliesLoading } =
-    useGetUserRepliesQuery(id as string, {
-      skip: !id || activeTab !== "replies",
-    });
+  const { data: replyData } = useGetUserRepliesQuery(id as string, {
+    skip: !id || activeTab !== "replies",
+  });
 
   const [followUser] = useFollowUserMutation();
   const [muteUser] = useMuteUserMutation();
@@ -92,7 +89,7 @@ export default function UserProfileScreen() {
         console.error("Like failed", err);
       }
     },
-    [likePost]
+    [likePost],
   );
 
   const handleBookmark = useCallback(
@@ -104,7 +101,7 @@ export default function UserProfileScreen() {
         console.error("Bookmark failed", err);
       }
     },
-    [bookmarkPost]
+    [bookmarkPost],
   );
 
   const handleRepostAction = useCallback(
@@ -112,7 +109,7 @@ export default function UserProfileScreen() {
       repostPost({ id: post.id });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     },
-    [repostPost]
+    [repostPost],
   );
 
   const handleFollow = async () => {
@@ -131,7 +128,10 @@ export default function UserProfileScreen() {
       router.push(`/chat/${room.id}?title=${profile.name}`);
     } catch (e) {
       console.error(e);
-      Alert.alert("Oasis Guard", "Follow each other to start a private sanctuary of chat.");
+      Alert.alert(
+        "Oasis Guard",
+        "Follow each other to start a private sanctuary of chat.",
+      );
     }
   };
 
@@ -163,13 +163,19 @@ export default function UserProfileScreen() {
         <View className="w-20 h-20 bg-gray-100 rounded-3xl items-center justify-center mb-6">
           <Ionicons name="person-outline" size={40} color="#94A3B8" />
         </View>
-        <Text className="text-2xl font-black text-gray-900 tracking-tighter text-center uppercase">Soul Not Found</Text>
-        <Text className="text-gray-400 text-center mt-2 font-medium">The user you're looking for has moved to a different oasis.</Text>
-        <TouchableOpacity 
+        <Text className="text-2xl font-black text-gray-900 tracking-tighter text-center uppercase">
+          Soul Not Found
+        </Text>
+        <Text className="text-gray-400 text-center mt-2 font-medium">
+          The user you are looking for has moved to a different place.
+        </Text>
+        <TouchableOpacity
           onPress={() => router.back()}
           className="mt-8 px-8 py-3 bg-sky-500 rounded-2xl shadow-lg shadow-sky-200"
         >
-          <Text className="text-white font-black uppercase tracking-widest text-xs">Return Home</Text>
+          <Text className="text-white font-black uppercase tracking-widest text-xs">
+            Return Home
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -178,37 +184,65 @@ export default function UserProfileScreen() {
   const isMe = user?.id === id;
 
   const handleMoreActions = () => {
-    Alert.alert("Privacy Actions", "Choose how you interact with this member.", [
-      { text: "Mute Member", onPress: async () => {
-          await muteUser(id as string).unwrap();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert("Oasis Silence", "You won't see their posts in your feed anymore.");
-      }},
-      { text: "Block Member", onPress: async () => {
-          await blockUser(id as string).unwrap();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          router.back();
-      }, style: "destructive" },
-      { text: "Cancel", style: "cancel" }
-    ]);
+    Alert.alert(
+      "Privacy Actions",
+      "Choose how you interact with this member.",
+      [
+        {
+          text: "Mute Member",
+          onPress: async () => {
+            await muteUser(id as string).unwrap();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert(
+              "Oasis Silence",
+              "You won't see their posts in your feed anymore.",
+            );
+          },
+        },
+        {
+          text: "Block Member",
+          onPress: async () => {
+            await blockUser(id as string).unwrap();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            router.back();
+          },
+          style: "destructive",
+        },
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
   };
 
   const Header = () => (
     <View className="bg-[#F8FAFC]">
       {/* Dynamic Header Overlay */}
-      <BlurView intensity={80} tint="light" className="absolute top-0 left-0 right-0 z-50 flex-row items-center px-5 py-4 border-b border-gray-100/50" style={{ paddingTop: insets.top }}>
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm">
+      <BlurView
+        intensity={80}
+        tint="light"
+        className="absolute top-0 left-0 right-0 z-50 flex-row items-center px-5 py-4 border-b border-gray-100/50"
+        style={{ paddingTop: insets.top }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"
+        >
           <Ionicons name="chevron-back" size={24} color="#64748B" />
         </TouchableOpacity>
         <View className="ml-4 flex-1">
-          <Text className="text-lg font-black text-gray-900 tracking-tighter" numberOfLines={1}>
+          <Text
+            className="text-lg font-black text-gray-900 tracking-tighter"
+            numberOfLines={1}
+          >
             {profile.name}
           </Text>
           <Text className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">
             {profile._count?.posts || 0} Artifacts
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/settings")} className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm">
+        <TouchableOpacity
+          onPress={() => router.push("/settings")}
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"
+        >
           <Ionicons name="ellipsis-horizontal" size={20} color="#64748B" />
         </TouchableOpacity>
       </BlurView>
@@ -219,13 +253,14 @@ export default function UserProfileScreen() {
           <Image
             source={{ uri: profile.coverImage }}
             className="w-full h-full"
-            contentMode="cover"
+            // contentMode="cover"
+            contentFit="cover"
             transition={500}
           />
         ) : (
           <LinearGradient
-             colors={["#0EA5E9", "#38BDF8", "#7DD3FC"]}
-             className="w-full h-full"
+            colors={["#0EA5E9", "#38BDF8", "#7DD3FC"]}
+            className="w-full h-full"
           />
         )}
       </View>
@@ -234,14 +269,20 @@ export default function UserProfileScreen() {
       <View className="px-5 -mt-20 pb-6">
         <View className="flex-row justify-between items-end">
           <View className="shadow-2xl shadow-sky-400">
-             <Image
-              source={{ uri: profile.image || "https://api.dicebear.com/7.x/avataaars/png?seed=" + profile.username }}
+            <Image
+              source={{
+                uri:
+                  profile.image ||
+                  "https://api.dicebear.com/7.x/avataaars/png?seed=" +
+                    profile.username,
+              }}
               className="w-32 h-32 rounded-[44px] border-4 border-white bg-white"
-              contentMode="cover"
+              // contentMode="cover"
+              contentFit="cover"
               transition={300}
             />
           </View>
-          
+
           <View className="flex-row mb-1 space-x-2">
             {!isMe && (
               <>
@@ -249,13 +290,19 @@ export default function UserProfileScreen() {
                   onPress={handleMessage}
                   className="bg-white w-12 h-12 border border-gray-100 items-center justify-center rounded-2xl shadow-sm"
                 >
-                  <Ionicons name="chatbubble-ellipses-outline" size={22} color="#0EA5E9" />
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={22}
+                    color="#0EA5E9"
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleFollow}
                   className={`px-8 py-3 rounded-2xl shadow-sm ${profile.isFollowing ? "bg-white border border-gray-100" : "bg-sky-500 shadow-sky-200"}`}
                 >
-                  <Text className={`font-black uppercase tracking-wider text-xs ${profile.isFollowing ? "text-gray-400" : "text-white"}`}>
+                  <Text
+                    className={`font-black uppercase tracking-wider text-xs ${profile.isFollowing ? "text-gray-400" : "text-white"}`}
+                  >
                     {profile.isFollowing ? "Bound" : "Connect"}
                   </Text>
                 </TouchableOpacity>
@@ -268,7 +315,7 @@ export default function UserProfileScreen() {
               </>
             )}
             {isMe && (
-               <TouchableOpacity
+              <TouchableOpacity
                 onPress={() => router.push("/profile/update")}
                 className="bg-white px-8 py-3 rounded-2xl border border-gray-100 shadow-sm"
               >
@@ -286,7 +333,7 @@ export default function UserProfileScreen() {
               {profile.name}
             </Text>
             {profile.isVerified && (
-               <Ionicons name="checkmark-circle" size={24} color="#0EA5E9" />
+              <Ionicons name="checkmark-circle" size={24} color="#0EA5E9" />
             )}
           </View>
           <Text className="text-sky-600 font-bold text-[16px] -mt-1">
@@ -302,13 +349,19 @@ export default function UserProfileScreen() {
           {profile.location && (
             <View className="flex-row items-center mr-4 mb-2 bg-white/50 px-3 py-1.5 rounded-xl border border-gray-100">
               <Ionicons name="location-outline" size={14} color="#64748B" />
-              <Text className="text-gray-500 ml-1.5 text-xs font-bold">{profile.location}</Text>
+              <Text className="text-gray-500 ml-1.5 text-xs font-bold">
+                {profile.location}
+              </Text>
             </View>
           )}
           <View className="flex-row items-center mr-4 mb-2 bg-white/50 px-3 py-1.5 rounded-xl border border-gray-100">
             <Ionicons name="calendar-outline" size={14} color="#64748B" />
             <Text className="text-gray-500 ml-1.5 text-xs font-bold">
-              Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              Joined{" "}
+              {new Date(profile.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                year: "numeric",
+              })}
             </Text>
           </View>
         </View>
@@ -316,22 +369,36 @@ export default function UserProfileScreen() {
         {/* Stats Row */}
         <View className="flex-row mt-6 space-x-8">
           <TouchableOpacity
-            onPress={() => router.push({ pathname: "/profile/following", params: { userId: profile.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/profile/following",
+                params: { userId: profile.id },
+              })
+            }
             className="flex-row items-baseline"
           >
             <Text className="text-2xl font-black text-gray-900">
               {profile._count?.following || 0}
             </Text>
-            <Text className="text-gray-400 ml-1 font-bold text-xs uppercase tracking-widest">Following</Text>
+            <Text className="text-gray-400 ml-1 font-bold text-xs uppercase tracking-widest">
+              Following
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: "/profile/followers", params: { userId: profile.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/profile/followers",
+                params: { userId: profile.id },
+              })
+            }
             className="flex-row items-baseline"
           >
             <Text className="text-2xl font-black text-gray-900">
               {profile._count?.followers || 0}
             </Text>
-            <Text className="text-gray-400 ml-1 font-bold text-xs uppercase tracking-widest">Followers</Text>
+            <Text className="text-gray-400 ml-1 font-bold text-xs uppercase tracking-widest">
+              Followers
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -367,11 +434,13 @@ export default function UserProfileScreen() {
         ListHeaderComponent={Header}
         renderItem={({ item }) => (
           <View className="px-5 mt-4">
-            <PostCard 
-              item={item} 
+            <PostCard
+              item={item}
               user={user}
               onPressPost={(id) => router.push(`/post/${id}`)}
-              onPressProfile={(id) => id !== profile?.id && router.push(`/profile/${id}`)}
+              onPressProfile={(id) =>
+                id !== profile?.id && router.push(`/profile/${id}`)
+              }
               onPressOptions={(p) => {
                 setPostForOptions(p);
                 setOptionsModalVisible(true);
@@ -386,7 +455,7 @@ export default function UserProfileScreen() {
         keyExtractor={(item, index) => `${item.id}-${index}`}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
+            refreshing={isProfileLoading}
             onRefresh={onRefresh}
             tintColor="#0EA5E9"
           />
@@ -396,9 +465,11 @@ export default function UserProfileScreen() {
         ListEmptyComponent={
           <View className="items-center py-20 px-10">
             <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
-               <Ionicons name="layers-outline" size={32} color="#94A3B8" />
+              <Ionicons name="layers-outline" size={32} color="#94A3B8" />
             </View>
-            <Text className="text-lg font-black text-gray-900 tracking-tight text-center uppercase">No {activeTab} yet</Text>
+            <Text className="text-lg font-black text-gray-900 tracking-tight text-center uppercase">
+              No {activeTab} yet
+            </Text>
           </View>
         }
       />

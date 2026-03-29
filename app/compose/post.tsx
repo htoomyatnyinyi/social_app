@@ -20,7 +20,7 @@ import {
   useRepostPostMutation,
   useReplyPostMutation,
 } from "../../store/postApi";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
@@ -28,13 +28,8 @@ import * as Haptics from "expo-haptics";
 export default function ComposePostScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const {
-    replyToId,
-    replyToName,
-    quoteId,
-    quoteContent,
-    quoteAuthor,
-  } = useLocalSearchParams();
+  const { replyToId, replyToName, quoteId, quoteContent, quoteAuthor } =
+    useLocalSearchParams();
   const user = useSelector((state: any) => state.auth.user);
 
   const [content, setContent] = useState("");
@@ -46,7 +41,8 @@ export default function ComposePostScreen() {
   const [repostPost, { isLoading: isReposting }] = useRepostPostMutation();
   const [replyPost, { isLoading: isReplying }] = useReplyPostMutation();
 
-  const isLoading = isCreating || isReposting || isReplying || isFetchingLocation;
+  const isLoading =
+    isCreating || isReposting || isReplying || isFetchingLocation;
 
   const handlePickImage = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -97,7 +93,7 @@ export default function ComposePostScreen() {
             uri: result.assets[0].uri,
             base64: `data:image/jpeg;base64,${result.assets[0].base64}`,
           },
-        ].slice(0, 4)
+        ].slice(0, 4),
       );
     }
   };
@@ -123,6 +119,7 @@ export default function ComposePostScreen() {
         setLocationTag(`${city}, ${geocode.country}`);
       }
     } catch (error) {
+      console.log(error);
       Alert.alert("Error", "Could not fetch your location.");
     } finally {
       setIsFetchingLocation(false);
@@ -133,14 +130,17 @@ export default function ComposePostScreen() {
     if ((!content.trim() && images.length === 0) || isLoading) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const finalContent = locationTag ? `${content}\n\n📍 ${locationTag}`.trim() : content.trim();
+    const finalContent = locationTag
+      ? `${content}\n\n📍 ${locationTag}`.trim()
+      : content.trim();
 
     try {
       if (quoteId) {
         await repostPost({
           id: quoteId as string,
           content: finalContent,
-          images: images.length > 0 ? images.map((img) => img.base64) : undefined,
+          images:
+            images.length > 0 ? images.map((img) => img.base64) : undefined,
         }).unwrap();
       } else if (replyToId) {
         await replyPost({
@@ -150,13 +150,18 @@ export default function ComposePostScreen() {
       } else {
         await createPost({
           content: finalContent,
-          images: images.length > 0 ? images.map((img) => img.base64) : undefined,
+          images:
+            images.length > 0 ? images.map((img) => img.base64) : undefined,
           isPublic: true,
         }).unwrap();
       }
       router.back();
     } catch (e) {
-      Alert.alert("Error", "Failed to manifest your thoughts. Please try again.");
+      console.log(e);
+      Alert.alert(
+        "Error",
+        "Failed to manifest your thoughts. Please try again.",
+      );
     }
   };
 
@@ -176,13 +181,17 @@ export default function ComposePostScreen() {
           }}
           className="px-4 py-2"
         >
-          <Text className="text-gray-500 font-bold uppercase tracking-widest text-xs">Cancel</Text>
+          <Text className="text-gray-500 font-bold uppercase tracking-widest text-xs">
+            Cancel
+          </Text>
         </TouchableOpacity>
 
         <View className="flex-row items-center">
           {content.length > 0 && (
             <View className="mr-5 items-center justify-center">
-               <Text className={`font-black text-[10px] ${content.length > 250 ? "text-rose-500" : "text-gray-300"}`}>
+              <Text
+                className={`font-black text-[10px] ${content.length > 250 ? "text-rose-500" : "text-gray-300"}`}
+              >
                 {280 - content.length}
               </Text>
             </View>
@@ -191,15 +200,17 @@ export default function ComposePostScreen() {
             onPress={handlePost}
             disabled={(!content.trim() && images.length === 0) || isLoading}
             className={`px-8 py-2.5 rounded-2xl shadow-lg ${
-              (!content.trim() && images.length === 0) || isLoading 
-                ? "bg-gray-100 shadow-none" 
+              (!content.trim() && images.length === 0) || isLoading
+                ? "bg-gray-100 shadow-none"
                 : "bg-sky-500 shadow-sky-200"
             }`}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Text className="text-white font-black uppercase tracking-widest text-xs">Manifest</Text>
+              <Text className="text-white font-black uppercase tracking-widest text-xs">
+                Manifest
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -220,13 +231,17 @@ export default function ComposePostScreen() {
               <View className="shadow-md shadow-sky-100">
                 <Image
                   source={{
-                    uri: user?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.id}`,
+                    uri:
+                      user?.image ||
+                      `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.id}`,
                   }}
                   className="w-12 h-12 rounded-[20px] bg-white border border-gray-100"
                   contentFit="cover"
                 />
               </View>
-              {replyToId && <View className="w-[1.5px] bg-sky-100 flex-1 my-3 rounded-full" />}
+              {replyToId && (
+                <View className="w-[1.5px] bg-sky-100 flex-1 my-3 rounded-full" />
+              )}
             </View>
 
             {/* Input Column */}
@@ -246,8 +261,8 @@ export default function ComposePostScreen() {
                   replyToName
                     ? "What is your resonance?"
                     : quoteId
-                    ? "Add your perspective..."
-                    : "What artifact will you share today?"
+                      ? "Add your perspective..."
+                      : "What artifact will you share today?"
                 }
                 placeholderTextColor="#94A3B8"
                 className="text-[18px] leading-7 text-gray-900 font-medium mb-6 min-h-[160px]"
@@ -266,8 +281,8 @@ export default function ComposePostScreen() {
                   </Text>
                   <TouchableOpacity
                     onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setLocationTag(null);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setLocationTag(null);
                     }}
                     className="ml-3 w-5 h-5 items-center justify-center rounded-full bg-white shadow-sm"
                   >
@@ -283,9 +298,14 @@ export default function ComposePostScreen() {
                     <Text className="font-black text-[14px] text-gray-900 tracking-tight">
                       {quoteAuthor}
                     </Text>
-                    <Text className="text-sky-500 font-bold text-[10px] ml-2 uppercase tracking-widest">Quote</Text>
+                    <Text className="text-sky-500 font-bold text-[10px] ml-2 uppercase tracking-widest">
+                      Quote
+                    </Text>
                   </View>
-                  <Text className="text-gray-500 font-medium text-[14px] leading-5" numberOfLines={4}>
+                  <Text
+                    className="text-gray-500 font-medium text-[14px] leading-5"
+                    numberOfLines={4}
+                  >
                     {quoteContent}
                   </Text>
                 </View>
@@ -293,9 +313,16 @@ export default function ComposePostScreen() {
 
               {/* Image Artifact Previews */}
               {images.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-8"
+                >
                   {images.map((img, idx) => (
-                    <View key={idx} className="relative mr-4 shadow-lg shadow-gray-200">
+                    <View
+                      key={idx}
+                      className="relative mr-4 shadow-lg shadow-gray-200"
+                    >
                       <Image
                         source={{ uri: img.uri }}
                         className="w-56 h-64 rounded-[32px] bg-white border border-gray-100"
@@ -304,8 +331,10 @@ export default function ComposePostScreen() {
                       />
                       <TouchableOpacity
                         onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setImages((prev) => prev.filter((_, i) => i !== idx));
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Light,
+                          );
+                          setImages((prev) => prev.filter((_, i) => i !== idx));
                         }}
                         className="absolute top-3 right-3 bg-white/90 w-8 h-8 items-center justify-center rounded-full shadow-md"
                       >
@@ -320,41 +349,45 @@ export default function ComposePostScreen() {
         </ScrollView>
 
         {/* Premium Tool Dock */}
-        <BlurView intensity={90} tint="light" className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 bg-white/50">
-            <View className="px-5 py-4 flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                    <TouchableOpacity 
-                        onPress={handlePickImage} 
-                        className="w-12 h-12 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm mr-3"
-                    >
-                        <Ionicons name="image-outline" size={22} color="#64748B" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        onPress={handleTakePhoto} 
-                        className="w-12 h-12 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm mr-3"
-                    >
-                        <Ionicons name="camera-outline" size={22} color="#64748B" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        onPress={handleFetchLocation} 
-                        className={`w-12 h-12 items-center justify-center rounded-2xl border shadow-sm ${locationTag ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-gray-100'}`}
-                    >
-                        <Ionicons
-                            name={locationTag ? "location" : "location-outline"}
-                            size={22}
-                            color={locationTag ? "#10B981" : "#64748B"}
-                        />
-                    </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity className="flex-row items-center bg-gray-50 px-4 py-2 rounded-xl">
-                    <Ionicons name="earth" size={16} color="#94A3B8" />
-                    <Text className="text-gray-400 font-black uppercase tracking-widest text-[10px] ml-2">
-                        Global Diffusion
-                    </Text>
-                </TouchableOpacity>
+        <BlurView
+          intensity={90}
+          tint="light"
+          className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 bg-white/50"
+        >
+          <View className="px-5 py-4 flex-row items-center justify-between">
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={handlePickImage}
+                className="w-12 h-12 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm mr-3"
+              >
+                <Ionicons name="image-outline" size={22} color="#64748B" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleTakePhoto}
+                className="w-12 h-12 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm mr-3"
+              >
+                <Ionicons name="camera-outline" size={22} color="#64748B" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleFetchLocation}
+                className={`w-12 h-12 items-center justify-center rounded-2xl border shadow-sm ${locationTag ? "bg-emerald-50 border-emerald-100" : "bg-white border-gray-100"}`}
+              >
+                <Ionicons
+                  name={locationTag ? "location" : "location-outline"}
+                  size={22}
+                  color={locationTag ? "#10B981" : "#64748B"}
+                />
+              </TouchableOpacity>
             </View>
-            <View style={{ height: Math.max(insets.bottom, 10) }} />
+
+            <TouchableOpacity className="flex-row items-center bg-gray-50 px-4 py-2 rounded-xl">
+              <Ionicons name="earth" size={16} color="#94A3B8" />
+              <Text className="text-gray-400 font-black uppercase tracking-widest text-[10px] ml-2">
+                Global Diffusion
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ height: Math.max(insets.bottom, 10) }} />
         </BlurView>
       </KeyboardAvoidingView>
     </View>

@@ -47,7 +47,7 @@ export interface PostCardProps {
   onPressComment: (postId: string) => void;
   onPressRepost: (post: Post) => void;
   onLike: (postId: string) => Promise<void>;
-  onBookmark: (postId: string) => Promise<void>;
+  onBookmark: (postId: string) => Promise<any>;
 }
 
 // ────────────────────────────────────────────────

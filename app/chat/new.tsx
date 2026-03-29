@@ -5,21 +5,25 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Image,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSearchUsersQuery } from "../../store/authApi";
 import { useCreateChatRoomMutation } from "../../store/chatApi";
 import { useSelector } from "react-redux";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 
 export default function NewChatScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const user = useSelector((state: any) => state.auth.user);
 
@@ -28,6 +32,7 @@ export default function NewChatScreen() {
     data: searchedUsers,
     isLoading,
     isFetching,
+    refetch,
   } = useSearchUsersQuery(search, {
     skip: search.length < 1, // Don't search for empty strings
   });
@@ -39,132 +44,180 @@ export default function NewChatScreen() {
     otherUserId: string,
     otherUserName: string,
   ) => {
-    // X-style selection feedback
-    Haptics.selectionAsync();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
       const room = await createChatRoom(otherUserId).unwrap();
-      // Use replace to prevent user from coming back to search screen when clicking "back" from chat
+      // Replace to prevent coming back to search screen
       router.replace({
         pathname: `/chat/${room.id}` as any,
         params: {
           title: otherUserName,
-          // You can also pass the avatar if your Chat screen needs it immediately
         },
       });
     } catch (e) {
       console.error(e);
-      // Optional: Show a toast or alert
     }
   };
 
+  const filteredUsers = useMemo(() => {
+    return searchedUsers?.filter((u: any) => u.id !== user?.id) || [];
+  }, [searchedUsers, user?.id]);
+
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="p-1 -ml-1"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close-outline" size={28} color="black" />
-          </TouchableOpacity>
-          <Text className="text-[19px] font-bold ml-6">New message</Text>
+    <View className="flex-1 bg-[#F8FAFC]">
+      {/* Premium Header */}
+      <BlurView
+        intensity={90}
+        tint="light"
+        className="px-5 pb-5 z-50 border-b border-gray-100/50 shadow-sm shadow-gray-100"
+        style={{ paddingTop: insets.top + 10 }}
+      >
+        <View className="flex-row items-center justify-between mb-5">
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.back();
+              }}
+              className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+            <View>
+              <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">
+                Resonance
+              </Text>
+              <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                Initiate Connection
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* X usually has a "Next" button here, but for instant chat, we skip it */}
-      </View>
-
-      {/* Search Input Area */}
-      <View className="flex-row items-center px-4 py-2 border-b border-gray-100">
-        <Text className="text-gray-500 font-medium mr-4">To</Text>
-        <TextInput
-          placeholder="Search people"
-          placeholderTextColor="#9CA3AF"
-          className="flex-1 text-[16px] text-gray-900 h-10"
-          value={search}
-          onChangeText={setSearch}
-          autoFocus
-          selectionColor="#1d9bf0" // X-style Blue cursor
-        />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch("")}>
-            <Ionicons name="close-circle" size={18} color="#1d9bf0" />
-          </TouchableOpacity>
-        )}
-      </View>
+        {/* Premium Search Bar */}
+        <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[24px] px-4 py-2.5 shadow-sm shadow-gray-50">
+          <Ionicons name="search" size={18} color="#94A3B8" />
+          <TextInput
+            placeholder="Search for an Echo..."
+            placeholderTextColor="#CBD5E1"
+            className="flex-1 ml-3 text-[16px] text-gray-900 font-medium h-10"
+            value={search}
+            onChangeText={setSearch}
+            autoFocus
+            autoCorrect={false}
+            selectionColor="#0EA5E9"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSearch("");
+              }}
+            >
+              <Ionicons name="close-circle" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </BlurView>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-          {/* Loading Indicator */}
-          {(isLoading || isFetching) && search.length > 0 && (
-            <View className="py-6 items-center">
-              <ActivityIndicator size="small" color="#1d9bf0" />
-            </View>
-          )}
-
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: 20, paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && search.length > 0}
+              onRefresh={refetch}
+              tintColor="#0EA5E9"
+            />
+          }
+        >
           {/* User Results */}
-          {searchedUsers?.map(
-            (u: any) =>
-              u.id !== user?.id && (
-                <TouchableOpacity
-                  key={u.id}
-                  onPress={() => handleStartChat(u.id, u.name)}
-                  activeOpacity={0.6}
-                  className="flex-row items-center px-4 py-3 active:bg-gray-50"
-                >
+          {filteredUsers.map((u: any, index: number) => (
+            <Animated.View
+              key={u.id}
+              entering={FadeInDown.delay(index * 50)}
+            >
+              <TouchableOpacity
+                onPress={() => handleStartChat(u.id, u.name)}
+                activeOpacity={0.8}
+                className="flex-row items-center px-5 py-4 active:bg-white/60 mb-1"
+              >
+                <View className="relative shadow-md shadow-sky-100">
                   <Image
                     source={{
-                      uri: u.image || "https://via.placeholder.com/100",
+                      uri:
+                        u.image ||
+                        `https://api.dicebear.com/7.x/avataaars/png?seed=${u.id}`,
                     }}
-                    className="w-12 h-12 rounded-full bg-gray-100"
+                    className="w-[60px] h-[60px] rounded-[24px] bg-white border border-gray-50"
+                    contentFit="cover"
+                    transition={300}
                   />
-                  <View className="ml-3 flex-1 border-b border-gray-50 pb-3 mt-3">
-                    <View className="flex-row items-center">
-                      <Text
-                        className="font-bold text-gray-900 text-[15px] mr-1"
-                        numberOfLines={1}
-                      >
-                        {u.name}
-                      </Text>
-                      {u.isVerified && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={14}
-                          color="#1d9bf0"
-                        />
-                      )}
+                  {u.isVerified && (
+                    <View className="absolute bottom-0 right-0 w-5 h-5 bg-sky-500 border-2 border-white rounded-full items-center justify-center shadow-sm">
+                      <Ionicons name="checkmark" size={10} color="white" />
                     </View>
-                    <Text className="text-gray-500 text-[14px]">
-                      @{u.username}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ),
-          )}
+                  )}
+                </View>
+                <View className="ml-5 flex-1 border-b border-gray-100/50 pb-4">
+                  <Text
+                    className="font-black text-[17px] text-gray-900 tracking-tight mb-0.5"
+                    numberOfLines={1}
+                  >
+                    {u.name}
+                  </Text>
+                  <Text className="text-gray-400 text-[12px] font-bold uppercase tracking-wider">
+                    @{u.username}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
 
           {/* Empty Search State */}
           {!search && (
-            <View className="px-8 pt-12 items-center">
-              <Text className="text-gray-900 font-bold text-2xl text-center mb-2">
-                Search for people
+            <View className="items-center justify-center mt-20 px-14 opacity-20">
+              <Animated.View entering={ZoomIn}>
+                <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100">
+                  <Ionicons name="sparkles" size={48} color="#94A3B8" />
+                </View>
+              </Animated.View>
+              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
+                Search for Resonance
               </Text>
-              <Text className="text-gray-500 text-[15px] text-center px-4">
-                Find anyone by name or @username to start a conversation.
+              <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+                Find anyone by name or unique frequency to begin a new dialogue.
               </Text>
             </View>
           )}
 
           {/* No Results Found */}
-          {search.length > 0 && searchedUsers?.length === 0 && !isLoading && (
-            <View className="px-8 pt-12 items-center">
-              <Text className="text-gray-500 text-[15px] text-center">
-                No results for {search}
+          {search.length > 0 && filteredUsers.length === 0 && !isLoading && (
+            <View className="items-center justify-center mt-20 px-14 opacity-20">
+              <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100">
+                <Ionicons name="search-outline" size={48} color="#94A3B8" />
+              </View>
+              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
+                No Echoes Found
               </Text>
+              <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+                The frequency &quot;{search}&quot; did not return any resonance from the Oasis.
+              </Text>
+            </View>
+          )}
+
+          {/* Loading Indicator for search */}
+          {isLoading && search.length > 0 && (
+            <View className="py-20 items-center">
+              <ActivityIndicator size="large" color="#0EA5E9" />
             </View>
           )}
         </ScrollView>
@@ -172,125 +225,20 @@ export default function NewChatScreen() {
 
       {/* Global Activity Overlay when creating room */}
       {isCreating && (
-        <View className="absolute inset-0 bg-white/50 items-center justify-center">
-          <ActivityIndicator size="large" color="#1d9bf0" />
-        </View>
+        <BlurView
+          intensity={40}
+          tint="light"
+          className="absolute inset-0 items-center justify-center z-[100]"
+        >
+          <View className="bg-white/80 p-10 rounded-[40px] border border-white shadow-2xl items-center">
+            <ActivityIndicator size="large" color="#0EA5E9" />
+            <Text className="mt-6 text-[11px] font-black text-sky-600 uppercase tracking-[2px]">
+              Tuning Frequency...
+            </Text>
+          </View>
+        </BlurView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
-// import React, { useState } from "react";
-// import {
-//   View,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   ScrollView,
-//   Image,
-//   ActivityIndicator,
-// } from "react-native";
-// import { Ionicons } from "@expo/vector-icons";
-// import { useRouter } from "expo-router";
-// import { useSearchUsersQuery } from "../../store/authApi";
-// import { useCreateChatRoomMutation } from "../../store/chatApi";
-// import { useSelector } from "react-redux";
-// import { SafeAreaView } from "react-native-safe-area-context";
-
-// export default function NewChatScreen() {
-//   const router = useRouter();
-//   const [search, setSearch] = useState("");
-//   const user = useSelector((state: any) => state.auth.user);
-
-//   const { data: searchedUsers, isLoading } = useSearchUsersQuery(search, {
-//     skip: !search,
-//   });
-//   const [createChatRoom] = useCreateChatRoomMutation();
-
-//   const handleStartChat = async (
-//     otherUserId: string,
-//     otherUserName: string,
-//   ) => {
-//     try {
-//       const room = await createChatRoom(otherUserId).unwrap();
-//       // Replace to avoid going back to "New Chat" screen
-//       router.replace({
-//         pathname: `/chat/${room.id}`,
-//         params: { title: otherUserName },
-//       });
-//     } catch (e) {
-//       console.error(e);
-//       alert("Failed to start chat");
-//     }
-//   };
-
-//   return (
-//     <SafeAreaView className="flex-1 bg-white">
-//       {/* Header */}
-//       <View className="flex-row items-center px-4 py-2 border-b border-gray-100">
-//         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-//           <Ionicons name="arrow-back" size={24} color="black" />
-//         </TouchableOpacity>
-//         <Text className="text-lg font-bold ml-4">New Message</Text>
-//       </View>
-
-//       {/* Search Input */}
-//       <View className="px-4 py-3 border-b border-gray-50">
-//         <View className="flex-row items-center bg-gray-100 rounded-2xl px-4 py-2">
-//           <Ionicons name="search" size={20} color="#6B7280" />
-//           <TextInput
-//             placeholder="Search for people"
-//             placeholderTextColor="#9CA3AF"
-//             className="flex-1 ml-3 text-[16px] text-gray-900 h-10"
-//             value={search}
-//             onChangeText={setSearch}
-//             autoFocus
-//           />
-//           {search.length > 0 && (
-//             <TouchableOpacity onPress={() => setSearch("")}>
-//               <Ionicons name="close-circle" size={18} color="#6B7280" />
-//             </TouchableOpacity>
-//           )}
-//         </View>
-//       </View>
-
-//       <ScrollView className="flex-1">
-//         {isLoading && (
-//           <View className="py-10">
-//             <ActivityIndicator size="small" color="#1d9bf0" />
-//           </View>
-//         )}
-
-//         {searchedUsers?.map(
-//           (u: any) =>
-//             u.id !== user?.id && (
-//               <TouchableOpacity
-//                 key={u.id}
-//                 onPress={() => handleStartChat(u.id, u.name)}
-//                 className="flex-row items-center px-4 py-3 border-b border-gray-50 active:bg-gray-50"
-//               >
-//                 <Image
-//                   source={{ uri: u.image || "https://via.placeholder.com/50" }}
-//                   className="w-12 h-12 rounded-full bg-gray-200"
-//                 />
-//                 <View className="ml-3 flex-1">
-//                   <Text className="font-bold text-gray-900 text-base">
-//                     {u.name}
-//                   </Text>
-//                   <Text className="text-gray-500 text-sm">@{u.username}</Text>
-//                 </View>
-//               </TouchableOpacity>
-//             ),
-//         )}
-
-//         {!search && (
-//           <View className="p-8 items-center justify-center">
-//             <Text className="text-gray-400 text-center">
-//               Search for a user to start a conversation
-//             </Text>
-//           </View>
-//         )}
-//       </ScrollView>
-//     </SafeAreaView>
-//   );
-// }
