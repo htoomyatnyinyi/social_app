@@ -4,9 +4,13 @@ import {
   TouchableOpacity,
   Modal,
   TouchableWithoutFeedback,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
 interface PostOptionsModalProps {
   isVisible: boolean;
@@ -25,73 +29,82 @@ export default function PostOptionsModal({
   onDelete,
   isOwner = false,
 }: PostOptionsModalProps) {
+  const handleAction = (action: (() => void) | undefined) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (action) action();
+    onClose();
+  };
+
+  if (!isVisible) return null;
+
   return (
     <Modal
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       visible={isVisible}
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
-        <View className="flex-1 justify-end">
+        <View className="flex-1 justify-end bg-gray-900/20">
+          <BlurView intensity={20} tint="dark" className="absolute inset-0" />
+          
           <TouchableWithoutFeedback>
-            <View className="bg-sky-500 rounded-t-3xl overflow-hidden">
-              <View className="items-center pt-3 pb-2">
-                <View className="w-12 h-1 bg-gray-300 rounded-full" />
+            <View className="bg-white rounded-t-[48px] overflow-hidden border-t border-gray-100 shadow-2xl">
+              <View className="items-center pt-4 pb-2">
+                <View className="w-12 h-1.5 bg-gray-200 rounded-full" />
               </View>
 
-              <View className="pb-8 pt-2">
+              <View className="pb-10 pt-4 px-6">
+                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[3px] mb-6 text-center">
+                    Artifact Options
+                </Text>
+
                 {isOwner ? (
                   <TouchableOpacity
-                    onPress={onDelete}
-                    className="flex-row items-center px-6 py-4 active:bg-gray-100"
+                    onPress={() => handleAction(onDelete)}
+                    className="flex-row items-center px-6 py-5 bg-rose-50 rounded-[28px] border border-rose-100/50 mb-3"
                   >
-                    <Ionicons name="trash-outline" size={24} color="#EF4444" />
-                    <Text className="ml-4 text-[17px] font-medium text-red-500">
-                      Delete Post
+                    <View className="w-10 h-10 rounded-2xl bg-white items-center justify-center mr-4">
+                        <Ionicons name="trash" size={20} color="#F43F5E" />
+                    </View>
+                    <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
+                      Dissolve Artifact
                     </Text>
                   </TouchableOpacity>
                 ) : (
                   <>
                     <TouchableOpacity
-                      onPress={onReport}
-                      className="flex-row items-center px-6 py-4 active:bg-gray-100"
+                      onPress={() => handleAction(onReport)}
+                      className="flex-row items-center px-6 py-5 bg-gray-50 rounded-[28px] border border-gray-100/50 mb-3"
                     >
-                      <Ionicons name="flag-outline" size={24} color="#374151" />
-                      <Text className="ml-4 text-[17px] font-medium text-gray-700">
-                        Report Post
+                      <View className="w-10 h-10 rounded-2xl bg-white items-center justify-center mr-4 shadow-sm shadow-gray-100">
+                         <Ionicons name="flag" size={20} color="#64748B" />
+                      </View>
+                      <Text className="flex-1 text-[15px] font-black text-gray-700 uppercase tracking-widest">
+                        Signal Boundary
                       </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      onPress={onBlock}
-                      className="flex-row items-center px-6 py-4 active:bg-gray-100"
+                      onPress={() => handleAction(onBlock)}
+                      className="flex-row items-center px-6 py-5 bg-gray-50 rounded-[28px] border border-gray-100/50 mb-3"
                     >
-                      <Ionicons
-                        name="person-remove-outline"
-                        size={24}
-                        color="#374151"
-                      />
-                      <Text className="ml-4 text-[17px] font-medium text-gray-700">
-                        Block User
+                      <View className="w-10 h-10 rounded-2xl bg-white items-center justify-center mr-4 shadow-sm shadow-gray-100">
+                        <Ionicons name="person-remove" size={20} color="#64748B" />
+                      </View>
+                      <Text className="flex-1 text-[15px] font-black text-gray-700 uppercase tracking-widest">
+                        Server Presence
                       </Text>
                     </TouchableOpacity>
                   </>
                 )}
 
-                <View className="h-[1px] bg-gray-100 my-2 mx-4" />
-
                 <TouchableOpacity
                   onPress={onClose}
-                  className="flex-row items-center px-6 py-4 active:bg-gray-100"
+                  className="mt-4 py-5 items-center justify-center bg-gray-900 rounded-[28px] shadow-lg shadow-gray-400"
                 >
-                  <Ionicons
-                    name="close-circle-outline"
-                    size={24}
-                    color="#374151"
-                  />
-                  <Text className="ml-4 text-[17px] font-medium text-gray-700">
-                    Cancel
+                  <Text className="text-white font-black text-[12px] uppercase tracking-[3px]">
+                    Return to Silence
                   </Text>
                 </TouchableOpacity>
               </View>

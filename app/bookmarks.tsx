@@ -5,162 +5,138 @@ import {
   Text,
   TouchableOpacity,
   RefreshControl,
-  Image,
   ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useGetBookmarksQuery } from "@/store/postApi";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { 
+  useGetBookmarksQuery, 
+  useLikePostMutation, 
+  useBookmarkPostMutation, 
+  useRepostPostMutation, 
+  useDeleteRepostMutation 
+} from "@/store/postApi";
+import { useSelector } from "react-redux";
+import PostCard, { Post } from "@/components/PostCard";
+import PostOptionsModal from "@/components/PostOptionsModal";
 
 export default function BookmarksScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const user = useSelector((state: any) => state.auth.user);
+  
   const {
     data: bookmarks,
     isLoading,
     refetch,
     isFetching,
-  } = useGetBookmarksQuery({});
+  } = useGetBookmarksQuery({}, { skip: !user });
 
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/post/${item.id}`)}
-      activeOpacity={0.9}
-      className="p-4 border-b border-gray-100 bg-white"
-    >
-      <View className="flex-row">
-        <View className="mr-3">
-          <Image
-            source={{
-              uri: item.author?.image || "https://via.placeholder.com/48",
-            }}
-            className="w-12 h-12 rounded-full bg-gray-100"
-          />
-        </View>
-        <View className="flex-1">
-          <View className="flex-row items-center mb-0.5">
-            <Text
-              className="font-bold text-[15px] text-gray-900"
-              numberOfLines={1}
-            >
-              {item.author?.name || "Anonymous"}
-            </Text>
-            <Text className="text-gray-500 text-[14px] ml-1">
-              @{item.author?.username} ·{" "}
-              {new Date(item.createdAt).toLocaleDateString()}
-            </Text>
-          </View>
-          <Text className="text-[15px] leading-[22px] text-gray-800 mb-2">
-            {item.content}
-          </Text>
-          {/* Images */}
-          {(() => {
-            const imgs = item.images?.length
-              ? item.images
-              : item.image
-                ? [item.image]
-                : [];
-            if (imgs.length === 0) return null;
+  const [likePost] = useLikePostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
+  const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
 
-            if (imgs.length === 1) {
-              return (
-                <Image
-                  source={{ uri: imgs[0] }}
-                  className="w-full h-56 rounded-2xl mb-2 border border-gray-100"
-                  resizeMode="cover"
-                />
-              );
-            }
+  const [optionsModalVisible, setOptionsModalVisible] = React.useState(false);
+  const [postForOptions, setPostForOptions] = React.useState<Post | null>(null);
 
-            return (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="mb-2 flex-row"
-              >
-                {imgs.map((uri: string, idx: number) => (
-                  <Image
-                    key={idx}
-                    source={{ uri }}
-                    className="w-64 h-56 rounded-2xl border border-gray-100 bg-gray-50 mr-2"
-                    resizeMode="cover"
-                  />
-                ))}
-              </ScrollView>
-            );
-          })()}
-          {/* Simple stats row for now */}
-          <View className="flex-row justify-between pr-10 mt-2">
-            <View className="flex-row items-center">
-              <Ionicons name="chatbubble-outline" size={18} color="#6B7280" />
-              <Text className="text-gray-500 text-xs ml-1.5">
-                {item._count?.comments || 0}
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <Ionicons name="repeat-outline" size={18} color="#6B7280" />
-              <Text className="text-gray-500 text-xs ml-1.5">
-                {item._count?.reposts || 0}
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <Ionicons name="heart-outline" size={18} color="#6B7280" />
-              <Text className="text-gray-500 text-xs ml-1.5">
-                {item._count?.likes || 0}
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <Ionicons name="bookmark" size={18} color="#1d9bf0" />
-            </View>
-          </View>
-        </View>
+  const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.back();
+  };
+
+  if (isLoading && !isFetching) {
+    return (
+      <View className="flex-1 justify-center items-center bg-[#F8FAFC]">
+        <ActivityIndicator size="large" color="#0EA5E9" />
       </View>
-    </TouchableOpacity>
-  );
+    );
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
-        <View>
-          <Text className="text-xl font-extrabold text-gray-900">
-            Bookmarks
-          </Text>
-        </View>
-      </View>
-
-      {isLoading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#1d9bf0" />
-        </View>
-      ) : (
-        <FlatList
-          data={bookmarks}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
-              tintColor="#1d9bf0"
-            />
-          }
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center mt-20 px-10">
-              <Text className="text-lg font-bold text-gray-900 mb-2">
-                Save posts for later
-              </Text>
-              <Text className="text-gray-500 text-center">
-                Do not let the good ones fly away! Bookmark posts to easily find
-                them again in the future.
-              </Text>
+    <View className="flex-1 bg-[#F8FAFC]">
+      {/* Premium Header */}
+      <BlurView 
+        intensity={90} 
+        tint="light" 
+        className="px-5 pb-5 z-50 border-b border-gray-100/50" 
+        style={{ paddingTop: insets.top + 10 }}
+      >
+        <View className="flex-row items-center">
+            <TouchableOpacity 
+                onPress={handleBack} 
+                className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+            >
+                <Ionicons name="chevron-back" size={20} color="#64748B" />
+            </TouchableOpacity>
+            <View>
+                <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Vault</Text>
+                <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Preserved Artifacts</Text>
             </View>
-          }
-        />
-      )}
-    </SafeAreaView>
+        </View>
+      </BlurView>
+
+      <FlatList
+        data={bookmarks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View className="px-3">
+             <PostCard
+                item={item}
+                user={user}
+                onPressPost={(id) => router.push(`/post/${id}`)}
+                onPressProfile={(id) => router.push(`/profile/${id}`)}
+                onPressOptions={(p) => {
+                    setPostForOptions(p);
+                    setOptionsModalVisible(true);
+                }}
+                onPressComment={(id) => router.push(`/post/${id}`)}
+                onPressRepost={(p) => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    repostPost({ id: p.id });
+                }}
+                onLike={(id) => likePost({ postId: id }).unwrap()}
+                onBookmark={(id) => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    bookmarkPost(id).unwrap();
+                }}
+            />
+          </View>
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                refetch();
+            }}
+            tintColor="#0EA5E9"
+          />
+        }
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View className="flex-1 items-center justify-center mt-32 px-14 opacity-20">
+            <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 border border-gray-100">
+               <Ionicons name="bookmark" size={48} color="#94A3B8" />
+            </View>
+            <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">Empty Vault</Text>
+            <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+              No artifacts have been preserved in your coordinate yet.
+            </Text>
+          </View>
+        }
+      />
+
+      <PostOptionsModal
+        isVisible={optionsModalVisible}
+        onClose={() => setOptionsModalVisible(false)}
+        isOwner={postForOptions?.author?.id === user?.id}
+        onDelete={() => {}} // Handle delete in bookmarks if needed
+      />
+    </View>
   );
 }
