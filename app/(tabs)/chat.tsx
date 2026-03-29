@@ -212,11 +212,11 @@ export default function ChatListScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingTop: 0, paddingBottom: 20 }}
         ListHeaderComponent={
           <>
             {/* Active Circle Swiper */}
-            {!search && (
+            {/* {!search && (
               <View className="mb-8">
                 <View className="px-6 mb-4 flex-row items-center justify-between">
                   <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -282,10 +282,11 @@ export default function ChatListScreen() {
                   })}
                 </ScrollView>
               </View>
-            )}
+            )} */}
 
             {/* Global Oasis Featured Card */}
-            {publicRoom && !search && (
+            {publicRoom && (
+              // {publicRoom && !search && (
               <Animated.View entering={FadeInRight.delay(200)}>
                 <TouchableOpacity
                   onPress={() => {
@@ -306,7 +307,7 @@ export default function ChatListScreen() {
                   <BlurView
                     intensity={70}
                     tint="dark"
-                    className="p-6 flex-row items-center h-32 bg-black/30"
+                    className="p-6 flex-row items-center h-24 bg-black/30"
                   >
                     <View className="w-14 h-14 rounded-[22px] bg-white/20 items-center justify-center border border-white/40">
                       <Ionicons name="infinite" size={32} color="white" />
