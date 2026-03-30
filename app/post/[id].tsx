@@ -1,43 +1,42 @@
+import { useFollowUserMutation } from "@/store/profileApi";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
-  useState,
-  useCallback,
-  useRef,
   memo,
-  useMemo,
+  useCallback,
   useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Share,
   ScrollView,
+  Share,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import {
-  useGetThreadQuery,
-  useReplyPostMutation,
-  useLikePostMutation,
-  useRepostPostMutation,
-  useIncrementViewCountMutation,
+  useSafeAreaInsets
+} from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import PostOptionsModal from "../../components/PostOptionsModal";
+import {
   useBookmarkPostMutation,
   useDeletePostMutation,
+  useGetThreadQuery,
+  useIncrementViewCountMutation,
+  useLikePostMutation,
+  useReplyPostMutation,
+  useRepostPostMutation,
 } from "../../store/postApi";
-import { useSelector } from "react-redux";
-import { useFollowUserMutation } from "@/store/profileApi";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import PostOptionsModal from "../../components/PostOptionsModal";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
 // import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
@@ -181,7 +180,7 @@ const ReplyItem = memo(
       try {
         const urlToShare = `https://oasis-social.com/post/${item.id}`;
         await Share.share({
-          message: `Oasis Discovery: check out this reply by @${item.author?.username || "oasis"}\n${urlToShare}`,
+          message: `Ananta Discovery: check out this reply by @${item.author?.username || "oasis"}\n${urlToShare}`,
         });
       } catch (error) {
         console.error("Error sharing reply:", error);
@@ -399,7 +398,7 @@ export default function PostDetailScreen() {
 
   useEffect(() => {
     if (id) {
-      incrementViewCount({ postId: id }).catch(() => {});
+      incrementViewCount({ postId: id }).catch(() => { });
     }
   }, [id, incrementViewCount]);
 
@@ -509,10 +508,10 @@ export default function PostDetailScreen() {
           <Ionicons name="search-outline" size={40} color="#CBD5E1" />
         </View>
         <Text className="text-2xl font-black text-gray-900 tracking-tighter uppercase text-center">
-          Missing Thread
+          Missing Post
         </Text>
         <Text className="text-gray-400 text-center mt-2 font-medium">
-          This artifact has vanished into the winds of the oasis.
+          This artifact has vanished into the winds of the ananta.
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -620,11 +619,10 @@ export default function PostDetailScreen() {
                 <View className="flex-row items-center space-x-2">
                   {rootPost.author?.id !== currentUser?.id && (
                     <TouchableOpacity
-                      className={`px-6 py-2.5 rounded-2xl shadow-sm ${
-                        rootPost.isFollowing
-                          ? "bg-white border border-gray-100"
-                          : "bg-sky-500 shadow-sky-200"
-                      }`}
+                      className={`px-6 py-2.5 rounded-2xl shadow-sm ${rootPost.isFollowing
+                        ? "bg-white border border-gray-100"
+                        : "bg-sky-500 shadow-sky-200"
+                        }`}
                       onPress={handleFollow}
                       disabled={isFollowingMutation}
                     >
@@ -867,11 +865,10 @@ export default function PostDetailScreen() {
             <TouchableOpacity
               onPress={handleSendReply}
               disabled={!replyContent.trim()}
-              className={`ml-3 w-12 h-12 rounded-[20px] items-center justify-center shadow-md ${
-                replyContent.trim()
-                  ? "bg-sky-500 shadow-sky-200"
-                  : "bg-gray-100 shadow-none"
-              }`}
+              className={`ml-3 w-12 h-12 rounded-[20px] items-center justify-center shadow-md ${replyContent.trim()
+                ? "bg-sky-500 shadow-sky-200"
+                : "bg-gray-100 shadow-none"
+                }`}
             >
               <Ionicons
                 name="send"

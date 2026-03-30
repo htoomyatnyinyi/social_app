@@ -4,21 +4,21 @@ import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
-  withRepeat, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withRepeat,
   withSequence,
   Easing,
   interpolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { 
-  useGetMeditationStatsQuery, 
-  useRecordSessionMutation, 
-  useUpdateMeditationStatusMutation 
+import {
+  useGetMeditationStatsQuery,
+  useRecordSessionMutation,
+  useUpdateMeditationStatusMutation
 } from '../../store/meditationApi';
 
 const BELL_SOUND = require('../../assets/sounds/bell.mp3');
@@ -33,7 +33,7 @@ const MeditationTimer = () => {
   const [timeLeft, setTimeLeft] = useState(30 * 60); // In seconds
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [repeat, setRepeat] = useState(true);
-  
+
   const pulse = useSharedValue(1);
 
   const loadSound = React.useCallback(async () => {
@@ -82,7 +82,7 @@ const MeditationTimer = () => {
       }, 1000);
     } else if (isActive && timeLeft === 0) {
       playBell();
-      
+
       // Record session to backend
       recordSession({ duration: intervalTime }).catch(console.error);
 
@@ -152,13 +152,13 @@ const MeditationTimer = () => {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           title: 'Meditation Timer',
           headerTransparent: true,
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '600' }
-        }} 
+        }}
       />
       <LinearGradient
         colors={['#0f172a', '#1e293b', '#334155']}
@@ -167,15 +167,15 @@ const MeditationTimer = () => {
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Zen Bell</Text>
-          <TouchableOpacity 
+          <Text style={styles.title}>Meditation Timer</Text>
+          <TouchableOpacity
             onPress={() => setRepeat(!repeat)}
             style={[styles.repeatToggle, repeat && styles.repeatToggleActive]}
           >
-            <Ionicons 
-              name={repeat ? "repeat" : "repeat-outline"} 
-              size={20} 
-              color={repeat ? "#fff" : "#94a3b8"} 
+            <Ionicons
+              name={repeat ? "repeat" : "repeat-outline"}
+              size={20}
+              color={repeat ? "#fff" : "#94a3b8"}
             />
             <Text style={[styles.repeatText, repeat && styles.repeatTextActive]}>
               {repeat ? 'Continuous' : 'Single Session'}
@@ -207,13 +207,13 @@ const MeditationTimer = () => {
           )}
 
           <View style={styles.intervalOptions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => selectInterval(30)}
               style={[styles.intervalBtn, intervalTime === 30 && styles.intervalBtnActive]}
             >
               <Text style={[styles.intervalBtnText, intervalTime === 30 && styles.intervalBtnTextActive]}>30 Min</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => selectInterval(60)}
               style={[styles.intervalBtn, intervalTime === 60 && styles.intervalBtnActive]}
             >
@@ -228,17 +228,17 @@ const MeditationTimer = () => {
 
             <TouchableOpacity onPress={toggleTimer} style={styles.mainBtn}>
               <View style={styles.playIconBox}>
-                <Ionicons 
-                  name={isActive ? "pause" : "play"} 
-                  size={32} 
-                  color="#fff" 
+                <Ionicons
+                  name={isActive ? "pause" : "play"}
+                  size={32}
+                  color="#fff"
                   style={{ marginLeft: isActive ? 0 : 4 }}
                 />
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={playBell} 
+            <TouchableOpacity
+              onPress={playBell}
               style={styles.secondaryBtn}
             >
               <Ionicons name="notifications-outline" size={24} color="#94a3b8" />

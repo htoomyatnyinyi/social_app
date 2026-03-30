@@ -1,35 +1,30 @@
-import React, { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
-  View,
+  Alert,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Platform,
-  Alert,
+  View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useDispatch } from "react-redux";
-import { BlurView } from "expo-blur";
-import * as Haptics from "expo-haptics";
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
-  Layout, 
-  SlideInRight,
-  SlideOutLeft
-} from "react-native-reanimated";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  Layout
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDispatch } from "react-redux";
 
 import {
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
   useSigninMutation,
   useSignupMutation,
   useVerifyCodeMutation,
-  useRequestPasswordResetMutation,
-  useResetPasswordMutation,
 } from "../store/authApi";
 import { setCredentials } from "../store/authSlice";
 
@@ -162,14 +157,14 @@ export default function AuthScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
       >
         {/* Hero Section */}
-        <Animated.View 
+        <Animated.View
           entering={FadeInDown.duration(1000)}
           className="items-center px-10 pt-20 pb-10"
         >
           <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
-             <Ionicons name="leaf" size={48} color="#0EA5E9" />
+            <Ionicons name="leaf" size={48} color="#0EA5E9" />
           </View>
-          <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">Oasis</Text>
+          <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">Ananta  </Text>
           <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-[4px] mt-4 text-center">Arrival Sanctuary</Text>
         </Animated.View>
 
@@ -177,25 +172,25 @@ export default function AuthScreen() {
           {/* View Transitions */}
           <Animated.View layout={Layout.springify()} className="mb-8">
             <Text className="text-2xl font-black text-gray-900 mb-2 tracking-tight uppercase">
-                {activeTab === 0 && "Welcome Home"}
-                {activeTab === 1 && "New Presence"}
-                {activeTab === 2 && "Signal Check"}
-                {activeTab === 3 && "Restore Access"}
-                {activeTab === 4 && "Inbox Insight"}
+              {activeTab === 0 && "Welcome Home"}
+              {activeTab === 1 && "New Presence"}
+              {activeTab === 2 && "Signal Check"}
+              {activeTab === 3 && "Restore Access"}
+              {activeTab === 4 && "Inbox Insight"}
             </Text>
             <Text className="text-gray-400 font-medium text-[13px] uppercase tracking-wider">
-                {activeTab === 0 && "Sync with the global frequency."}
-                {activeTab === 1 && "Initialize your coordinate in the Oasis."}
-                {activeTab === 2 && `Resonating with ${email || "your email"}.`}
-                {activeTab === 3 && "Send a restore pulse to your identity."}
-                {activeTab === 4 && `Enter the 6-digit signal for identity verify.`}
+              {activeTab === 0 && "Sync with the global frequency."}
+              {activeTab === 1 && "Initialize your coordinate in the Ananta."}
+              {activeTab === 2 && `Resonating with ${email || "your email"}.`}
+              {activeTab === 3 && "Send a restore signal to your identity."}
+              {activeTab === 4 && `Enter the 6-digit signal for identity verify.`}
             </Text>
           </Animated.View>
 
           {error ? (
-            <Animated.View 
-                entering={FadeInUp}
-                className="bg-rose-50/50 border border-rose-100/50 p-4 rounded-[24px] mb-8 flex-row items-center"
+            <Animated.View
+              entering={FadeInUp}
+              className="bg-rose-50/50 border border-rose-100/50 p-4 rounded-[24px] mb-8 flex-row items-center"
             >
               <Ionicons name="alert-circle" size={18} color="#F43F5E" />
               <Text className="text-[#F43F5E] ml-3 font-bold text-[12px] uppercase tracking-wide flex-1">
@@ -208,25 +203,25 @@ export default function AuthScreen() {
             {activeTab === 1 && (
               <Animated.View entering={FadeInDown} className="space-y-4 mb-4">
                 <View className="bg-white border border-gray-100 rounded-[24px] px-6 py-4 flex-row items-center shadow-sm shadow-gray-50">
-                    <Ionicons name="person-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="Portait Name"
-                        placeholderTextColor="#CBD5E1"
-                        className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
-                        value={name}
-                        onChangeText={setName}
-                    />
+                  <Ionicons name="person-outline" size={20} color="#94A3B8" />
+                  <TextInput
+                    placeholder="Portait Name"
+                    placeholderTextColor="#CBD5E1"
+                    className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
+                    value={name}
+                    onChangeText={setName}
+                  />
                 </View>
                 <View className="bg-white border border-gray-100 rounded-[24px] px-6 py-4 flex-row items-center shadow-sm shadow-gray-50 mt-4">
-                    <Ionicons name="at-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="Unique Identity"
-                        placeholderTextColor="#CBD5E1"
-                        autoCapitalize="none"
-                        className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
-                        value={username}
-                        onChangeText={setUsername}
-                    />
+                  <Ionicons name="at-outline" size={20} color="#94A3B8" />
+                  <TextInput
+                    placeholder="Unique Identity"
+                    placeholderTextColor="#CBD5E1"
+                    autoCapitalize="none"
+                    className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
+                    value={username}
+                    onChangeText={setUsername}
+                  />
                 </View>
               </Animated.View>
             )}
@@ -234,28 +229,28 @@ export default function AuthScreen() {
             {(activeTab === 0 || activeTab === 1) && (
               <Animated.View entering={FadeInDown} className="space-y-4">
                 <View className="bg-white border border-gray-100 rounded-[24px] px-6 py-4 flex-row items-center shadow-sm shadow-gray-50">
-                    <Ionicons name="mail-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="Coordinate Email"
-                        placeholderTextColor="#CBD5E1"
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
-                        value={email}
-                        onChangeText={setEmail}
-                    />
+                  <Ionicons name="mail-outline" size={20} color="#94A3B8" />
+                  <TextInput
+                    placeholder="Coordinate Email"
+                    placeholderTextColor="#CBD5E1"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
                 </View>
 
                 <View className="bg-white border border-gray-100 rounded-[24px] px-6 py-4 flex-row items-center shadow-sm shadow-gray-50 mt-4">
-                    <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="Security Key"
-                        placeholderTextColor="#CBD5E1"
-                        secureTextEntry
-                        className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
-                        value={password}
-                        onChangeText={setPassword}
-                    />
+                  <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
+                  <TextInput
+                    placeholder="Security Key"
+                    placeholderTextColor="#CBD5E1"
+                    secureTextEntry
+                    className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
+                    value={password}
+                    onChangeText={setPassword}
+                  />
                 </View>
               </Animated.View>
             )}
@@ -293,27 +288,27 @@ export default function AuthScreen() {
             {activeTab === 4 && (
               <Animated.View entering={FadeInDown} className="space-y-4">
                 <View className="bg-white border border-gray-100 rounded-[24px] px-6 py-4 flex-row items-center shadow-sm shadow-gray-50">
-                    <Ionicons name="keypad-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="Recovery Signal"
-                        placeholderTextColor="#CBD5E1"
-                        keyboardType="number-pad"
-                        maxLength={6}
-                        className="flex-1 ml-4 text-2xl text-gray-900 tracking-[8px] font-black"
-                        value={verificationCode}
-                        onChangeText={setVerificationCode}
-                    />
+                  <Ionicons name="keypad-outline" size={20} color="#94A3B8" />
+                  <TextInput
+                    placeholder="Recovery Signal"
+                    placeholderTextColor="#CBD5E1"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    className="flex-1 ml-4 text-2xl text-gray-900 tracking-[8px] font-black"
+                    value={verificationCode}
+                    onChangeText={setVerificationCode}
+                  />
                 </View>
                 <View className="bg-white border border-gray-100 rounded-[24px] px-6 py-4 flex-row items-center shadow-sm shadow-gray-50 mt-4 mb-8">
-                    <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        placeholder="New Security Key"
-                        placeholderTextColor="#CBD5E1"
-                        secureTextEntry
-                        className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
-                        value={password}
-                        onChangeText={setPassword}
-                    />
+                  <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
+                  <TextInput
+                    placeholder="New Security Key"
+                    placeholderTextColor="#CBD5E1"
+                    secureTextEntry
+                    className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
+                    value={password}
+                    onChangeText={setPassword}
+                  />
                 </View>
               </Animated.View>
             )}
@@ -321,22 +316,21 @@ export default function AuthScreen() {
 
           <TouchableOpacity
             onPress={
-              activeTab === 2 ? handleVerify : 
-              activeTab === 3 ? handleForgotPassword : 
-              activeTab === 4 ? handleResetPassword : 
-              handleAuth
+              activeTab === 2 ? handleVerify :
+                activeTab === 3 ? handleForgotPassword :
+                  activeTab === 4 ? handleResetPassword :
+                    handleAuth
             }
             disabled={isPerformingAction}
             activeOpacity={0.9}
-            className={`py-5 rounded-[28px] items-center mt-10 shadow-xl ${
-              isPerformingAction ? "bg-sky-400" : "bg-[#0EA5E9] shadow-sky-200"
-            }`}
+            className={`py-5 rounded-[28px] items-center mt-10 shadow-xl ${isPerformingAction ? "bg-sky-400" : "bg-[#0EA5E9] shadow-sky-200"
+              }`}
           >
             <Text className="text-white font-black text-xs uppercase tracking-[3px]">
               {activeTab === 0 && "Arrive"}
               {activeTab === 1 && "Initialize"}
-              {activeTab === 2 && "Sync Pulse"}
-              {activeTab === 3 && "Send Pulse"}
+              {activeTab === 2 && "Sync Signal"}
+              {activeTab === 3 && "Send Signal"}
               {activeTab === 4 && "Reset Key"}
             </Text>
           </TouchableOpacity>

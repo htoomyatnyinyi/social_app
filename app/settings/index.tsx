@@ -1,13 +1,13 @@
-import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import React from "react";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
 import { useDeleteAccountMutation } from "../../store/settingsApi";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
-import * as Haptics from "expo-haptics";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert("Dissolve Presence", "Are you sure you want to log out of the Oasis?", [
+    Alert.alert("Dissolve Presence", "Are you sure you want to log out of the Ananta?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
@@ -69,7 +69,7 @@ export default function SettingsScreen() {
         },
         {
           icon: "key",
-          label: "Credential Pulse",
+          label: "Credentials",
           sublabel: "Change your security password",
           onPress: () => router.push("/settings/change-password"),
         },
@@ -93,24 +93,25 @@ export default function SettingsScreen() {
       ],
     },
     {
-        title: "Spirit",
-        items: [
-          {
-            icon: "leaf",
-            label: "Stillness Timer",
-            sublabel: "Access your meditation space",
-            onPress: () => router.push("/settings/meditation"),
-          },
-        ],
-      },
+      title: "Spirit",
+      items: [
+        {
+          icon: "leaf",
+          label: "Stillness Timer",
+          sublabel: "Access your meditation space",
+          onPress: () => router.push("/settings/meditation"),
+        },
+      ],
+    },
     {
       title: "Protocol",
       items: [
         {
           icon: "help-circle",
-          label: "Oasis Sanctuary",
+          label: "Ananta Sanctuary",
           sublabel: "Visit the help center",
-          onPress: () => Alert.alert("Coming Soon"),
+          onPress: () => router.push("/settings/help"),
+          // onPress: () => Alert.alert("Coming Soon"),
         },
         {
           icon: "document-text",
@@ -131,26 +132,26 @@ export default function SettingsScreen() {
   return (
     <View className="flex-1 bg-[#F8FAFC]">
       {/* Premium Header */}
-      <BlurView 
-        intensity={90} 
-        tint="light" 
-        className="px-5 pb-5 z-50 border-b border-gray-100/50" 
+      <BlurView
+        intensity={90}
+        tint="light"
+        className="px-5 pb-5 z-50 border-b border-gray-100/50"
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row items-center">
-            <TouchableOpacity 
-                onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.back();
-                }} 
-                className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
-            >
-                <Ionicons name="chevron-back" size={20} color="#64748B" />
-            </TouchableOpacity>
-            <View>
-                <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Coordinate</Text>
-                <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">System Environment</Text>
-            </View>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
+            className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+          >
+            <Ionicons name="chevron-back" size={20} color="#64748B" />
+          </TouchableOpacity>
+          <View>
+            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Coordinate</Text>
+            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">System Environment</Text>
+          </View>
         </View>
       </BlurView>
 
@@ -165,20 +166,20 @@ export default function SettingsScreen() {
                 <TouchableOpacity
                   key={i}
                   onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      item.onPress();
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    item.onPress();
                   }}
                   className={`flex-row items-center px-6 py-5 ${i !== section.items.length - 1 ? "border-b border-gray-100/30" : ""}`}
                 >
                   <View className="w-10 h-10 rounded-2xl bg-gray-50 items-center justify-center mr-4">
-                     <Ionicons name={item.icon as any} size={20} color="#64748B" />
+                    <Ionicons name={item.icon as any} size={20} color="#64748B" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-[15px] font-black text-gray-900 tracking-tight">
-                        {item.label}
+                      {item.label}
                     </Text>
                     <Text className="text-[11px] font-medium text-gray-400 mt-0.5">
-                        {item.sublabel}
+                      {item.sublabel}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
@@ -194,15 +195,15 @@ export default function SettingsScreen() {
             className="flex-row items-center px-6 py-5 bg-rose-50 rounded-[32px] border border-rose-100/50 mb-6 shadow-sm shadow-rose-100"
           >
             <View className="w-10 h-10 rounded-2xl bg-white items-center justify-center mr-4">
-                <Ionicons name="log-out" size={20} color="#F43F5E" />
+              <Ionicons name="log-out" size={20} color="#F43F5E" />
             </View>
             <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
               Dissolve Presence
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={handleDeleteAccount} 
+          <TouchableOpacity
+            onPress={handleDeleteAccount}
             className="items-center py-4"
           >
             <Text className="text-center text-gray-400 font-bold text-[12px] uppercase tracking-widest">
@@ -211,8 +212,8 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           <View className="items-center mt-12 opacity-20">
-             <Text className="text-[10px] font-black text-gray-900 uppercase tracking-[4px]">Oasis Social</Text>
-             <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Version Alpha 2.4.0</Text>
+            <Text className="text-[10px] font-black text-gray-900 uppercase tracking-[4px]">Ananta Social</Text>
+            <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Version Alpha 2.4.1009</Text>
           </View>
         </View>
       </ScrollView>

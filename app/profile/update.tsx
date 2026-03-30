@@ -1,27 +1,26 @@
-import React, { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
-  ActivityIndicator,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useSelector, useDispatch } from "react-redux";
-import { useUpdateProfileMutation } from "../../store/profileApi";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "../../store/authSlice";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import * as Haptics from "expo-haptics";
-import { BlurView } from "expo-blur";
+import { useUpdateProfileMutation } from "../../store/profileApi";
 
 interface User {
   id: string;
@@ -47,7 +46,7 @@ export default function UpdateProfileScreen() {
   const [bio, setBio] = useState(user?.bio || "");
   const [location, setLocation] = useState(user?.location || "");
   const [website, setWebsite] = useState(user?.website || "");
-  
+
   const [dob, setDob] = useState<Date>(user?.dob ? new Date(user.dob) : new Date(2000, 0, 1));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -158,11 +157,11 @@ export default function UpdateProfileScreen() {
   return (
     <View className="flex-1 bg-[#F8FAFC]">
       {/* Premium Header */}
-      <View 
-        style={{ paddingTop: insets.top }} 
+      <View
+        style={{ paddingTop: insets.top }}
         className="bg-white/80 border-b border-gray-100 flex-row items-center justify-between px-5 py-4"
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           className="w-10 h-10 items-center justify-center rounded-2xl bg-gray-50 border border-gray-100"
         >
@@ -195,7 +194,7 @@ export default function UpdateProfileScreen() {
               <Image
                 source={{ uri: coverImage }}
                 className="w-full h-full"
-                contentMode="cover"
+                contentFit="cover"
                 transition={500}
               />
             ) : (
@@ -218,9 +217,9 @@ export default function UpdateProfileScreen() {
           <View className="px-5 -mt-14 mb-8">
             <View className="relative w-28 h-28 shadow-2xl shadow-sky-300">
               <Image
-                source={{ uri: profileImage || "https://api.dicebear.com/7.x/avataaars/png?seed=user" }}
+                source={{ uri: profileImage || "https://api.dicebear.com/7.x/avataaars/png?seed=user1" }}
                 className="w-28 h-28 rounded-[40px] border-4 border-white bg-white"
-                contentMode="cover"
+                contentFit="cover"
                 transition={300}
               />
               <TouchableOpacity
@@ -298,7 +297,7 @@ export default function UpdateProfileScreen() {
 
             <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
               <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Inception (Birth Date)</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setShowDatePicker(true);
@@ -310,7 +309,7 @@ export default function UpdateProfileScreen() {
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
-              
+
               {showDatePicker && (
                 <View className="mt-2 border-t border-gray-50 pt-2">
                   <DateTimePicker
@@ -321,7 +320,7 @@ export default function UpdateProfileScreen() {
                     maximumDate={new Date()}
                   />
                   {Platform.OS === 'ios' && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setShowDatePicker(false)}
                       className="items-center py-2"
                     >

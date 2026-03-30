@@ -1,34 +1,34 @@
-import React, { useCallback, useState, useMemo } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import * as Linking from "expo-linking";
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Dimensions,
   FlatList,
+  RefreshControl,
   Text,
   TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Dimensions,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import Animated, {
+  FadeInDown,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCreateChatRoomMutation } from "../../store/chatApi";
 import {
   useGetNotificationsQuery,
   useMarkAllAsReadMutation,
   useMarkAsReadMutation,
 } from "../../store/notificationApi";
-import { useCreateChatRoomMutation } from "../../store/chatApi";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
-import * as Haptics from "expo-haptics";
-import Animated, { 
-    FadeInDown, 
-    useSharedValue, 
-    useAnimatedStyle, 
-    withSpring,
-    interpolate
-} from "react-native-reanimated";
 
 const { width } = Dimensions.get('window');
 
@@ -85,56 +85,56 @@ const NotificationItem = React.memo(function NotificationItem({
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40)}>
-        <TouchableOpacity
-            onPress={() => onPress(item)}
-            activeOpacity={0.8}
-            className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${item.read ? "bg-white border-gray-50/50" : `${config.bg} border-gray-100/50`} items-start shadow-sm shadow-gray-100`}
-        >
-            <View className="mr-4 pt-1">
-                <View 
-                    className="w-12 h-12 rounded-[20px] items-center justify-center bg-white border border-gray-100 shadow-sm"
-                >
-                    <Ionicons name={config.icon as any} size={22} color={config.color} />
-                </View>
-            </View>
+      <TouchableOpacity
+        onPress={() => onPress(item)}
+        activeOpacity={0.8}
+        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${item.read ? "bg-white border-gray-50/50" : `${config.bg} border-gray-100/50`} items-start shadow-sm shadow-gray-100`}
+      >
+        <View className="mr-4 pt-1">
+          <View
+            className="w-12 h-12 rounded-[20px] items-center justify-center bg-white border border-gray-100 shadow-sm"
+          >
+            <Ionicons name={config.icon as any} size={22} color={config.color} />
+          </View>
+        </View>
 
-            <View className="flex-1">
-                <View className="flex-row items-center justify-between mb-1">
-                    <TouchableOpacity 
-                        onPress={() => onPressProfile(item.issuer?.id)}
-                        className="flex-row items-center"
-                    >
-                        <Image
-                            source={{ uri: item.issuer?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.issuer?.id}` }}
-                            className="w-6 h-6 rounded-xl mr-2 bg-white border border-gray-50 shadow-sm"
-                        />
-                        <Text className="font-black text-gray-900 text-[14px] tracking-tight">{item.issuer?.name || "Member"}</Text>
-                    </TouchableOpacity>
-                    <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                        {formatTimeAgo(item.createdAt)}
-                    </Text>
-                </View>
+        <View className="flex-1">
+          <View className="flex-row items-center justify-between mb-1">
+            <TouchableOpacity
+              onPress={() => onPressProfile(item.issuer?.id)}
+              className="flex-row items-center"
+            >
+              <Image
+                source={{ uri: item.issuer?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.issuer?.id}` }}
+                className="w-6 h-6 rounded-xl mr-2 bg-white border border-gray-50 shadow-sm"
+              />
+              <Text className="font-black text-gray-900 text-[14px] tracking-tight">{item.issuer?.name || "Member"}</Text>
+            </TouchableOpacity>
+            <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
+              {formatTimeAgo(item.createdAt)}
+            </Text>
+          </View>
 
-                <Text className="text-[14px] text-gray-700 font-medium leading-[20px] pr-4">
-                    {config.text}
-                    {item._groupCount > 1 && (
-                        <Text className="text-sky-500 font-black"> & {item._groupCount - 1} others</Text>
-                    )}
-                </Text>
-
-                {item.post && (
-                    <View className="mt-4 bg-white/60 p-4 rounded-[22px] border border-gray-100 shadow-sm shadow-gray-50">
-                        <Text className="text-gray-500 text-[13px] leading-[18px] font-medium italic" numberOfLines={2}>
-                        &quot;{item.post.content}&quot;
-                        </Text>
-                    </View>
-                )}
-            </View>
-
-            {!item.read && (
-                <View className="w-2.5 h-2.5 rounded-full absolute top-6 right-6 shadow-sm" style={{ backgroundColor: config.color }} />
+          <Text className="text-[14px] text-gray-700 font-medium leading-[20px] pr-4">
+            {config.text}
+            {item._groupCount > 1 && (
+              <Text className="text-sky-500 font-black"> & {item._groupCount - 1} others</Text>
             )}
-        </TouchableOpacity>
+          </Text>
+
+          {item.post && (
+            <View className="mt-4 bg-white/60 p-4 rounded-[22px] border border-gray-100 shadow-sm shadow-gray-50">
+              <Text className="text-gray-500 text-[13px] leading-[18px] font-medium italic" numberOfLines={2}>
+                &quot;{item.post.content}&quot;
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {!item.read && (
+          <View className="w-2.5 h-2.5 rounded-full absolute top-6 right-6 shadow-sm" style={{ backgroundColor: config.color }} />
+        )}
+      </TouchableOpacity>
     </Animated.View>
   );
 });
@@ -143,7 +143,7 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"all" | "mentions" | "verified">("all");
-  
+
   const {
     data: notificationsData,
     isLoading,
@@ -174,7 +174,7 @@ export default function NotificationsScreen() {
           router.push(`/chat/${room.id}`);
           return;
         } catch (e) {
-             console.error(e);
+          console.error(e);
         }
       }
 
@@ -191,9 +191,9 @@ export default function NotificationsScreen() {
 
     let filtered = notifications;
     if (activeTab === "mentions") {
-        filtered = notifications.filter(n => n.type === "MENTION" || n.type === "REPLY");
+      filtered = notifications.filter(n => n.type === "MENTION" || n.type === "REPLY");
     } else if (activeTab === "verified") {
-        filtered = notifications.filter(n => n.issuer?.username === "oasis");
+      filtered = notifications.filter(n => n.issuer?.username === "ananta");
     }
 
     const groups: Record<string, any[]> = {};
@@ -217,10 +217,10 @@ export default function NotificationsScreen() {
 
   const tabProgress = useSharedValue(0);
   const handleTabChange = (tab: any, index: number) => {
-      if (tab === activeTab) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setActiveTab(tab);
-      tabProgress.value = withSpring(index * (1/3), { damping: 20 });
+    if (tab === activeTab) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveTab(tab);
+    tabProgress.value = withSpring(index * (1 / 3), { damping: 20 });
   };
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -231,39 +231,39 @@ export default function NotificationsScreen() {
     <View className="flex-1 bg-[#F8FAFC]">
       {/* Premium Sticky Header */}
       <BlurView intensity={90} tint="light" className="px-5 pb-5 z-50 border-b border-gray-100/50" style={{ paddingTop: insets.top + 10 }}>
-          <View className="flex-row justify-between items-center mb-6">
-              <View>
-                  <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Presence</Text>
-                  <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Temporal Frequency</Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => {
-                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                   markAllAsRead({});
-                }} 
-                className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
-              >
-                  <Ionicons name="checkmark-done" size={20} color="#0EA5E9" />
-              </TouchableOpacity>
+        <View className="flex-row justify-between items-center mb-6">
+          <View>
+            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Presence</Text>
+            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Temporal Frequency</Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              markAllAsRead({});
+            }}
+            className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
+          >
+            <Ionicons name="checkmark-done" size={20} color="#0EA5E9" />
+          </TouchableOpacity>
+        </View>
 
-          {/* Minimalist Tabs */}
-          <View className="flex-row bg-gray-100/50 p-1 rounded-2xl h-11 relative">
-            <Animated.View 
-                style={[{ position: 'absolute', top: 4, bottom: 4, width: '33.33%', backgroundColor: '#fff', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }, indicatorStyle]} 
-            />
-            {["all", "mentions", "verified"].map((tab, index) => (
-                <TouchableOpacity 
-                    key={tab} 
-                    className="flex-1 items-center justify-center" 
-                    onPress={() => handleTabChange(tab as any, index)}
-                >
-                    <Text className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {tab}
-                    </Text>
-                </TouchableOpacity>
-            ))}
-          </View>
+        {/* Minimalist Tabs */}
+        <View className="flex-row bg-gray-100/50 p-1 rounded-2xl h-11 relative">
+          <Animated.View
+            style={[{ position: 'absolute', top: 4, bottom: 4, width: '33.33%', backgroundColor: '#fff', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }, indicatorStyle]}
+          />
+          {["all", "mentions", "verified"].map((tab, index) => (
+            <TouchableOpacity
+              key={tab}
+              className="flex-1 items-center justify-center"
+              onPress={() => handleTabChange(tab as any, index)}
+            >
+              <Text className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </BlurView>
 
       {isLoading && !isFetching ? (
@@ -284,13 +284,13 @@ export default function NotificationsScreen() {
             />
           )}
           refreshControl={
-            <RefreshControl 
-                refreshing={isFetching} 
-                onRefresh={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    refetch();
-                }} 
-                tintColor="#0EA5E9" 
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                refetch();
+              }}
+              tintColor="#0EA5E9"
             />
           }
           contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }}
@@ -311,8 +311,8 @@ export default function NotificationsScreen() {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push("/compose/post");
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/compose/post");
         }}
         style={{
           shadowColor: "#0EA5E9",

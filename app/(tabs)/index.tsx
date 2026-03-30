@@ -1,45 +1,42 @@
-import React, { useState, useCallback, useMemo } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  View,
-  FlatList,
   ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
   Text,
   TouchableOpacity,
-  RefreshControl,
-  Alert,
-  Platform,
+  View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import PostCard, { Post } from "../../components/PostCard";
+import PostOptionsModal from "../../components/PostOptionsModal";
 import {
-  useGetPostsQuery,
-  useLikePostMutation,
-  useReplyPostMutation,
-  useRepostPostMutation,
+  useBlockUserMutation,
   useBookmarkPostMutation,
   useDeletePostMutation,
   useDeleteRepostMutation,
-  useBlockUserMutation,
+  useGetPostsQuery,
+  useLikePostMutation,
   useReportPostMutation,
+  useRepostPostMutation
 } from "../../store/postApi";
-import { useSelector } from "react-redux";
-import { useRouter } from "expo-router";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import PostOptionsModal from "../../components/PostOptionsModal";
-import PostCard, { Post } from "../../components/PostCard";
-import { BlurView } from "expo-blur";
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  interpolate,
-  withTiming
-} from "react-native-reanimated";
-import { Image } from "expo-image";
-import * as Haptics from "expo-haptics";
 
 const TRENDING_TOPICS = [
   { id: "1", label: "Zen", icon: "leaf", color: "#10B981" },
-  { id: "2", label: "Oasis", icon: "water", color: "#0EA5E9" },
+  { id: "2", label: "Ananta", icon: "water", color: "#0EA5E9" },
   { id: "3", label: "Artifacts", icon: "color-palette", color: "#F59E0B" },
   { id: "4", label: "Code", icon: "code-working", color: "#6366F1" },
   { id: "5", label: "Presence", icon: "pulse", color: "#F43F5E" },
@@ -177,11 +174,11 @@ export default function FeedScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20 }}
         renderItem={({ item }) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-white px-5 py-3 rounded-[22px] mr-3 flex-row items-center shadow-sm shadow-gray-200 border border-gray-50"
             onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push(`/explore?q=${encodeURIComponent(item.label)}`);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/explore?q=${encodeURIComponent(item.label)}`);
             }}
           >
             <View className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: item.color }} />
@@ -195,13 +192,13 @@ export default function FeedScreen() {
   return (
     <View className="flex-1 bg-[#F8FAFC]">
       {/* Premium Sticky Header */}
-      <BlurView 
-        intensity={90} 
-        tint="light" 
+      <BlurView
+        intensity={90}
+        tint="light"
         className="flex-row items-center justify-between px-5 pb-4 z-50 border-b border-gray-100/50"
         style={{ paddingTop: insets.top + 10 }}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/profile");
@@ -217,13 +214,13 @@ export default function FeedScreen() {
         </TouchableOpacity>
 
         <View className="items-center">
-          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Oasis</Text>
+          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Ananta</Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/settings/meditation");
+            router.push("/settings");
           }}
           className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
         >
@@ -239,7 +236,7 @@ export default function FeedScreen() {
             {/* Premium Tab Bar */}
             <View className="px-5 py-5">
               <View className="flex-row bg-gray-100/30 p-1.5 rounded-[24px] h-[52px] relative border border-gray-100/80">
-                <Animated.View 
+                <Animated.View
                   style={[
                     {
                       position: 'absolute',
@@ -263,9 +260,8 @@ export default function FeedScreen() {
                   onPress={() => handleTabChange("public")}
                 >
                   <Text
-                    className={`font-black uppercase tracking-widest text-[10px] ${
-                      activeTab === "public" ? "text-gray-900" : "text-gray-400"
-                    }`}
+                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "public" ? "text-gray-900" : "text-gray-400"
+                      }`}
                   >
                     Discovery
                   </Text>
@@ -275,9 +271,8 @@ export default function FeedScreen() {
                   onPress={() => handleTabChange("private")}
                 >
                   <Text
-                    className={`font-black uppercase tracking-widest text-[10px] ${
-                      activeTab === "private" ? "text-gray-900" : "text-gray-400"
-                    }`}
+                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "private" ? "text-gray-900" : "text-gray-400"
+                      }`}
                   >
                     Resonance
                   </Text>
@@ -285,24 +280,24 @@ export default function FeedScreen() {
               </View>
             </View>
 
-            {activeTab === "public" && renderTrending()}
+            {/* {activeTab === "public" && renderTrending()} */}
           </View>
         )}
         renderItem={({ item }) => (
           <View className="px-3">
-             <PostCard
-                item={item as Post}
-                user={user}
-                onPressPost={(id) => router.push(`/post/${id}`)}
-                onPressProfile={(id) => router.push(`/profile/${id}`)}
-                onPressOptions={(p) => {
+            <PostCard
+              item={item as Post}
+              user={user}
+              onPressPost={(id) => router.push(`/post/${id}`)}
+              onPressProfile={(id) => router.push(`/profile/${id}`)}
+              onPressOptions={(p) => {
                 setPostForOptions(p);
                 setOptionsModalVisible(true);
-                }}
-                onPressComment={(id) => router.push(`/post/${id}`)}
-                onPressRepost={handleRepostAction}
-                onLike={handleLike}
-                onBookmark={handleBookmark}
+              }}
+              onPressComment={(id) => router.push(`/post/${id}`)}
+              onPressRepost={handleRepostAction}
+              onLike={handleLike}
+              onBookmark={handleBookmark}
             />
           </View>
         )}
@@ -329,7 +324,7 @@ export default function FeedScreen() {
             <ActivityIndicator className="py-8" color="#0EA5E9" />
           ) : (
             <View className="py-20 items-center opacity-20">
-               <Ionicons name="infinite" size={24} color="#94A3B8" />
+              <Ionicons name="infinite" size={24} color="#94A3B8" />
             </View>
           )
         }
@@ -341,8 +336,8 @@ export default function FeedScreen() {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push("/compose/post");
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/compose/post");
         }}
         style={{
           shadowColor: "#0EA5E9",
