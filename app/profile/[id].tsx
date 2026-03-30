@@ -225,7 +225,7 @@ export default function UserProfileScreen() {
             await muteUser(id as string).unwrap();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert(
-              "Oasis Silence",
+              "Ananta Silence",
               "You won't see their posts in your feed anymore.",
             );
           },
@@ -260,7 +260,7 @@ export default function UserProfileScreen() {
         </TouchableOpacity>
         <View className="ml-4 flex-1">
           <Text
-            className="text-lg font-black text-gray-900 tracking-tighter"
+            className="text-lg font-black pt-2 text-gray-900 tracking-tighter"
             numberOfLines={1}
           >
             {profile.name}
@@ -357,8 +357,9 @@ export default function UserProfileScreen() {
 
         <View className="mt-5">
           <View className="flex-row items-center">
-            <Text className="text-3xl font-black text-gray-900 tracking-tighter mr-1">
+            <Text className="text-3xl font-black text-red-500 pt-5 text-gray-900  tracking-tighter mr-1">
               {profile.name}
+              {/* စမ်းသပ်ခြင်း */}
             </Text>
             {profile.isVerified && (
               <Ionicons name="checkmark-circle" size={24} color="#0EA5E9" />

@@ -240,7 +240,7 @@ export default function ProfileScreen() {
 
         <View className="mt-4">
           <View className="flex-row items-center">
-            <Text className="text-3xl font-black text-gray-900 tracking-tighter pt-5 mr-1">
+            <Text className="text-3xl font-black text-gray-900 mt-1  tracking-tighter pt-5 mr-1">
               {profile?.name || user?.name || "Member"}
             </Text>
             {profile?.isVerified && (
