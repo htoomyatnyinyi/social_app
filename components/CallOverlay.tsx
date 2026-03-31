@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions } from 'react-native';
 import { RTCView as NativeRTCView, MediaStream } from 'react-native-webrtc';
 import { Ionicons } from '@expo/vector-icons';
-import { CallState } from '../hooks/useWebRTC';
+import { CallState, CallType } from '../hooks/useWebRTC';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +11,7 @@ const RTCView = !!NativeRTCView ? NativeRTCView : (props: any) => <View style={[
 
 interface CallOverlayProps {
   callState: CallState;
+  callType: CallType;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   callerName?: string;
@@ -26,6 +27,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function CallOverlay({
   callState,
+  callType,
   localStream,
   remoteStream,
   callerName = 'Unknown',
@@ -56,7 +58,7 @@ export default function CallOverlay({
       <View style={styles.container}>
 
         {/* BACKGROUND LAYER (Ringing/Calling Avatars or Native Remote Video) */}
-        {callState === 'CONNECTED' && remoteStream ? (
+        {callState === 'CONNECTED' && callType === 'video' && remoteStream ? (
           <RTCView
             streamURL={remoteStream.toURL()}
             style={styles.fullScreenVideo}
@@ -71,13 +73,13 @@ export default function CallOverlay({
             />
             <Text style={styles.callerName}>{callerName}</Text>
             <Text style={styles.callStatus}>
-              {callState === 'RINGING' ? 'Incoming Video Call...' : 'Calling...'}
+              {callState === 'RINGING' ? `Incoming ${callType} Call...` : 'Calling...'}
             </Text>
           </View>
         )}
 
         {/* PICTURE IN PICTURE (Local Video) */}
-        {(callState === 'CONNECTED' || callState === 'CALLING') && localStream && !isVideoOff && (
+        {(callState === 'CONNECTED' || callState === 'CALLING') && callType === 'video' && localStream && !isVideoOff && (
           <View style={styles.pipContainer}>
             <RTCView
               streamURL={localStream.toURL()}
@@ -98,7 +100,7 @@ export default function CallOverlay({
                   <Ionicons name="close" size={32} color="white" />
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.controlButton, styles.acceptButton]} onPress={onAccept}>
-                  <Ionicons name="videocam" size={32} color="white" />
+                  <Ionicons name={callType === 'video' ? "videocam" : "call"} size={32} color="white" />
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -113,15 +115,17 @@ export default function CallOverlay({
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.controlButton, styles.rejectButton]} onPress={onEnd}>
-                  <Ionicons name="call" size={32} color="white" />
+                  <Ionicons name="call" size={32} color="white" style={{ transform: [{ rotate: '135deg' }] }} />
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.smallControlButton, isVideoOff && styles.controlActive]}
-                  onPress={handleVideo}
-                >
-                  <Ionicons name={isVideoOff ? "videocam-off" : "videocam"} size={28} color="white" />
-                </TouchableOpacity>
+                {callType === 'video' && (
+                  <TouchableOpacity
+                    style={[styles.smallControlButton, isVideoOff && styles.controlActive]}
+                    onPress={handleVideo}
+                  >
+                    <Ionicons name={isVideoOff ? "videocam-off" : "videocam"} size={28} color="white" />
+                  </TouchableOpacity>
+                )}
               </View>
             ) : null}
 

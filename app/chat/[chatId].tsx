@@ -483,7 +483,11 @@ export default function ChatScreen() {
   };
 
   const startVideoCall = () => {
-    webRTC.startCall();
+    webRTC.startCall('video');
+  };
+
+  const startVoiceCall = () => {
+    webRTC.startCall('voice');
   };
 
   const handleLongPress = useCallback(
@@ -618,6 +622,20 @@ export default function ChatScreen() {
               </Text>
             </View>
           </View>
+          <TouchableOpacity
+            onPress={startVoiceCall}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "#F0FDF4",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 8,
+            }}
+          >
+            <Ionicons name="call" size={20} color="#10B981" />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={startVideoCall}
             style={{
@@ -891,6 +909,7 @@ export default function ChatScreen() {
 
       <CallOverlay
         callState={webRTC.callState}
+        callType={webRTC.callType}
         localStream={webRTC.localStream}
         remoteStream={webRTC.remoteStream}
         callerName={title as string}

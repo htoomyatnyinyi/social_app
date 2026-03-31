@@ -27,8 +27,8 @@ class MockRTCPeerConnection {
 const ActualRTCPeerConnection = isNativeAvailable ? RTCPeerConnection : (MockRTCPeerConnection as any);
 const ActualRTCIceCandidate = isNativeAvailable ? RTCIceCandidate : (class { constructor(c: any) { } } as any);
 const ActualRTCSessionDescription = isNativeAvailable ? RTCSessionDescription : (class { constructor(d: any) { } } as any);
-
 export type CallState = 'IDLE' | 'RINGING' | 'CALLING' | 'CONNECTED';
+export type CallType = 'voice' | 'video';
 
 interface UseWebRTCProps {
   chatId: string;
@@ -38,6 +38,7 @@ interface UseWebRTCProps {
 
 export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps) => {
   const [callState, setCallState] = useState<CallState>('IDLE');
+  const [callType, setCallType] = useState<CallType>('video');
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
@@ -58,16 +59,18 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     pendingIceCandidates.current = [];
   }, [localStream]);
 
-  const setupLocalStream = async () => {
+  const setupLocalStream = async (type: CallType = 'video') => {
     try {
       await Audio.requestPermissionsAsync();
-      const stream = await (mediaDevices as any).getUserMedia({
+      const constraints = {
         audio: true,
-        video: {
+        video: type === 'video' ? {
           facingMode: 'user',
           frameRate: 30,
-        },
-      });
+        } : false,
+      };
+      
+      const stream = await (mediaDevices as any).getUserMedia(constraints);
       setLocalStream(stream);
       return stream;
     } catch (e) {
@@ -109,19 +112,20 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     return pc;
   };
 
-  const startCall = async () => {
+  const startCall = async (type: CallType = 'video') => {
     if (!isNativeAvailable) {
       alert("Please use a Development Build for calls.");
       return;
     }
+    setCallType(type);
     setCallState('CALLING');
-    await setupLocalStream();
-    sendSignal({ type: 'call_invite', chatId, senderId: currentUserId });
+    await setupLocalStream(type);
+    sendSignal({ type: 'call_invite', chatId, senderId: currentUserId, callType: type });
   };
 
   const acceptCall = async () => {
     setCallState('CONNECTED');
-    await setupLocalStream();
+    await setupLocalStream(callType);
     sendSignal({ type: 'call_accept', chatId, senderId: currentUserId });
   };
 
@@ -131,6 +135,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     try {
       switch (data.type) {
         case 'call_invite':
+          setCallType(data.callType || 'video');
           setCallState('RINGING');
           break;
 
@@ -206,6 +211,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
 
   return {
     callState,
+    callType,
     localStream,
     remoteStream,
     startCall,
