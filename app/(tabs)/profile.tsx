@@ -3,7 +3,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
@@ -33,7 +33,6 @@ import {
 export default function ProfileScreen() {
   const user = useSelector((state: any) => state.auth.user);
   const dispatch = useDispatch();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<"posts" | "replies" | "likes">(
@@ -79,8 +78,8 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    dispatch(logout());
     router.replace("/auth");
+    setTimeout(() => dispatch(logout()), 100);
   };
 
   const onRefresh = () => {

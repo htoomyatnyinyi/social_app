@@ -7,14 +7,12 @@ import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
-import { useDeleteAccountMutation } from "../../store/settingsApi";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.auth.user);
-  const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
 
   const handleLogout = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -25,37 +23,13 @@ export default function SettingsScreen() {
         style: "destructive",
         onPress: () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          dispatch(logout());
           router.replace("/auth");
+          setTimeout(() => dispatch(logout()), 100);
         },
       },
     ]);
   };
 
-  const handleDeleteAccount = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    Alert.alert(
-      "Erasure",
-      "This action is absolute. Your existence in the Oasis will be permanently dissolved. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Erase Account",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteAccount({}).unwrap();
-              dispatch(logout());
-              router.replace("/auth");
-              Alert.alert("Presence Dissolved", "Your account has been successfully erased.");
-            } catch (error) {
-              Alert.alert("Error", "Failed to erase existence. Try again.");
-            }
-          },
-        },
-      ],
-    );
-  };
 
   const sections = [
     {
@@ -72,6 +46,23 @@ export default function SettingsScreen() {
           label: "Credentials",
           sublabel: "Change your security password",
           onPress: () => router.push("/settings/change-password"),
+        },
+      ],
+    },
+    {
+      title: "Sanctuary Control",
+      items: [
+        {
+          icon: "hand-left",
+          label: "Blocked Members",
+          sublabel: "Manage your blocked entities",
+          onPress: () => router.push("/settings/block"),
+        },
+        {
+          icon: "volume-mute",
+          label: "Muted Members",
+          sublabel: "Manage your muted presence",
+          onPress: () => router.push("/settings/mute"),
         },
       ],
     },
@@ -111,7 +102,6 @@ export default function SettingsScreen() {
           label: "Ananta Sanctuary",
           sublabel: "Visit the help center",
           onPress: () => router.push("/settings/help"),
-          // onPress: () => Alert.alert("Coming Soon"),
         },
         {
           icon: "document-text",
@@ -203,11 +193,11 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={handleDeleteAccount}
+            onPress={() => router.push("/settings/delete-account")}
             className="items-center py-4"
           >
             <Text className="text-center text-gray-400 font-bold text-[12px] uppercase tracking-widest">
-              {isDeleting ? "Erasing..." : "Erase Permanent Presence"}
+              Erase Permanent Presence
             </Text>
           </TouchableOpacity>
 
