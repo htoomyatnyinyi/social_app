@@ -94,6 +94,7 @@ export default function BookmarksScreen() {
               onPressPost={(id) => router.push(`/post/${id}`)}
               onPressProfile={(id) => router.push(`/profile/${id}`)}
               onPressOptions={(p) => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setPostForOptions(p);
                 setOptionsModalVisible(true);
               }}
@@ -141,7 +142,10 @@ export default function BookmarksScreen() {
         isVisible={optionsModalVisible}
         onClose={() => setOptionsModalVisible(false)}
         isOwner={postForOptions?.author?.id === user?.id}
-        onDelete={() => {}} // Handle delete in bookmarks if needed
+        onDelete={() => {
+          setOptionsModalVisible(false);
+          refetch();
+        }} // Handle delete in bookmarks if needed
       />
     </View>
   );

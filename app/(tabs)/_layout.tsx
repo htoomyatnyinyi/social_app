@@ -58,7 +58,7 @@ export default function TabLayout() {
             refetchRef.current();
             dispatch(api.util.invalidateTags(["Notification", "Chat"]));
           }
-        } catch (e) {}
+        } catch (e) { }
       };
 
       socket.onclose = () => {

@@ -2,14 +2,15 @@
   "expo": {
     "name": "ananta",
     "slug": "ananta",
-    "version": "1.0.2",
+    "version": "2.4.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ananta",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.htoomyatnyinyi.ananta"
+      "bundleIdentifier": "com.htoomyatnyinyi.ananta",
+      "bitcode": false
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +21,17 @@
       },
       "package": "com.htoomyatnyinyi.ananta",
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH"
+      ]
     },
     "web": {
       "output": "static",
@@ -28,6 +39,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "appleCameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "appleMicrophonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -40,7 +58,14 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for video calls.",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio calls."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -49,7 +74,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e819e9d3-f1ab-497d-8b76-e695cf1445e4"
+        "projectId": "855a4e9e-6864-4bb0-8ea6-8e5fe8b3eb83"
       }
     }
   }

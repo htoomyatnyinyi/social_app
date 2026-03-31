@@ -11,6 +11,7 @@ interface UseChatWebSocketProps {
   currentUserId?: string;
   onMessageReceived?: () => void;
   onTypingStatus?: (userId: string) => void;
+  onSignalingMessage?: (data: any) => void;
 }
 
 export const useChatWebSocket = ({
@@ -19,15 +20,18 @@ export const useChatWebSocket = ({
   currentUserId,
   onMessageReceived,
   onTypingStatus,
+  onSignalingMessage,
 }: UseChatWebSocketProps) => {
   const socketRef = useRef<WebSocket | null>(null);
   const onMessageReceivedRef = useRef(onMessageReceived);
   const onTypingStatusRef = useRef(onTypingStatus);
+  const onSignalingMessageRef = useRef(onSignalingMessage);
 
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
     onTypingStatusRef.current = onTypingStatus;
-  }, [onMessageReceived, onTypingStatus]);
+    onSignalingMessageRef.current = onSignalingMessage;
+  }, [onMessageReceived, onTypingStatus, onSignalingMessage]);
 
   useEffect(() => {
     if (!token || !chatId) return;
@@ -53,13 +57,22 @@ export const useChatWebSocket = ({
         try {
           const data = JSON.parse(event.data);
           
+          const signalingTypes = ["call_invite", "call_accept", "call_reject", "offer", "answer", "ice_candidate", "end_call"];
+          if (signalingTypes.includes(data.type)) {
+             onSignalingMessageRef.current?.(data);
+             return;
+          }
+
           if (data.type === "new_message") {
+            const parsedMetadata = data.metadata ? (typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata) : null;
+            const messageType = parsedMetadata?.messageType || (data.image ? "image" : "text");
+
             await db.insert(messagesTable).values({
               id: data.id,
               chatId: chatId,
               senderId: data.senderId,
               content: data.content,
-              type: data.image ? "image" : "text",
+              type: messageType,
               mediaUrl: data.image || null,
               read: data.read ? 1 : 0,
               createdAt: new Date(data.createdAt).getTime(),
@@ -136,5 +149,11 @@ export const useChatWebSocket = ({
     }
   };
 
-  return { socket: socketRef.current, sendTyping, deleteMessage, sendReaction };
+  const sendSignal = (payload: any) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(payload));
+    }
+  };
+
+  return { socket: socketRef.current, sendTyping, deleteMessage, sendReaction, sendSignal };
 };

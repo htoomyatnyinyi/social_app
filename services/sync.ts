@@ -40,11 +40,15 @@ export const syncMessages = async (
             content: msg.content,
             image: msg.mediaUrl || undefined,
             replyToId: msg.replyToId || undefined,
+            messageType: msg.type !== "text" && msg.type !== "image" ? msg.type : undefined,
           }),
         });
 
         if (response.ok) {
           const serverMsg = await response.json();
+          const parsedMetadata = serverMsg.metadata ? (typeof serverMsg.metadata === 'string' ? JSON.parse(serverMsg.metadata) : serverMsg.metadata) : null;
+          const messageType = parsedMetadata?.messageType || (serverMsg.image ? "image" : "text");
+
           // Insert/update server message first to ensure it's in DB
           await db
             .insert(messages)
@@ -53,7 +57,7 @@ export const syncMessages = async (
               chatId: serverMsg.chatId,
               senderId: serverMsg.senderId,
               content: serverMsg.content,
-              type: serverMsg.image ? "image" : "text",
+              type: messageType,
               mediaUrl: serverMsg.image || null,
               read: serverMsg.read ? 1 : 0,
               createdAt: new Date(serverMsg.createdAt).getTime(),
@@ -111,6 +115,9 @@ export const syncMessages = async (
         let maxCreatedAt = lastSyncedAt;
 
         for (const msg of newMessages) {
+          const parsedMetadata = msg.metadata ? (typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata) : null;
+          const messageType = parsedMetadata?.messageType || (msg.image ? "image" : "text");
+
           // Ensure we don't overwrite pending messages if they clash (unlikely if we use UUIDs)
           // UPSERT strategy
           await db
@@ -120,7 +127,7 @@ export const syncMessages = async (
               chatId: msg.chatId,
               senderId: msg.senderId,
               content: msg.content,
-              type: msg.image ? "image" : "text",
+              type: messageType,
               mediaUrl: msg.image || null,
               read: msg.read ? 1 : 0,
               createdAt: new Date(msg.createdAt).getTime(),

@@ -244,7 +244,7 @@ export default function FeedScreen() {
                       bottom: 4,
                       left: 4,
                       width: '48%',
-                      backgroundColor: '#fff',
+                      backgroundColor: 'red',
                       borderRadius: 20,
                       shadowColor: '#0EA5E9',
                       shadowOffset: { width: 0, height: 4 },

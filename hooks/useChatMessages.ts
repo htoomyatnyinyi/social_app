@@ -37,10 +37,17 @@ export const useChatMessages = (
   }, []); // Stable — uses ref internally
 
   const sendMessage = useCallback(
-    async (content: string, image?: string, replyTo?: { id: string, name: string, content: string }) => {
-      if ((!content.trim() && !image) || !chatId) return;
+    async (
+      content: string, 
+      image?: string, 
+      replyTo?: { id: string, name: string, content: string },
+      messageType?: string,
+      metadata?: any
+    ) => {
+      if ((!content.trim() && !image && !messageType) || !chatId) return;
 
       const tempId = Crypto.randomUUID();
+      const finalType = messageType || (image ? "image" : "text");
 
       try {
         // 1. Optimistic UI Update — insert into local SQLite
@@ -49,13 +56,14 @@ export const useChatMessages = (
           chatId: chatId,
           senderId: user?.id,
           content: content || "",
-          type: image ? "image" : "text",
+          type: finalType,
           mediaUrl: image || null,
           createdAt: Date.now(),
           status: "pending",
           replyToId: replyTo?.id || null,
           replyToName: replyTo?.name || null,
           replyToContent: replyTo?.content || null,
+          metadata: metadata ? JSON.stringify(metadata) : null,
         });
 
         // Immediately refresh UI with optimistic message

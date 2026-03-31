@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -204,6 +203,7 @@ export default function SettingsScreen() {
           <View className="items-center mt-12 opacity-20">
             <Text className="text-[10px] font-black text-gray-900 uppercase tracking-[4px]">Ananta Social</Text>
             <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Version Alpha 2.4.1009</Text>
+            <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Developed by Htoo Myat Nyi Nyi</Text>
           </View>
         </View>
       </ScrollView>

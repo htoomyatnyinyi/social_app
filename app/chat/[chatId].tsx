@@ -27,11 +27,68 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useChatWebSocket } from "@/hooks/useChatWebSocket";
+import { Audio } from "expo-av";
+import * as Location from "expo-location";
+import * as FileSystem from "expo-file-system";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+import { useWebRTC } from "@/hooks/useWebRTC";
+import CallOverlay from "@/components/CallOverlay";
 
 type ReplyContext = {
   id: string;
   name: string;
   content: string;
+};
+
+const AudioPlayer = ({ uri, isMe }: { uri: string; isMe: boolean }) => {
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    return sound ? () => { sound.unloadAsync(); } : undefined;
+  }, [sound]);
+
+  const toggleSound = async () => {
+    if (sound) {
+      if (isPlaying) {
+        await sound.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await sound.playAsync();
+        setIsPlaying(true);
+      }
+    } else {
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true }
+      );
+      setSound(newSound);
+      setIsPlaying(true);
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+        }
+      });
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={toggleSound}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: isMe ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.05)",
+        padding: 8,
+        borderRadius: 20,
+        minWidth: 120,
+      }}
+    >
+      <Ionicons name={isPlaying ? "pause" : "play"} size={20} color={isMe ? "white" : "#0EA5E9"} />
+      <View style={{ flex: 1, height: 4, backgroundColor: isMe ? "rgba(255,255,255,0.3)" : "#E2E8F0", marginHorizontal: 8, borderRadius: 2 }} />
+    </TouchableOpacity>
+  );
 };
 
 const MessageBubble = memo(function MessageBubble({
@@ -143,7 +200,50 @@ const MessageBubble = memo(function MessageBubble({
           </View>
         )}
 
-        {item.mediaUrl && (
+        {item.type === "audio" && item.mediaUrl && (
+          <AudioPlayer uri={item.mediaUrl} isMe={isMe} />
+        )}
+
+        {item.type === "location" && item.metadata && (
+          <TouchableOpacity
+            onPress={() => {
+              const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
+              if (meta.location) {
+                const url = Platform.OS === 'ios'
+                  ? `maps:0,0?q=${meta.location.lat},${meta.location.lng}`
+                  : `geo:0,0?q=${meta.location.lat},${meta.location.lng}`;
+                Linking.openURL(url);
+              }
+            }}
+            style={{ padding: 4, alignItems: "center" }}
+          >
+            <Ionicons name="location" size={40} color={isMe ? "white" : "#0EA5E9"} />
+            <Text style={{ color: isMe ? "white" : "#1E293B", fontSize: 12, marginTop: 4, textAlign: 'center' }}>Shared Location</Text>
+          </TouchableOpacity>
+        )}
+
+        {item.type === "call" && (
+          <View style={{ alignItems: "center", padding: 8 }}>
+            <Ionicons name="videocam" size={24} color={isMe ? "white" : "#0EA5E9"} />
+            <Text style={{ color: isMe ? "white" : "#1E293B", fontWeight: "600", marginTop: 4 }}>Video Call</Text>
+            <TouchableOpacity
+              style={{
+                marginTop: 8,
+                backgroundColor: isMe ? "white" : "#0EA5E9",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+              }}
+              onPress={() => {
+                WebBrowser.openBrowserAsync(`https://meet.jit.si/SocialApp_room_${item.chatId}`);
+              }}
+            >
+              <Text style={{ color: isMe ? "#0EA5E9" : "white", fontWeight: "700", fontSize: 13 }}>Join</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {item.type === "image" && item.mediaUrl && (
           <Image
             source={{ uri: item.mediaUrl }}
             style={{
@@ -156,7 +256,7 @@ const MessageBubble = memo(function MessageBubble({
           />
         )}
 
-        {item.content && (
+        {item.type === "text" && item.content && (
           <Text
             style={{
               fontSize: 15,
@@ -261,8 +361,9 @@ export default function ChatScreen() {
   const [replyContext, setReplyContext] = useState<ReplyContext | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const webRTCRef = useRef<any>(null);
 
-  const { sendTyping, deleteMessage, sendReaction } = useChatWebSocket({
+  const { sendTyping, deleteMessage, sendReaction, sendSignal } = useChatWebSocket({
     chatId: resolvedChatId,
     token,
     currentUserId: user?.id,
@@ -275,7 +376,20 @@ export default function ChatScreen() {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
     },
+    onSignalingMessage: (data) => {
+      webRTCRef.current?.processSignalingMessage?.(data);
+    }
   });
+
+  const webRTC = useWebRTC({
+    chatId: resolvedChatId,
+    currentUserId: user?.id,
+    sendSignal,
+  });
+
+  useEffect(() => {
+    webRTCRef.current = webRTC;
+  }, [webRTC]);
 
   const handleTextChange = (text: string) => {
     setInputText(text);
@@ -312,6 +426,66 @@ export default function ChatScreen() {
     setReplyContext(null);
   }, [inputText, selectedImage, sendMessage, replyContext]);
 
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const startRecording = async () => {
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
+      setIsRecording(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
+
+  const stopRecording = async () => {
+    setRecording(null);
+    setIsRecording(false);
+    try {
+      if (recording) {
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        if (uri) {
+          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+          sendMessage("", `data:audio/m4a;base64,${base64}`, replyContext || undefined, "audio");
+          setReplyContext(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to stop recording', error);
+    }
+  };
+
+  const shareLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission to access location was denied');
+      return;
+    }
+    const location = await Location.getCurrentPositionAsync({});
+    sendMessage(
+      "📍 Shared a location",
+      undefined,
+      replyContext || undefined,
+      "location",
+      { location: { lat: location.coords.latitude, lng: location.coords.longitude }, messageType: "location" }
+    );
+    setReplyContext(null);
+  };
+
+  const startVideoCall = () => {
+    webRTC.startCall();
+  };
+
   const handleLongPress = useCallback(
     (item: any) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -337,10 +511,10 @@ export default function ChatScreen() {
           { text: "✨ Spark", onPress: () => sendReaction(item.id, "✨") },
           isMe
             ? {
-                text: "Dissolve",
-                style: "destructive",
-                onPress: () => deleteMessage(item.id),
-              }
+              text: "Dissolve",
+              style: "destructive",
+              onPress: () => deleteMessage(item.id),
+            }
             : null,
           { text: "Keep", style: "cancel" },
         ].filter(Boolean) as any,
@@ -444,6 +618,19 @@ export default function ChatScreen() {
               </Text>
             </View>
           </View>
+          <TouchableOpacity
+            onPress={startVideoCall}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "#E0F2FE",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="videocam" size={20} color="#0EA5E9" />
+          </TouchableOpacity>
         </View>
       </View>
     ),
@@ -480,8 +667,8 @@ export default function ChatScreen() {
             paddingBottom:
               keyboardHeight > 0
                 ? keyboardHeight -
-                  (Platform.OS === "ios" ? insets.bottom : 0) +
-                  8
+                (Platform.OS === "ios" ? insets.bottom : 0) +
+                8
                 : Math.max(insets.bottom, 12) + 8,
             paddingTop: 10,
           }}
@@ -602,6 +789,41 @@ export default function ChatScreen() {
             }}
           >
             <TouchableOpacity
+              onPress={shareLocation}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 18,
+                backgroundColor: "#F8FAFC",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: "#F1F5F9",
+                marginRight: 8,
+              }}
+            >
+              <Ionicons name="location" size={24} color="#64748B" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPressIn={startRecording}
+              onPressOut={stopRecording}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 18,
+                backgroundColor: isRecording ? "#FEE2E2" : "#F8FAFC",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: isRecording ? "#FECACA" : "#F1F5F9",
+                marginRight: 8,
+              }}
+            >
+              <Ionicons name="mic" size={24} color={isRecording ? "#EF4444" : "#64748B"} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
               onPress={pickImage}
               style={{
                 width: 44,
@@ -666,6 +888,18 @@ export default function ChatScreen() {
           </View>
         </View>
       </View>
+
+      <CallOverlay
+        callState={webRTC.callState}
+        localStream={webRTC.localStream}
+        remoteStream={webRTC.remoteStream}
+        callerName={title as string}
+        onAccept={webRTC.acceptCall}
+        onReject={webRTC.rejectCall}
+        onEnd={webRTC.endCall}
+        onToggleMute={webRTC.toggleMute}
+        onToggleVideo={webRTC.toggleVideo}
+      />
     </View>
   );
 }

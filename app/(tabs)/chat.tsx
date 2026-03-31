@@ -74,8 +74,18 @@ export default function ChatListScreen() {
         <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            //   // original
             router.push(`/chat/${item.id}?title=${otherUser?.name || "Chat"}`);
+            //   // // Change this:
+            //   // // router.push(`/chat/${item.id}?title=${otherUser?.name}`);
+
+            //   // // To this (if your filename is [chatId].tsx):
+            //   // router.push({
+            //   //   pathname: "/chat/[chatId]",
+            //   //   params: { chatId: item.id, title: otherUser?.name }
+            //   // });
           }}
+
           activeOpacity={0.8}
           className="flex-row px-5 py-4 items-center bg-[#F8FAFC] border-b border-gray-100/50"
         >
@@ -348,7 +358,7 @@ export default function ChatListScreen() {
       />
 
       <TouchableOpacity
-        activeOpacity={0.9}
+        activeOpacity={0.5}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           router.push("/chat/new");
