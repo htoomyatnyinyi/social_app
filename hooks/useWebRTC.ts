@@ -95,8 +95,21 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
 
   const initPeerConnection = async () => {
     const config = {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
     };
+
+    // Close any existing peer connection to avoid leaks/conflicts
+    if (peerConnection.current) {
+      try {
+        peerConnection.current.close();
+      } catch (e) {
+        console.warn("Ananta: Error closing existing PC:", e);
+      }
+    }
+
     const pc = new ActualRTCPeerConnection(config);
 
     pc.addEventListener('icecandidate', (event: any) => {
@@ -112,12 +125,25 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
 
     pc.addEventListener('track', (event: any) => {
       if (event.streams && event.streams[0]) {
+        console.log("Ananta: Received remote stream");
         setRemoteStream(event.streams[0]);
       }
     });
 
+    // For older versions of react-native-webrtc
+    pc.addEventListener('addstream', (event: any) => {
+      if (event.stream) {
+        console.log("Ananta: Received remote stream (via addstream)");
+        setRemoteStream(event.stream);
+      }
+    });
+
     pc.addEventListener('connectionstatechange', () => {
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+      console.log("Ananta: Connection state changed to:", pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setCallState('CONNECTED');
+      }
+      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         cleanup();
       }
     });
