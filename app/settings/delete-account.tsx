@@ -20,12 +20,12 @@ const DeleteAccount = () => {
   const handleDeleteAccount = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     Alert.alert(
-      "Final Erasure",
-      "This action is absolute. Your existence in the Oasis will be permanently dissolved. All your artifacts, connections, and progress will vanish into the void. Continue?",
+      "Delete Account",
+      "This action is permanent. Your account will be permanently deleted. All your posts and data will be removed. Continue?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Dissolve Forever",
+          text: "Delete Permanently",
           style: "destructive",
           onPress: async () => {
             try {
@@ -34,14 +34,14 @@ const DeleteAccount = () => {
               router.replace("/auth");
               setTimeout(() => {
                 dispatch(logout());
-                Alert.alert("Presence Dissolved", "Your account has been successfully erased from the Ananta.");
+                Alert.alert("Account Deleted", "Your account has been successfully deleted.");
               }, 100);
             } catch (error: any) {
               if (error?.status === 404) {
                 router.replace("/auth");
                 setTimeout(() => dispatch(logout()), 100);
               } else {
-                Alert.alert("Error", "Failed to erase existence. The system encountered an error.");
+                Alert.alert("Error", "Failed to delete account. Please try again later.");
               }
             }
           },
@@ -68,8 +68,8 @@ const DeleteAccount = () => {
             <Ionicons name="chevron-back" size={20} color="#64748B" />
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerTitle}>Erasure</Text>
-            <Text style={styles.headerSubtitle}>Dissolve Presence</Text>
+            <Text style={styles.headerTitle}>Delete Account</Text>
+            <Text style={styles.headerSubtitle}>Permanent Removal</Text>
           </View>
         </View>
       </BlurView>
@@ -79,19 +79,19 @@ const DeleteAccount = () => {
           <View style={styles.iconCircle}>
             <Ionicons name="trash-outline" size={40} color="#F43F5E" />
           </View>
-          <Text style={styles.heroTitle}>Leaving the Ananta?</Text>
+          <Text style={styles.heroTitle}>Are you sure?</Text>
           <Text style={styles.heroSubtitle}>
-            Dissolving your presence is a permanent procedure. Once the process is complete, your soul's data, artifacts, and connections will be lost to the void forever.
+            Deleting your account is a permanent action. Once the process is complete, your personal data, posts, and connections will be lost forever.
           </Text>
         </View>
 
         <View style={styles.warningBox}>
-          <Text style={styles.warningLabel}>Warning Sequence</Text>
+          <Text style={styles.warningLabel}>Important Warning</Text>
           <View>
             {[
-              "All posts and media artifacts will be deleted.",
-              "Followers and following links will be broken.",
-              "Chat history will be permanently encrypted.",
+              "All posts and media will be deleted.",
+              "Followers and following lists will be removed.",
+              "Chat history will be permanently deleted.",
               "Points and achievements will be nullified.",
             ].map((msg, i) => (
               <View key={i} style={styles.warningRow}>
@@ -120,7 +120,7 @@ const DeleteAccount = () => {
               {confirmed && <Ionicons name="checkmark" size={16} color="white" />}
             </View>
             <Text style={styles.checkLabel}>
-              I understand that this action is irreversible and absolute.
+              I understand that this action is irreversible.
             </Text>
           </TouchableOpacity>
 
@@ -134,7 +134,7 @@ const DeleteAccount = () => {
             ]}
           >
             <Text style={[styles.deleteBtnText, confirmed ? styles.deleteBtnTextActive : styles.deleteBtnTextInactive]}>
-              {isDeleting ? "Dissolving..." : "Dissolve Permanent Presence"}
+              {isDeleting ? "Deleting..." : "Permanently Delete Account"}
             </Text>
           </TouchableOpacity>
         </View>

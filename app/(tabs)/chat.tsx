@@ -128,7 +128,7 @@ export default function ChatListScreen() {
                 ) : (
                   ""
                 )}
-                {lastMessage?.content || "Share an artifact whispering..."}
+                {lastMessage?.content || "No messages yet..."}
               </Text>
               {item.unreadCount > 0 && (
                 <View className="bg-sky-500 min-w-[22px] h-[22px] rounded-[11px] px-1.5 items-center justify-center shadow-md shadow-sky-200">
@@ -167,10 +167,10 @@ export default function ChatListScreen() {
         <View className="flex-row justify-between items-center mb-5">
           <View>
             <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">
-              Whispers
+              Messages
             </Text>
             <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-              Direct Resonance
+              Direct Chats
             </Text>
           </View>
           {/* <TouchableOpacity
@@ -187,7 +187,7 @@ export default function ChatListScreen() {
         {/* <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[20px] px-4 py-2.5 shadow-sm shadow-gray-50">
           <Ionicons name="search" size={18} color="#94A3B8" />
           <TextInput
-            placeholder="Search Whispers..."
+            placeholder="Search Messages..."
             placeholderTextColor="#CBD5E1"
             className="flex-1 ml-3 text-[15px] text-gray-900 font-medium"
             value={search}
@@ -302,7 +302,7 @@ export default function ChatListScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     router.push(
-                      `/chat/${publicRoom?.id}?title=Global Resonance`,
+                      `/chat/${publicRoom?.id}?title=Public Group`,
                     );
                   }}
                   activeOpacity={0.9}
@@ -324,17 +324,17 @@ export default function ChatListScreen() {
                     </View>
                     <View className="ml-5 flex-1">
                       <Text className="font-black text-[20px] text-white tracking-tight uppercase">
-                        Collective
+                        Public
                       </Text>
                       <Text className="text-white/80 text-[12px] font-bold uppercase tracking-widest mt-1">
-                        Diffuse Consensus
+                        Community Room
                       </Text>
                     </View>
-                    <View className="bg-sky-500/80 px-4 py-2 rounded-2xl border border-white/30 shadow-sm">
+                    {/* <View className="bg-sky-500/80 px-4 py-2 rounded-2xl border border-white/30 shadow-sm">
                       <Text className="text-white text-[10px] font-black uppercase tracking-widest">
-                        Echo
+                        Join
                       </Text>
-                    </View>
+                    </View> */}
                   </BlurView>
                 </TouchableOpacity>
               </Animated.View>
@@ -347,11 +347,10 @@ export default function ChatListScreen() {
               <Ionicons name="chatbubbles" size={48} color="#94A3B8" />
             </View>
             <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
-              Peaceful Stillness
+              No Messages
             </Text>
             <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-              No whispers have reached your coordinate yet. Start a bond to
-              diffuse serenity.
+              No messages found yet. Start a conversation with someone.
             </Text>
           </View>
         }

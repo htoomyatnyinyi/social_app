@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   FlatList,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -17,7 +18,6 @@ import {
   useLikePostMutation,
   useBookmarkPostMutation,
   useRepostPostMutation,
-  useDeleteRepostMutation,
 } from "@/store/postApi";
 import { useSelector } from "react-redux";
 import PostCard, { Post } from "@/components/PostCard";
@@ -38,15 +38,65 @@ export default function BookmarksScreen() {
   const [likePost] = useLikePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [repostPost] = useRepostPostMutation();
-  const [deleteRepost] = useDeleteRepostMutation();
 
   const [optionsModalVisible, setOptionsModalVisible] = React.useState(false);
   const [postForOptions, setPostForOptions] = React.useState<Post | null>(null);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
-  };
+  }, [router]);
+
+  const handleLike = useCallback(
+    async (postId: string) => {
+      try {
+        await likePost({ postId }).unwrap();
+      } catch (err) {
+        console.error("Like failed", err);
+      }
+    },
+    [likePost],
+  );
+
+  const handleBookmark = useCallback(
+    async (postId: string) => {
+      try {
+        await bookmarkPost(postId).unwrap();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (err) {
+        console.error("Bookmark failed", err);
+      }
+    },
+    [bookmarkPost],
+  );
+
+  const handleRepostAction = useCallback(async (post: Post) => {
+    try {
+      await repostPost({ id: post.id }).unwrap();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (err) {
+      console.error("Repost failed", err);
+    }
+  }, [repostPost]);
+
+  const handlePressPost = useCallback((id: string) => {
+    router.push(`/post/${id}`);
+  }, [router]);
+
+  const handlePressProfile = useCallback((id: string) => {
+    router.push(`/profile/${id}`);
+  }, [router]);
+
+  const handlePressOptions = useCallback((p: Post) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPostForOptions(p);
+    setOptionsModalVisible(true);
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    refetch();
+  }, [refetch]);
 
   if (isLoading && !isFetching) {
     return (
@@ -74,10 +124,10 @@ export default function BookmarksScreen() {
           </TouchableOpacity>
           <View>
             <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">
-              Vault
+              Bookmarks
             </Text>
             <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-              Preserved Artifacts
+              Saved Posts
             </Text>
           </View>
         </View>
@@ -91,48 +141,39 @@ export default function BookmarksScreen() {
             <PostCard
               item={item}
               user={user}
-              onPressPost={(id) => router.push(`/post/${id}`)}
-              onPressProfile={(id) => router.push(`/profile/${id}`)}
-              onPressOptions={(p) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setPostForOptions(p);
-                setOptionsModalVisible(true);
-              }}
-              onPressComment={(id) => router.push(`/post/${id}`)}
-              onPressRepost={(p) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                repostPost({ id: p.id });
-              }}
-              onLike={(id) => likePost({ postId: id }).unwrap()}
-              onBookmark={(id) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                return bookmarkPost(id).unwrap();
-              }}
+              onPressPost={handlePressPost}
+              onPressProfile={handlePressProfile}
+              onPressOptions={handlePressOptions}
+              onPressComment={handlePressPost}
+              onPressRepost={handleRepostAction}
+              onLike={handleLike}
+              onBookmark={handleBookmark}
             />
           </View>
         )}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
-            onRefresh={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              refetch();
-            }}
+            onRefresh={onRefresh}
             tintColor="#0EA5E9"
           />
         }
         contentContainerStyle={{ paddingTop: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center mt-32 px-14 opacity-20">
             <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 border border-gray-100">
               <Ionicons name="bookmark" size={48} color="#94A3B8" />
             </View>
             <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
-              Empty Vault
+              No Bookmarks
             </Text>
             <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-              No artifacts have been preserved in your coordinate yet.
+              You haven't saved any posts here yet.
             </Text>
           </View>
         }
@@ -145,7 +186,7 @@ export default function BookmarksScreen() {
         onDelete={() => {
           setOptionsModalVisible(false);
           refetch();
-        }} // Handle delete in bookmarks if needed
+        }}
       />
     </View>
   );

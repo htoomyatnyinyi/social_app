@@ -44,7 +44,7 @@ export default function RootLayout() {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color="#1d9bf0" />
-        <Text className="mt-4 text-gray-500 font-medium">Initializing Oasis...</Text>
+        <Text className="mt-4 text-gray-500 font-medium">Initializing App...</Text>
       </View>
     );
   }

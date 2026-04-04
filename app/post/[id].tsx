@@ -37,7 +37,6 @@ import {
   useReplyPostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
-// import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 // ────────────────────────────────────────────────
@@ -97,7 +96,7 @@ function buildThreadTree(posts: any[], rootId: string) {
 // ────────────────────────────────────────────────
 // Action Button Helper
 // ────────────────────────────────────────────────
-const ActionButton = ({
+const ActionButton = memo(({
   icon,
   count,
   active,
@@ -125,14 +124,16 @@ const ActionButton = ({
     />
     {count !== undefined && (
       <Text
-        className={`text-[12px] font-black ml-1.5 ${active ? activeColor.replace("#", "") : "text-gray-500"}`}
+        className={`text-[12px] font-black ml-1.5 ${active ? "" : "text-gray-500"}`}
         style={active ? { color: activeColor } : {}}
       >
         {count}
       </Text>
     )}
   </TouchableOpacity>
-);
+));
+
+ActionButton.displayName = "ActionButton";
 
 // ────────────────────────────────────────────────
 // Memoized Reply Item
@@ -140,12 +141,10 @@ const ActionButton = ({
 const ReplyItem = memo(
   ({
     item,
-    currentUserId,
     onReply,
     onOptions,
   }: {
     item: any;
-    currentUserId?: string;
     onReply: (postId: string, username: string) => void;
     onOptions: (item: any) => void;
   }) => {
@@ -180,7 +179,7 @@ const ReplyItem = memo(
       try {
         const urlToShare = `https://oasis-social.com/post/${item.id}`;
         await Share.share({
-          message: `Ananta Discovery: check out this reply by @${item.author?.username || "oasis"}\n${urlToShare}`,
+          message: `Check out this post by @${item.author?.username || "oasis"}\n${urlToShare}`,
         });
       } catch (error) {
         console.error("Error sharing reply:", error);
@@ -247,7 +246,7 @@ const ReplyItem = memo(
                 if (item.isDeleted)
                   return (
                     <Text className="italic text-gray-400 font-medium">
-                      [Artifact Withdrawn]
+                      [Post Deleted]
                     </Text>
                   );
                 if (!item.content) return null;
@@ -271,45 +270,47 @@ const ReplyItem = memo(
               })()}
             </Text>
 
-            {/* Reply Images */}
-            {(() => {
-              if (item.isDeleted) return null;
-              const imgs = item.images?.length
-                ? item.images
-                : item.image
-                  ? [item.image]
-                  : [];
-              if (imgs.length === 0) return null;
-              if (imgs.length === 1) {
-                return (
-                  <Image
-                    source={{ uri: imgs[0] }}
-                    className="w-full h-48 rounded-2xl mt-3 border border-gray-100 bg-white"
-                    contentFit="cover"
-                    transition={400}
-                  />
-                );
-              }
-              return (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="mt-3 flex-row"
-                  snapToInterval={220}
-                  decelerationRate="fast"
-                >
-                  {imgs.map((uri: string, idx: number) => (
+            {/* Media Gallery for Reply */}
+            <View className="mt-3">
+              {(() => {
+                if (item.isDeleted) return null;
+                const imgs = item.images?.length
+                  ? item.images
+                  : item.image
+                    ? [item.image]
+                    : [];
+                if (imgs.length === 0) return null;
+                if (imgs.length === 1) {
+                  return (
                     <Image
-                      key={idx}
-                      source={{ uri }}
-                      className="w-56 h-48 rounded-2xl mr-3 border border-gray-100 bg-white"
+                      source={{ uri: imgs[0] }}
+                      className="w-full h-48 rounded-2xl border border-gray-100 bg-white"
                       contentFit="cover"
                       transition={400}
                     />
-                  ))}
-                </ScrollView>
-              );
-            })()}
+                  );
+                }
+                return (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="flex-row"
+                    snapToInterval={220}
+                    decelerationRate="fast"
+                  >
+                    {imgs.map((uri: string, idx: number) => (
+                      <Image
+                        key={idx}
+                        source={{ uri }}
+                        className="w-56 h-48 rounded-2xl mr-3 border border-gray-100 bg-white"
+                        contentFit="cover"
+                        transition={400}
+                      />
+                    ))}
+                  </ScrollView>
+                );
+              })()}
+            </View>
 
             <View className="flex-row mt-4 items-center justify-between">
               <ActionButton
@@ -486,7 +487,7 @@ export default function PostDetailScreen() {
       if (!rootPost) return;
       const urlToShare = `https://oasis-social.com/post/${rootPost.id}`;
       await Share.share({
-        message: `Check out this Oasis discovery by @${rootPost.author?.username || "oasis"}\n${urlToShare}`,
+        message: `Check out this post by @${rootPost.author?.username || "oasis"}\n${urlToShare}`,
       });
     } catch (error) {
       console.error("Error sharing post:", error);
@@ -508,17 +509,17 @@ export default function PostDetailScreen() {
           <Ionicons name="search-outline" size={40} color="#CBD5E1" />
         </View>
         <Text className="text-2xl font-black text-gray-900 tracking-tighter uppercase text-center">
-          Missing Post
+          Post Not Found
         </Text>
         <Text className="text-gray-400 text-center mt-2 font-medium">
-          This artifact has vanished into the winds of the ananta.
+          This post seems to have been removed or lost.
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
           className="mt-8 px-8 py-3 bg-sky-500 rounded-2xl shadow-lg shadow-sky-200"
         >
           <Text className="text-white font-black uppercase tracking-widest text-xs">
-            Retrace Steps
+            Return Home
           </Text>
         </TouchableOpacity>
       </View>
@@ -541,7 +542,7 @@ export default function PostDetailScreen() {
           <Ionicons name="chevron-back" size={24} color="#64748B" />
         </TouchableOpacity>
         <Text className="text-xl font-black ml-4 text-gray-900 tracking-tighter uppercase">
-          Artifact
+          Post
         </Text>
       </BlurView>
 
@@ -556,13 +557,16 @@ export default function PostDetailScreen() {
           renderItem={({ item }) => (
             <ReplyItem
               item={item}
-              currentUserId={currentUser?.id}
               onReply={handleReplyIntent}
               onOptions={handleOptions}
             />
           )}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={
             <View className="p-5 bg-white border-b border-gray-100 rounded-b-[48px] shadow-sm shadow-gray-100">
               {/* Context Link */}
@@ -575,7 +579,7 @@ export default function PostDetailScreen() {
                   }}
                 >
                   <Text className="text-sky-600 text-[12px] font-black uppercase tracking-wider">
-                    Show Ancestor Post
+                    Show Parent Post
                   </Text>
                 </TouchableOpacity>
               )}
@@ -629,7 +633,7 @@ export default function PostDetailScreen() {
                       <Text
                         className={`font-black uppercase tracking-wider text-[11px] ${rootPost.isFollowing ? "text-gray-400" : "text-white"}`}
                       >
-                        {rootPost.isFollowing ? "Bound" : "Connect"}
+                        {rootPost.isFollowing ? "Following" : "Follow"}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -657,7 +661,7 @@ export default function PostDetailScreen() {
                   if (rootPost.isDeleted)
                     return (
                       <Text className="italic text-gray-400">
-                        [Artifact Voluntarily Withdrawn]
+                        [Post Deleted]
                       </Text>
                     );
                   if (!rootPost.content) return null;
@@ -722,7 +726,7 @@ export default function PostDetailScreen() {
                 );
               })()}
 
-              {/* Precise Timestamp & Metrics */}
+              {/* Timestamp & Metrics */}
               <View className="py-4 border-y border-gray-100/80 mb-4 px-1">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
@@ -747,13 +751,13 @@ export default function PostDetailScreen() {
                   <View className="flex-row items-center">
                     <Ionicons name="stats-chart" size={14} color="#10B981" />
                     <Text className="text-emerald-500 font-black text-[11px] ml-1.5 uppercase tracking-widest">
-                      {rootPost.viewCount ?? rootPost.views ?? 0} Presence
+                      {rootPost.viewCount ?? rootPost.views ?? 0} Views
                     </Text>
                   </View>
                 </View>
               </View>
 
-              {/* Master Action Bar */}
+              {/* Action Bar */}
               <View className="flex-row justify-between items-center px-1">
                 <ActionButton
                   icon="chatbubble-outline"
@@ -802,80 +806,42 @@ export default function PostDetailScreen() {
               </View>
             </View>
           }
-          ListEmptyComponent={
-            <View className="py-20 items-center opacity-40 px-20">
-              <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
-                <Ionicons name="sparkles-outline" size={32} color="#94A3B8" />
-              </View>
-              <Text className="text-gray-900 font-black uppercase text-xs tracking-widest text-center">
-                Be the first to respond to this artifact.
-              </Text>
-            </View>
-          }
         />
 
-        {/* Premium Floating Reply Bar */}
+        {/* Floating Reply Input */}
         <BlurView
           intensity={95}
           tint="light"
-          className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 px-4 py-4 bg-white/40"
           style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+          className="px-5 pt-3 border-t border-gray-100/50"
         >
           {replyToId && (
-            <View className="flex-row items-center justify-between px-4 py-2 bg-sky-50 rounded-2xl mb-3 border border-sky-100">
-              <Text className="text-sky-600 font-bold text-[12px] uppercase tracking-wider">
-                Echoing @{replyTargetName}
+            <View className="flex-row items-center mb-2 bg-sky-50/80 px-3 py-1.5 rounded-xl border border-sky-100">
+              <Text className="text-[11px] font-bold text-sky-600 flex-1">
+                Replying to <Text className="font-black">@{replyTargetName}</Text>
               </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setReplyToId(null);
-                  setReplyTargetName(null);
-                }}
-                className="w-6 h-6 items-center justify-center rounded-full bg-white shadow-sm"
-              >
-                <Ionicons name="close" size={14} color="#0EA5E9" />
+              <TouchableOpacity onPress={() => { setReplyToId(null); setReplyTargetName(null); }}>
+                <Ionicons name="close-circle" size={16} color="#0EA5E9" />
               </TouchableOpacity>
             </View>
           )}
-
-          <View className="flex-row items-center">
-            <View className="shadow-md shadow-sky-100">
-              <Image
-                source={{
-                  uri:
-                    currentUser?.image ||
-                    `https://api.dicebear.com/7.x/avataaars/png?seed=${currentUser?.id}`,
-                }}
-                className="w-12 h-12 rounded-[20px] mr-3 bg-white"
-                contentFit="cover"
-              />
-            </View>
-            <View className="flex-1 bg-gray-50 rounded-[24px] px-5 py-3 border border-gray-100">
-              <TextInput
-                ref={inputRef}
-                placeholder="Share your resonance..."
-                placeholderTextColor="#94A3B8"
-                value={replyContent}
-                onChangeText={setReplyContent}
-                multiline
-                className="text-[15px] text-gray-900 font-medium max-h-32"
-              />
-            </View>
+          <View className="flex-row items-center bg-gray-50/80 border border-gray-100 rounded-[28px] px-5 py-2">
+            <TextInput
+              ref={inputRef}
+              className="flex-1 text-[16px] text-gray-900 font-medium py-1"
+              placeholder={replyToId ? `Reply to @${replyTargetName}...` : "Write your reply..."}
+              placeholderTextColor="#94A3B8"
+              value={replyContent}
+              onChangeText={setReplyContent}
+              multiline
+              maxLength={500}
+            />
             <TouchableOpacity
               onPress={handleSendReply}
               disabled={!replyContent.trim()}
-              className={`ml-3 w-12 h-12 rounded-[20px] items-center justify-center shadow-md ${replyContent.trim()
-                ? "bg-sky-500 shadow-sky-200"
-                : "bg-gray-100 shadow-none"
-                }`}
+              className={`w-10 h-10 rounded-2xl items-center justify-center ${replyContent.trim() ? "bg-sky-500 shadow-sm shadow-sky-200" : "bg-gray-200"}`}
             >
-              <Ionicons
-                name="send"
-                size={20}
-                color={replyContent.trim() ? "white" : "#CBD5E1"}
-                style={{ marginLeft: 3 }}
-              />
+              <Ionicons name="arrow-up" size={20} color="white" />
             </TouchableOpacity>
           </View>
         </BlurView>
@@ -883,35 +849,18 @@ export default function PostDetailScreen() {
 
       <PostOptionsModal
         isVisible={optionsVisible}
-        onClose={() => {
-          setOptionsVisible(false);
-          setSelectedItem(null);
-        }}
+        onClose={() => setOptionsVisible(false)}
         isOwner={selectedItem?.author?.id === currentUser?.id}
         onDelete={async () => {
-          if (!selectedItem) return;
+          if (!selectedItem?.id) return;
           try {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await deletePost({ id: selectedItem.id }).unwrap();
-            if (selectedItem.id === id) {
-              router.back();
-            } else {
-              refetchThread();
-            }
-          } catch (e) {
-            console.error("Delete failed", e);
+            setOptionsVisible(false);
+            if (selectedItem.id === id) router.back();
+            else refetchThread();
+          } catch (err) {
+            console.error("Delete failed", err);
           }
-          setOptionsVisible(false);
-          setSelectedItem(null);
-        }}
-        onReport={() => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setOptionsVisible(false);
-        }}
-        onBlock={() => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          router.back();
-          setOptionsVisible(false);
         }}
       />
     </View>

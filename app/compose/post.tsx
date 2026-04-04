@@ -160,7 +160,7 @@ export default function ComposePostScreen() {
       console.log(e);
       Alert.alert(
         "Error",
-        "Failed to manifest your thoughts. Please try again.",
+        "Failed to post. Please try again.",
       );
     }
   };
@@ -209,7 +209,7 @@ export default function ComposePostScreen() {
               <ActivityIndicator size="small" color="white" />
             ) : (
               <Text className="text-white font-black uppercase tracking-widest text-xs">
-                Manifest
+                Post
               </Text>
             )}
           </TouchableOpacity>
@@ -249,7 +249,7 @@ export default function ComposePostScreen() {
               {replyToName && (
                 <View className="bg-sky-50 self-start px-3 py-1 rounded-xl mb-3 border border-sky-100/50">
                   <Text className="text-sky-600 font-bold text-[11px] uppercase tracking-wider">
-                    Echoing @{replyToName}
+                    Replying to @{replyToName}
                   </Text>
                 </View>
               )}
@@ -259,10 +259,10 @@ export default function ComposePostScreen() {
                 multiline
                 placeholder={
                   replyToName
-                    ? "What is your resonance?"
+                    ? "What are your thoughts?"
                     : quoteId
                       ? "Add your perspective..."
-                      : "What artifact will you share today?"
+                      : "What's on your mind?"
                 }
                 placeholderTextColor="#94A3B8"
                 className="text-[18px] leading-7 text-gray-900 font-medium mb-6 min-h-[160px]"
@@ -291,7 +291,7 @@ export default function ComposePostScreen() {
                 </View>
               )}
 
-              {/* Quote Artifact Preview */}
+              {/* Quote Post Preview */}
               {quoteId && (
                 <View className="border border-gray-100 bg-white rounded-[32px] p-5 mb-6 shadow-sm shadow-gray-100">
                   <View className="flex-row items-center mb-2">
@@ -311,7 +311,7 @@ export default function ComposePostScreen() {
                 </View>
               )}
 
-              {/* Image Artifact Previews */}
+              {/* Image Previews */}
               {images.length > 0 && (
                 <ScrollView
                   horizontal
@@ -383,7 +383,7 @@ export default function ComposePostScreen() {
             <TouchableOpacity className="flex-row items-center bg-gray-50 px-4 py-2 rounded-xl">
               <Ionicons name="earth" size={16} color="#94A3B8" />
               <Text className="text-gray-400 font-black uppercase tracking-widest text-[10px] ml-2">
-                Global Diffusion
+                Public Post
               </Text>
             </TouchableOpacity>
           </View>

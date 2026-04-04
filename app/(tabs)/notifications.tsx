@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Platform,
   RefreshControl,
   Text,
   TouchableOpacity,
@@ -35,27 +36,28 @@ const { width } = Dimensions.get('window');
 const getNotificationConfig = (type: string) => {
   switch (type) {
     case "LIKE":
-      return { icon: "heart", color: "#F43F5E", text: "resonated with your artifact", bg: "bg-rose-50/50" };
+      return { icon: "heart", color: "#F43F5E", text: "liked your post", bg: "bg-rose-50/50" };
     case "FOLLOW":
-      return { icon: "person", color: "#10B981", text: "is now bound to your frequency", bg: "bg-emerald-50/50" };
+      return { icon: "person", color: "#10B981", text: "is now following you", bg: "bg-emerald-50/50" };
     case "REPOST":
-      return { icon: "repeat", color: "#0EA5E9", text: "diffused your artifact", bg: "bg-sky-50/50" };
+      return { icon: "repeat", color: "#0EA5E9", text: "reposted your post", bg: "bg-sky-50/50" };
     case "QUOTE":
-      return { icon: "code-working", color: "#8B5CF6", text: "reflected on your artifact", bg: "bg-violet-50/50" };
+      return { icon: "code-working", color: "#8B5CF6", text: "quoted your post", bg: "bg-violet-50/50" };
     case "REPLY":
-      return { icon: "chatbubble", color: "#6366F1", text: "sent an echo to your artifact", bg: "bg-indigo-50/50" };
+      return { icon: "chatbubble", color: "#6366F1", text: "replied to your post", bg: "bg-indigo-50/50" };
     case "MENTION":
-      return { icon: "at", color: "#F59E0B", text: "called your presence", bg: "bg-amber-50/50" };
+      return { icon: "at", color: "#F59E0B", text: "mentioned you", bg: "bg-amber-50/50" };
     case "MESSAGE":
-      return { icon: "mail", color: "#0EA5E9", text: "sent you a direct whisper", bg: "bg-sky-50/50" };
+      return { icon: "mail", color: "#0EA5E9", text: "sent you a message", bg: "bg-sky-50/50" };
     case "SYSTEM":
-      return { icon: "sparkles", color: "#0EA5E9", text: "sent a Zen coordinate update", bg: "bg-sky-50/50" };
+      return { icon: "sparkles", color: "#0EA5E9", text: "sent a system update", bg: "bg-sky-50/50" };
     default:
-      return { icon: "notifications", color: "#64748B", text: "interacted with your existence", bg: "bg-gray-50/50" };
+      return { icon: "notifications", color: "#64748B", text: "interacted with you", bg: "bg-gray-50/50" };
   }
 };
 
 const formatTimeAgo = (dateString: string) => {
+  if (!dateString) return "";
   const now = new Date();
   const date = new Date(dateString);
   const diffMs = now.getTime() - date.getTime();
@@ -193,7 +195,7 @@ export default function NotificationsScreen() {
     if (activeTab === "mentions") {
       filtered = notifications.filter(n => n.type === "MENTION" || n.type === "REPLY");
     } else if (activeTab === "verified") {
-      filtered = notifications.filter(n => n.issuer?.username === "ananta");
+      filtered = notifications.filter(n => n.issuer?.username === "oasis");
     }
 
     const groups: Record<string, any[]> = {};
@@ -216,16 +218,30 @@ export default function NotificationsScreen() {
   }, [notificationsData, activeTab]);
 
   const tabProgress = useSharedValue(0);
-  const handleTabChange = (tab: any, index: number) => {
+  const handleTabChange = useCallback((tab: any, index: number) => {
     if (tab === activeTab) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(tab);
     tabProgress.value = withSpring(index * (1 / 3), { damping: 20 });
-  };
+  }, [activeTab, tabProgress]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     left: `${interpolate(tabProgress.value, [0, 1], [0, 100])}%`,
   }));
+
+  const handleMarkAllRead = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    markAllAsRead({});
+  }, [markAllAsRead]);
+
+  const handlePressProfile = useCallback((id: string) => {
+    router.push(`/profile/${id}`);
+  }, [router]);
+
+  const onRefresh = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    refetch();
+  }, [refetch]);
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
@@ -233,21 +249,18 @@ export default function NotificationsScreen() {
       <BlurView intensity={90} tint="light" className="px-5 pb-5 z-50 border-b border-gray-100/50" style={{ paddingTop: insets.top + 10 }}>
         <View className="flex-row justify-between items-center mb-6">
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Presence</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Temporal Frequency</Text>
+            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Activity</Text>
+            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Recent Interactions</Text>
           </View>
           <TouchableOpacity
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              markAllAsRead({});
-            }}
+            onPress={handleMarkAllRead}
             className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
           >
             <Ionicons name="checkmark-done" size={20} color="#0EA5E9" />
           </TouchableOpacity>
         </View>
 
-        {/* Minimalist Tabs */}
+        {/* Status Tabs */}
         <View className="flex-row bg-gray-100/50 p-1 rounded-2xl h-11 relative">
           <Animated.View
             style={[{ position: 'absolute', top: 4, bottom: 4, width: '33.33%', backgroundColor: '#fff', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }, indicatorStyle]}
@@ -280,28 +293,29 @@ export default function NotificationsScreen() {
               item={item}
               index={index}
               onPress={handleNotificationPress}
-              onPressProfile={(id) => router.push(`/profile/${id}`)}
+              onPressProfile={handlePressProfile}
             />
           )}
           refreshControl={
             <RefreshControl
               refreshing={isFetching}
-              onRefresh={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                refetch();
-              }}
+              onRefresh={onRefresh}
               tintColor="#0EA5E9"
             />
           }
           contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListEmptyComponent={
             <View className="items-center justify-center mt-32 px-14 opacity-20">
               <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 border border-gray-100">
-                <Ionicons name="leaf" size={48} color="#94A3B8" />
+                <Ionicons name="notifications-off-outline" size={48} color="#94A3B8" />
               </View>
-              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">Peaceful Stillness</Text>
+              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">Quiet Here</Text>
               <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-                No temporal echoes have reached your coordinate yet.
+                No notifications to show at the moment.
               </Text>
             </View>
           }

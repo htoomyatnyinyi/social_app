@@ -15,7 +15,7 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert("Dissolve Presence", "Are you sure you want to log out of the Ananta?", [
+    Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
@@ -32,86 +32,86 @@ export default function SettingsScreen() {
 
   const sections = [
     {
-      title: "Being",
+      title: "Account",
       items: [
         {
           icon: "person",
-          label: "Portrait Reflect",
-          sublabel: "Edit your profile details",
+          label: "Edit Profile",
+          sublabel: "Update your profile details",
           onPress: () => router.push("/profile/update"),
         },
         {
           icon: "key",
-          label: "Credentials",
+          label: "Password",
           sublabel: "Change your security password",
           onPress: () => router.push("/settings/change-password"),
         },
       ],
     },
     {
-      title: "Sanctuary Control",
+      title: "Privacy & Safety",
       items: [
         {
           icon: "hand-left",
-          label: "Blocked Members",
-          sublabel: "Manage your blocked entities",
+          label: "Blocked Users",
+          sublabel: "Manage blocked accounts",
           onPress: () => router.push("/settings/block"),
         },
         {
           icon: "volume-mute",
-          label: "Muted Members",
-          sublabel: "Manage your muted presence",
+          label: "Muted Users",
+          sublabel: "Manage muted accounts",
           onPress: () => router.push("/settings/mute"),
         },
       ],
     },
     {
-      title: "Atmosphere",
+      title: "Preferences",
       items: [
         {
           icon: "notifications",
-          label: "Echo Frequencies",
-          sublabel: "Manage your notifications",
+          label: "Notifications",
+          sublabel: "Manage your alerts",
           onPress: () => Alert.alert("Coming Soon"),
         },
         {
           icon: "moon",
-          label: "Luminescence",
-          sublabel: "Toggle dark mode experience",
+          label: "Appearance",
+          sublabel: "Toggle dark mode",
           onPress: () => Alert.alert("Coming Soon"),
         },
       ],
     },
     {
-      title: "Spirit",
+      title: "Health",
       items: [
         {
           icon: "leaf",
-          label: "Stillness Timer",
-          sublabel: "Access your meditation space",
+          label: "Screen Time",
+          sublabel: "Access wellness features",
           onPress: () => router.push("/settings/meditation"),
         },
       ],
     },
     {
-      title: "Protocol",
+      title: "Support",
       items: [
         {
           icon: "help-circle",
-          label: "Ananta Sanctuary",
-          sublabel: "Visit the help center",
+          label: "Help Center",
+          sublabel: "Visit our support portal",
           onPress: () => router.push("/settings/help"),
         },
         {
           icon: "document-text",
-          label: "Artifact Terms",
-          sublabel: "Read our terms of service",
+          label: "Terms of Service",
+          sublabel: "Read our terms and conditions",
           onPress: () => router.push("/settings/terms"),
         },
         {
           icon: "shield-checkmark",
-          label: "Presence Privacy",
-          sublabel: "Our commitment to your data",
+          label: "Privacy Policy",
+          sublabel: "Our commitment to your privacy",
           onPress: () => router.push("/settings/privacy"),
         },
       ],
@@ -138,8 +138,8 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-back" size={20} color="#64748B" />
           </TouchableOpacity>
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Coordinate</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">System Environment</Text>
+            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Settings</Text>
+            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">App Configuration</Text>
           </View>
         </View>
       </BlurView>
@@ -187,7 +187,7 @@ export default function SettingsScreen() {
               <Ionicons name="log-out" size={20} color="#F43F5E" />
             </View>
             <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
-              Dissolve Presence
+              Log Out
             </Text>
           </TouchableOpacity>
 
@@ -196,14 +196,13 @@ export default function SettingsScreen() {
             className="items-center py-4"
           >
             <Text className="text-center text-gray-400 font-bold text-[12px] uppercase tracking-widest">
-              Erase Permanent Presence
+              Delete Account
             </Text>
           </TouchableOpacity>
 
           <View className="items-center mt-12 opacity-20">
-            <Text className="text-[10px] font-black text-gray-900 uppercase tracking-[4px]">Ananta Social</Text>
+            <Text className="text-[10px] font-black text-gray-900 uppercase tracking-[4px]">Social App</Text>
             <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Version Alpha 2.4.1009</Text>
-            <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Developed by Htoo Myat Nyi Nyi</Text>
           </View>
         </View>
       </ScrollView>

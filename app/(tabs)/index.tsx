@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Platform,
   RefreshControl,
   Text,
   TouchableOpacity,
@@ -35,11 +36,11 @@ import {
 } from "../../store/postApi";
 
 const TRENDING_TOPICS = [
-  { id: "1", label: "Zen", icon: "leaf", color: "#10B981" },
-  { id: "2", label: "Ananta", icon: "water", color: "#0EA5E9" },
-  { id: "3", label: "Artifacts", icon: "color-palette", color: "#F59E0B" },
-  { id: "4", label: "Code", icon: "code-working", color: "#6366F1" },
-  { id: "5", label: "Presence", icon: "pulse", color: "#F43F5E" },
+  { id: "1", label: "Global", icon: "globe", color: "#10B981" },
+  { id: "2", label: "Tech", icon: "hardware-chip", color: "#0EA5E9" },
+  { id: "3", label: "Art", icon: "color-palette", color: "#F59E0B" },
+  { id: "4", label: "News", icon: "newspaper", color: "#6366F1" },
+  { id: "5", label: "Life", icon: "heart", color: "#F43F5E" },
 ];
 
 export default function FeedScreen() {
@@ -103,14 +104,14 @@ export default function FeedScreen() {
   }, [bookmarkPost]);
 
   const handleRepostAction = useCallback((post: Post) => {
-    const isRepostItem = !!post.isRepost;
+    const isRepostItem = !!post.isRepost || !!post.repostedByMe;
     const realPostId = isRepostItem && post.originalPost ? post.originalPost.id : post.id;
     const alreadyReposted = post.repostedByMe ?? false;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (alreadyReposted) {
-      Alert.alert("Undo Repost", "Remove this artifact from your timeline?", [
+      Alert.alert("Undo Repost", "Remove this post from your timeline?", [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
@@ -125,22 +126,22 @@ export default function FeedScreen() {
         },
       ]);
     } else {
-      Alert.alert("Share Artifact", "How would you like to diffuse this message?", [
+      Alert.alert("Share Post", "How would you like to share this post?", [
         {
-          text: "Diffuse Directly",
+          text: "Repost Directly",
           onPress: async () => {
             try {
               await repostPost({ id: realPostId }).unwrap();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (err: any) {
               if (err?.status === 400) {
-                Alert.alert("Already Diffused", "You have already shared this artifact.");
+                Alert.alert("Already Reposted", "You have already shared this post.");
               }
             }
           },
         },
         {
-          text: "Quote & Reflect",
+          text: "Quote Post",
           onPress: () => {
             router.push({
               pathname: "/compose/post",
@@ -153,41 +154,30 @@ export default function FeedScreen() {
     }
   }, [repostPost, deleteRepost, router]);
 
+  const handlePressPost = useCallback((id: string) => {
+    router.push(`/post/${id}`);
+  }, [router]);
+
+  const handlePressProfile = useCallback((id: string) => {
+    router.push(`/profile/${id}`);
+  }, [router]);
+
+  const handlePressOptions = useCallback((p: Post) => {
+    setPostForOptions(p);
+    setOptionsModalVisible(true);
+  }, []);
+
   const uniquePosts = useMemo(() => {
     const map = new Map();
     posts.forEach((p: any) => map.set(p.id, p));
     return Array.from(map.values()) as Post[];
   }, [posts]);
 
-  const renderTrending = () => (
-    <View className="py-6 border-b border-gray-100/50">
-      <View className="px-5 mb-4 flex-row items-center justify-between">
-        <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[2px]">Trending Artifacts</Text>
-        <TouchableOpacity>
-          <Ionicons name="sparkles" size={14} color="#CBD5E1" />
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={TRENDING_TOPICS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            className="bg-white px-5 py-3 rounded-[22px] mr-3 flex-row items-center shadow-sm shadow-gray-200 border border-gray-50"
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push(`/explore?q=${encodeURIComponent(item.label)}`);
-            }}
-          >
-            <View className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: item.color }} />
-            <Text className="text-gray-700 font-black text-[13px] tracking-tight">#{item.label}</Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  );
+  const onRefresh = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCursor(null);
+    refetch();
+  }, [refetch]);
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
@@ -214,7 +204,7 @@ export default function FeedScreen() {
         </TouchableOpacity>
 
         <View className="items-center">
-          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Ananta</Text>
+          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Oasis</Text>
         </View>
 
         <TouchableOpacity
@@ -224,7 +214,7 @@ export default function FeedScreen() {
           }}
           className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
         >
-          <Ionicons name="leaf" size={20} color="#10B981" />
+          <Ionicons name="notifications-outline" size={20} color="#64748B" />
         </TouchableOpacity>
       </BlurView>
 
@@ -233,7 +223,6 @@ export default function FeedScreen() {
         keyExtractor={(item, index) => `${item?.id}-${index}`}
         ListHeaderComponent={() => (
           <View>
-            {/* Premium Tab Bar */}
             <View className="px-5 py-5">
               <View className="flex-row bg-gray-100/30 p-1.5 rounded-[24px] h-[52px] relative border border-gray-100/80">
                 <Animated.View
@@ -244,7 +233,7 @@ export default function FeedScreen() {
                       bottom: 4,
                       left: 4,
                       width: '48%',
-                      backgroundColor: 'red',
+                      backgroundColor: 'white',
                       borderRadius: 20,
                       shadowColor: '#0EA5E9',
                       shadowOffset: { width: 0, height: 4 },
@@ -274,13 +263,11 @@ export default function FeedScreen() {
                     className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "private" ? "text-gray-900" : "text-gray-400"
                       }`}
                   >
-                    Resonance
+                    Following
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
-
-            {/* {activeTab === "public" && renderTrending()} */}
           </View>
         )}
         renderItem={({ item }) => (
@@ -288,13 +275,10 @@ export default function FeedScreen() {
             <PostCard
               item={item as Post}
               user={user}
-              onPressPost={(id) => router.push(`/post/${id}`)}
-              onPressProfile={(id) => router.push(`/profile/${id}`)}
-              onPressOptions={(p) => {
-                setPostForOptions(p);
-                setOptionsModalVisible(true);
-              }}
-              onPressComment={(id) => router.push(`/post/${id}`)}
+              onPressPost={handlePressPost}
+              onPressProfile={handlePressProfile}
+              onPressOptions={handlePressOptions}
+              onPressComment={handlePressPost}
               onPressRepost={handleRepostAction}
               onLike={handleLike}
               onBookmark={handleBookmark}
@@ -304,11 +288,7 @@ export default function FeedScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isLoading && !cursor}
-            onRefresh={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setCursor(null);
-              refetch();
-            }}
+            onRefresh={onRefresh}
             tintColor="#0EA5E9"
             colors={["#0EA5E9"]}
           />
@@ -319,6 +299,10 @@ export default function FeedScreen() {
           }
         }}
         onEndReachedThreshold={0.4}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         ListFooterComponent={
           isFetching && cursor ? (
             <ActivityIndicator className="py-8" color="#0EA5E9" />
@@ -332,7 +316,6 @@ export default function FeedScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Premium Floating Manifest Button */}
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {

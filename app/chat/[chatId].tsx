@@ -482,11 +482,11 @@ export default function ChatScreen() {
       const isMe = item.senderId === user?.id;
       const itemContent =
         item.content ||
-        (item.mediaUrl ? "Artifact Reflection" : "Minimal Message");
+        (item.mediaUrl ? "Post Content" : "Message");
 
       Alert.alert(
-        "Resonance",
-        "Choose an action for this whisper.",
+        "Options",
+        "Choose an action for this message.",
         [
           {
             text: "Reply",
@@ -497,16 +497,16 @@ export default function ChatScreen() {
                 content: itemContent,
               }),
           },
-          { text: "❤️ Love", onPress: () => sendReaction(item.id, "❤️") },
-          { text: "✨ Spark", onPress: () => sendReaction(item.id, "✨") },
+          { text: "❤️ Like", onPress: () => sendReaction(item.id, "❤️") },
+          { text: "✨ Star", onPress: () => sendReaction(item.id, "✨") },
           isMe
             ? {
-              text: "Dissolve",
+              text: "Delete",
               style: "destructive",
               onPress: () => deleteMessage(item.id),
             }
             : null,
-          { text: "Keep", style: "cancel" },
+          { text: "Cancel", style: "cancel" },
         ].filter(Boolean) as any,
       );
     },
@@ -604,7 +604,7 @@ export default function ChatScreen() {
                   letterSpacing: 1,
                 }}
               >
-                {isTyping ? "Whispering..." : "Synchronized"}
+                {isTyping ? "Typing..." : "Online"}
               </Text>
             </View>
           </View>
@@ -781,7 +781,7 @@ export default function ChatScreen() {
                   letterSpacing: 0.5,
                 }}
               >
-                Artifact Attached
+                Media Attached
               </Text>
             </View>
           )}

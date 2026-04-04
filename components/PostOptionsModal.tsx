@@ -56,7 +56,7 @@ export default function PostOptionsModal({
 
               <View className="pb-10 pt-4 px-6">
                 <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[3px] mb-6 text-center">
-                    Artifact Options
+                    Post Options
                 </Text>
 
                 {isOwner ? (
@@ -68,7 +68,7 @@ export default function PostOptionsModal({
                         <Ionicons name="trash" size={20} color="#F43F5E" />
                     </View>
                     <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
-                      Dissolve Artifact
+                      Delete Post
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -81,7 +81,7 @@ export default function PostOptionsModal({
                          <Ionicons name="flag" size={20} color="#64748B" />
                       </View>
                       <Text className="flex-1 text-[15px] font-black text-gray-700 uppercase tracking-widest">
-                        Signal Boundary
+                        Report Post
                       </Text>
                     </TouchableOpacity>
 
@@ -93,7 +93,7 @@ export default function PostOptionsModal({
                         <Ionicons name="person-remove" size={20} color="#64748B" />
                       </View>
                       <Text className="flex-1 text-[15px] font-black text-gray-700 uppercase tracking-widest">
-                        Server Presence
+                        Block User
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -104,7 +104,7 @@ export default function PostOptionsModal({
                   className="mt-4 py-5 items-center justify-center bg-gray-900 rounded-[28px] shadow-lg shadow-gray-400"
                 >
                   <Text className="text-white font-black text-[12px] uppercase tracking-[3px]">
-                    Return to Silence
+                    Cancel
                   </Text>
                 </TouchableOpacity>
               </View>

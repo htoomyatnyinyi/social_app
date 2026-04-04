@@ -68,6 +68,44 @@ export default function ExploreScreen() {
 
   const currentUser = useSelector((state: any) => state.auth.user);
 
+  const handleLike = useCallback(async (id: string) => {
+    try {
+      await likePost({ postId: id }).unwrap();
+    } catch (err) {
+      console.error("Like failed", err);
+    }
+  }, [likePost]);
+
+  const handleBookmark = useCallback(async (id: string) => {
+    try {
+      await bookmarkPost(id).unwrap();
+    } catch (err) {
+      console.error("Bookmark failed", err);
+    }
+  }, [bookmarkPost]);
+
+  const handleRepostAction = useCallback(async (post: any) => {
+    try {
+      await repostPost({ id: post.id }).unwrap();
+    } catch (err) {
+      console.error("Repost failed", err);
+    }
+  }, [repostPost]);
+
+  const handlePressPost = useCallback((id: string) => {
+    router.push(`/post/${id}`);
+  }, [router]);
+
+  const handlePressProfile = useCallback((id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(id === currentUser?.id ? "/profile" : `/profile/${id}`);
+  }, [router, currentUser?.id]);
+
+  const handlePressOptions = useCallback((p: any) => {
+    setPostForOptions(p);
+    setOptionsModalVisible(true);
+  }, []);
+
   const filteredUsers = useMemo(() => {
     return searchResults?.users?.filter((user: any) => user.id !== currentUser?.id) || [];
   }, [searchResults, currentUser]);
@@ -99,7 +137,7 @@ export default function ExploreScreen() {
         <View className="flex-1 mr-4">
           <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1.5">Rising · #{index + 1}</Text>
           <Text className="font-black text-[18px] text-gray-900 tracking-tight">#{item.name}</Text>
-          <Text className="text-gray-500 font-bold text-[11px] mt-1.5 uppercase tracking-wider">{item.count} Artifacts Diffusion</Text>
+          <Text className="text-gray-500 font-bold text-[11px] mt-1.5 uppercase tracking-wider">{item.count} Posts</Text>
         </View>
         <TouchableOpacity className="bg-gray-100/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50">
             <Ionicons name="trending-up" size={18} color="#94A3B8" />
@@ -127,7 +165,7 @@ export default function ExploreScreen() {
           transition={500}
         />
         <BlurView intensity={95} tint="light" className="p-6 bg-white/40 absolute bottom-0 left-0 right-0">
-          <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">Featured Discovery</Text>
+          <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">Featured Post</Text>
           <Text className="text-xl font-black text-gray-900 tracking-tight leading-7" numberOfLines={2}>
             {hero.content}
           </Text>
@@ -183,7 +221,7 @@ export default function ExploreScreen() {
           {renderHeroTrending()}
 
           <View className="px-6 pb-4">
-            <Text className="text-xl font-black text-gray-900 tracking-tighter uppercase">Echoing Now</Text>
+            <Text className="text-xl font-black text-gray-900 tracking-tighter uppercase">Trending Topics</Text>
           </View>
         </View>
       )}
@@ -249,16 +287,13 @@ export default function ExploreScreen() {
                     <PostCard
                         item={item}
                         user={currentUser}
-                        onPressPost={(id) => router.push(`/post/${id}`)}
-                        onPressProfile={(id) => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            router.push(id === currentUser?.id ? "/profile" : `/profile/${id}`);
-                        }}
-                        onPressOptions={(p) => { setPostForOptions(p); setOptionsModalVisible(true); }}
-                        onPressComment={(id) => router.push(`/post/${id}`)}
-                        onPressRepost={(p) => repostPost({ id: p.id })}
-                        onLike={(id) => likePost({ postId: id }).unwrap()}
-                        onBookmark={(id) => bookmarkPost(id).unwrap()}
+                        onPressPost={handlePressPost}
+                        onPressProfile={handlePressProfile}
+                        onPressOptions={handlePressOptions}
+                        onPressComment={handlePressPost}
+                        onPressRepost={handleRepostAction}
+                        onLike={handleLike}
+                        onBookmark={handleBookmark}
                     />
                 </View>
             );
@@ -268,9 +303,13 @@ export default function ExploreScreen() {
               <View className="w-20 h-20 bg-gray-100 rounded-[40px] items-center justify-center mb-6">
                  <Ionicons name="search" size={32} color="#CBD5E1" />
               </View>
-              <Text className="text-gray-400 font-black uppercase text-xs tracking-widest text-center">No resonance found for &quot;{search}&quot;</Text>
+              <Text className="text-gray-400 font-black uppercase text-xs tracking-widest text-center">No results found for &quot;{search}&quot;</Text>
             </View>
         )}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
       />
     );
   };
@@ -283,7 +322,7 @@ export default function ExploreScreen() {
             <View className="flex-row items-center bg-white rounded-[24px] px-5 py-3 border border-gray-100 shadow-sm shadow-gray-100/50">
                 <Ionicons name="search" size={20} color="#94A3B8" />
                 <TextInput
-                    placeholder="Search Artifacts..."
+                    placeholder="Search Posts..."
                     placeholderTextColor="#CBD5E1"
                     className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
                     value={search}
