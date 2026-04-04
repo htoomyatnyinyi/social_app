@@ -9,10 +9,10 @@ export default function HelpCenterScreen() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const helpCategories = [
-        { id: '1', title: 'Account Portal', icon: 'person-outline', description: 'Verification, login issues, and security.' },
-        { id: '2', title: 'Sanctuary Safety', icon: 'shield-checkmark-outline', description: 'Reporting, blocking, and community guidelines.' },
-        { id: '3', title: 'Ananta Features', icon: 'sparkles-outline', description: 'How to use circles, spirits, and the feed.' },
-        { id: '4', title: 'Privacy & Data', icon: 'finger-print-outline', description: 'Manage your data and invisibility settings.' },
+        { id: '1', title: 'Account Settings', icon: 'person-outline', description: 'Verification, login issues, and security.' },
+        { id: '2', title: 'Safety & Reporting', icon: 'shield-checkmark-outline', description: 'Reporting, blocking, and community guidelines.' },
+        { id: '3', title: 'App Features', icon: 'sparkles-outline', description: 'How to use basic social features and the feed.' },
+        { id: '4', title: 'Privacy & Data', icon: 'finger-print-outline', description: 'Manage your personal data and privacy settings.' },
     ];
 
     return (
@@ -22,19 +22,19 @@ export default function HelpCenterScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
                     <Ionicons name="arrow-back" size={24} color="black" />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold ml-4">Ananta Sanctuary</Text>
+                <Text className="text-lg font-bold ml-4">Help Center</Text>
             </View>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 {/* Search Section */}
                 <View className="p-6 bg-gray-50">
-                    <Text className="text-2xl font-bold text-gray-900 mb-2">How can we guide you?</Text>
-                    <Text className="text-gray-500 mb-4">Search the sanctuary archives for answers.</Text>
+                    <Text className="text-2xl font-bold text-gray-900 mb-2">How can we help you?</Text>
+                    <Text className="text-gray-500 mb-4">Search our knowledge base for answers.</Text>
 
                     <View className="flex-row items-center bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
                         <Ionicons name="search" size={20} color="#9CA3AF" />
                         <TextInput
-                            placeholder="Search help..."
+                            placeholder="Type your question..."
                             className="flex-1 ml-3 text-base"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
@@ -50,8 +50,8 @@ export default function HelpCenterScreen() {
                             className="w-[48%] bg-white border border-gray-100 p-4 rounded-2xl mb-4 shadow-sm"
                             onPress={() => {/* Navigate to sub-category */ }}
                         >
-                            <View className="bg-indigo-50 w-10 h-10 rounded-xl items-center justify-center mb-3">
-                                <Ionicons name={item.icon as any} size={22} color="#4F46E5" />
+                            <View className="bg-sky-50 w-10 h-10 rounded-xl items-center justify-center mb-3">
+                                <Ionicons name={item.icon as any} size={22} color="#0EA5E9" />
                             </View>
                             <Text className="font-bold text-gray-900 mb-1">{item.title}</Text>
                             <Text className="text-xs text-gray-500 leading-4">{item.description}</Text>
@@ -61,18 +61,18 @@ export default function HelpCenterScreen() {
 
                 {/* Quick Help List */}
                 <View className="px-4 mb-8">
-                    <Text className="font-bold text-lg mb-4">Frequently Asked</Text>
-                    <FAQItem title="How do I permanently dissolve my account?" />
-                    <FAQItem title="Recovering a lost access key" />
-                    <FAQItem title="Myanmar community guidelines 2026" />
+                    <Text className="font-bold text-lg mb-4">Frequently Asked Questions</Text>
+                    <FAQItem title="How do I permanently delete my account?" />
+                    <FAQItem title="Recovering a lost password" />
+                    <FAQItem title="Community guidelines and safety" />
                 </View>
 
                 {/* Contact Support Footer */}
-                <View className="mx-4 p-6 bg-indigo-600 rounded-3xl mb-10 shadow-lg shadow-indigo-200">
+                <View className="mx-4 p-6 bg-sky-600 rounded-3xl mb-10 shadow-lg shadow-sky-200">
                     <Text className="text-white text-lg font-bold mb-1">Still need help?</Text>
-                    <Text className="text-indigo-100 mb-4">Our guides are available 24/7 in the Sanctuary.</Text>
+                    <Text className="text-sky-100 mb-4">Our support team is available 24/7 to assist you.</Text>
                     <TouchableOpacity className="bg-white py-3 rounded-xl items-center">
-                        <Text className="text-indigo-600 font-bold">Contact Support</Text>
+                        <Text className="text-sky-600 font-bold">Contact Support</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

@@ -40,6 +40,7 @@ export const api = createApi({
     "Message",
     "Notification",
     "Profile",
+    "Settings",
   ],
   endpoints: () => ({}),
 });

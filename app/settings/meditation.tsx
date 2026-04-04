@@ -167,7 +167,7 @@ const MeditationTimer = () => {
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Meditation Timer</Text>
+          <Text style={styles.title}>Focus Timer</Text>
           <TouchableOpacity
             onPress={() => setRepeat(!repeat)}
             style={[styles.repeatToggle, repeat && styles.repeatToggleActive]}

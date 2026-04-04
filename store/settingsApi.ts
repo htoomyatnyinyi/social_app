@@ -15,8 +15,24 @@ export const settingsApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
+    getNotificationPreferences: builder.query({
+      query: () => "/settings/notification-preferences",
+      providesTags: ["Settings"],
+    }),
+    updateNotificationPreferences: builder.mutation({
+      query: (data) => ({
+        url: "/settings/notification-preferences",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Settings"],
+    }),
   }),
 });
 
-export const { useChangePasswordMutation, useDeleteAccountMutation } =
-  settingsApi;
+export const {
+  useChangePasswordMutation,
+  useDeleteAccountMutation,
+  useGetNotificationPreferencesQuery,
+  useUpdateNotificationPreferencesMutation,
+} = settingsApi;

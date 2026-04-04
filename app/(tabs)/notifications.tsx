@@ -195,7 +195,7 @@ export default function NotificationsScreen() {
     if (activeTab === "mentions") {
       filtered = notifications.filter(n => n.type === "MENTION" || n.type === "REPLY");
     } else if (activeTab === "verified") {
-      filtered = notifications.filter(n => n.issuer?.username === "oasis");
+      filtered = notifications.filter(n => n.issuer?.username === "official" || n.issuer?.username === "system");
     }
 
     const groups: Record<string, any[]> = {};
@@ -249,8 +249,8 @@ export default function NotificationsScreen() {
       <BlurView intensity={90} tint="light" className="px-5 pb-5 z-50 border-b border-gray-100/50" style={{ paddingTop: insets.top + 10 }}>
         <View className="flex-row justify-between items-center mb-6">
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Activity</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Recent Interactions</Text>
+            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Notifications</Text>
+            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Recent Activity</Text>
           </View>
           <TouchableOpacity
             onPress={handleMarkAllRead}
