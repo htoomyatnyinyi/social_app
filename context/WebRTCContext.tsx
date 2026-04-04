@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useRef } from 'react';
 import { useWebRTC, CallState, CallType } from '../hooks/useWebRTC';
 import { useSelector } from 'react-redux';
 import { MediaStream } from 'react-native-webrtc';

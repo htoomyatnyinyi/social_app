@@ -608,7 +608,6 @@ export default function ChatScreen() {
               </Text>
             </View>
           </View>
-          {/* 
           <TouchableOpacity
             onPress={startVoiceCall}
             style={{
@@ -636,7 +635,7 @@ export default function ChatScreen() {
           >
             <Ionicons name="videocam" size={20} color="#0EA5E9" />
           </TouchableOpacity> 
-          */}
+
         </View>
       </View>
     ),
