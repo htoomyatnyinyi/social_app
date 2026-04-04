@@ -66,12 +66,14 @@ export default function TabLayout() {
         try {
           const data = JSON.parse(event.data);
 
+          /* 
           // Handle Signaling
           const signalingTypes = ["call_invite", "call_accept", "call_reject", "offer", "answer", "ice_candidate", "end_call"];
           if (signalingTypes.includes(data.type)) {
             processGlobalSignaling(data);
             return;
           }
+          */
 
           if (data.type === "refresh") {
             refetchRef.current();

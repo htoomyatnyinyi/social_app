@@ -52,7 +52,7 @@ export default function RootLayout() {
   return (
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <WebRTCProvider>
+        {/* <WebRTCProvider> */}
           <SafeAreaProvider>
             <Stack
               screenOptions={{
@@ -60,9 +60,9 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: "white" },
               }}
             />
-            <GlobalCallHandler />
+            {/* <GlobalCallHandler /> */}
           </SafeAreaProvider>
-        </WebRTCProvider>
+        {/* </WebRTCProvider> */}
       </PersistGate>
     </ReduxProvider>
   );
