@@ -60,7 +60,7 @@ export default function MutedScreen() {
         >
           <Ionicons name="chevron-back" size={24} color="#64748B" />
         </TouchableOpacity>
-        <Text className="text-xl font-black ml-4 text-gray-900 tracking-tighter uppercase">Muted Presence</Text>
+        <Text className="text-xl font-black ml-4 text-gray-900 tracking-tighter uppercase">Muted Users</Text>
       </BlurView>
 
       {isLoading ? (
@@ -79,8 +79,8 @@ export default function MutedScreen() {
               <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
                 <Ionicons name="volume-mute-outline" size={32} color="#94A3B8" />
               </View>
-              <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">Total stillness</Text>
-              <Text className="text-gray-400 text-center mt-2 font-medium">You haven't silenced any souls in the oasis.</Text>
+              <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">List Empty</Text>
+              <Text className="text-gray-400 text-center mt-2 font-medium">You haven't muted any users on the platform.</Text>
             </View>
           }
         />

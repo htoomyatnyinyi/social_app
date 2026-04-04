@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 
@@ -159,7 +159,7 @@ const PostCard = React.memo(
     onLike,
     onBookmark,
   }: PostCardProps) => {
-    const router = useRouter();
+
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSeeMore, setShowSeeMore] = useState(false);
 
@@ -230,15 +230,17 @@ const PostCard = React.memo(
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => onPressPost(displayId)}
-        className="bg-white border border-gray-100 rounded-[32px] p-4 shadow-sm shadow-gray-200 mb-2"
+        className="bg-white border border-gray-100 rounded-[32px] p-5 shadow-sm shadow-gray-200/50 mb-3"
       >
         {/* Repost Indicator */}
         {isRepostAction && item.author && (
-          <View className="flex-row items-center mb-3 ml-2">
-            <Ionicons name="repeat" size={14} color="#10B981" />
-            <Text className="ml-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-              {item.author.id === user?.id ? "You" : item.author.name} Shared
-            </Text>
+          <View className="flex-row items-center mb-4 ml-1">
+            <View className="bg-emerald-50 px-2 py-1 rounded-lg flex-row items-center border border-emerald-100">
+              <Ionicons name="repeat" size={12} color="#10B981" />
+              <Text className="ml-1.5 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                {item.author.id === user?.id ? "You" : item.author.name} Shared
+              </Text>
+            </View>
           </View>
         )}
 
@@ -246,46 +248,49 @@ const PostCard = React.memo(
           {/* Avatar */}
           <TouchableOpacity
             onPress={() => displayAuthor.id && onPressProfile(displayAuthor.id)}
-            className="mr-3 shadow-md shadow-sky-100"
+            className="mr-4"
           >
-            <Image
-              source={{
-                uri:
-                  displayAuthor.image ||
-                  `https://api.dicebear.com/7.x/avataaars/png?seed=${displayAuthor.id}`,
-              }}
-              className="w-12 h-12 rounded-2xl bg-gray-100"
-              contentFit="cover"
-              transition={300}
-            />
+            <View className="shadow-lg shadow-sky-500/10">
+              <Image
+                source={{
+                  uri:
+                    displayAuthor.image ||
+                    `https://api.dicebear.com/7.x/avataaars/png?seed=${displayAuthor.id}`,
+                }}
+                className="w-13 h-13 rounded-[22px] bg-gray-50 border border-gray-100"
+                contentFit="cover"
+                transition={400}
+                style={{ width: 52, height: 52 }}
+              />
+            </View>
           </TouchableOpacity>
 
           <View className="flex-1">
             {/* Header */}
-            <View className="flex-row items-center justify-between mb-1">
+            <View className="flex-row items-center justify-between mb-1.5">
               <View className="flex-1 mr-2">
                 <View className="flex-row items-center">
                   <Text
-                    className="font-black text-[15px] text-gray-900 tracking-tighter"
+                    className="font-black text-[16px] text-gray-900 tracking-tight"
                     numberOfLines={1}
                   >
                     {displayAuthor.name || "Member"}
                   </Text>
-                  {displayAuthor.username === "oasis" && (
+                  {(displayAuthor.username === "official" || displayAuthor.id === "system") && (
                     <Ionicons
                       name="checkmark-circle"
                       size={16}
                       color="#0EA5E9"
-                      className="ml-0.5"
+                      className="ml-1"
                     />
                   )}
                 </View>
-                <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-tight">
+                <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-widest mt-0.5">
                   @{displayAuthor.username} · {createdAtFormatted}
                 </Text>
               </View>
               <TouchableOpacity
-                className="w-8 h-8 items-center justify-center rounded-xl bg-gray-50"
+                className="w-9 h-9 items-center justify-center rounded-2xl bg-gray-50/80 border border-gray-100/50"
                 onPress={() => onPressOptions(item)}
               >
                 <Ionicons
@@ -297,11 +302,11 @@ const PostCard = React.memo(
             </View>
 
             {/* Body */}
-            <View className="mb-3">
+            <View className="mb-4">
               {displayPost.parentPost && !isRepostAction && (
-                <View className="mb-2 bg-sky-50 px-2 py-1 rounded-lg self-start">
-                  <Text className="text-[11px] font-bold text-sky-600">
-                    Replying to @{displayPost.parentPost.author?.username}
+                <View className="mb-2 bg-sky-50/50 px-2.5 py-1.5 rounded-xl self-start border border-sky-100/50">
+                  <Text className="text-[11px] font-black text-sky-600 uppercase tracking-tight">
+                    Replying to <Text className="text-sky-400">@{displayPost.parentPost.author?.username}</Text>
                   </Text>
                 </View>
               )}
@@ -311,8 +316,8 @@ const PostCard = React.memo(
                   onPress={() => setIsExpanded(true)}
                   className="mt-1"
                 >
-                  <Text className="text-sky-500 font-bold text-[14px]">
-                    Read full story
+                  <Text className="text-sky-500 font-black text-[13px] uppercase tracking-wider">
+                    Show more
                   </Text>
                 </TouchableOpacity>
               )}
@@ -327,12 +332,12 @@ const PostCard = React.memo(
             />
 
             {/* Action Bar */}
-            <View className="flex-row justify-between items-center mt-1">
+            <View className="flex-row justify-between items-center mt-2 pr-2">
               <ActionButton
                 icon="chatbubble-outline"
                 count={displayPost._count?.replies}
                 activeColor="#64748B"
-                activeBg="bg-gray-50"
+                activeBg="bg-gray-100/50"
                 onPress={() => onPressComment(displayId)}
               />
               <ActionButton

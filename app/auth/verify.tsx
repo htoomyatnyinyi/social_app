@@ -7,7 +7,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Animated, {
@@ -108,11 +109,15 @@ export default function VerifyScreen() {
             onPress={handleVerify}
             disabled={isLoading}
             activeOpacity={0.9}
-            className={`py-5 rounded-[28px] items-center mt-10 shadow-xl ${isLoading ? "bg-sky-400" : "bg-[#0EA5E9] shadow-sky-200"}`}
+            className={`py-5 rounded-[28px] items-center mt-10 shadow-xl ${isLoading ? "bg-sky-400/50" : "bg-[#0EA5E9] shadow-sky-200"}`}
           >
-            <Text className="text-white font-black text-xs uppercase tracking-[3px]">
-              Verify Code
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <Text className="text-white font-black text-xs uppercase tracking-[3px]">
+                Verify Code
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity

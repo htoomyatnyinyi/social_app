@@ -146,8 +146,8 @@ export default function NotificationSettingsScreen() {
             <Ionicons name="chevron-back" size={20} color="#64748B" />
           </TouchableOpacity>
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Alerts</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Notification Preferences</Text>
+            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Notifications</Text>
+            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Manage Your Alerts</Text>
           </View>
         </View>
       </BlurView>

@@ -7,7 +7,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Animated, {
@@ -72,7 +73,7 @@ export default function SigninScreen() {
           className="items-center px-10 pt-20 pb-10"
         >
           <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
-            <Ionicons name="leaf" size={48} color="#0EA5E9" />
+            <Ionicons name="infinite" size={48} color="#0EA5E9" />
           </View>
           <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">Social</Text>
           <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-[4px] mt-4 text-center">Connect & Share</Text>
@@ -131,11 +132,15 @@ export default function SigninScreen() {
             onPress={handleSignin}
             disabled={isLoading}
             activeOpacity={0.9}
-            className={`py-5 rounded-[28px] items-center mt-10 shadow-xl ${isLoading ? "bg-sky-400" : "bg-[#0EA5E9] shadow-sky-200"}`}
+            className={`py-5 rounded-[28px] items-center mt-10 shadow-xl ${isLoading ? "bg-sky-400/50" : "bg-[#0EA5E9] shadow-sky-200"}`}
           >
-            <Text className="text-white font-black text-xs uppercase tracking-[3px]">
-              Sign In
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <Text className="text-white font-black text-xs uppercase tracking-[3px]">
+                Sign In
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity

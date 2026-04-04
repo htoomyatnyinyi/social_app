@@ -2,7 +2,7 @@ import { useFollowUserMutation } from "@/store/profileApi";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import React, {
   memo,
   useCallback,
@@ -114,7 +114,8 @@ const ActionButton = memo(({
   size?: number;
 }) => (
   <TouchableOpacity
-    className={`flex-row items-center px-3 py-2 rounded-2xl ${active ? activeBg : "bg-gray-100/50"}`}
+    className={`flex-row items-center px-3 py-2 rounded-2xl`}
+    style={active ? { backgroundColor: activeBg } : { backgroundColor: "rgba(243, 244, 246, 0.5)" }}
     onPress={onPress}
   >
     <Ionicons
@@ -154,7 +155,6 @@ const ReplyItem = memo(
 
     const [likePost] = useLikePostMutation();
     const [repostPost] = useRepostPostMutation();
-    const router = useRouter();
 
     const handleLike = useCallback(async () => {
       if (!item.isLiked) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -177,9 +177,9 @@ const ReplyItem = memo(
     const handleShare = useCallback(async () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       try {
-        const urlToShare = `https://oasis-social.com/post/${item.id}`;
+        const urlToShare = `https://social-app.com/post/${item.id}`;
         await Share.share({
-          message: `Check out this post by @${item.author?.username || "oasis"}\n${urlToShare}`,
+          message: `Check out this post by @${item.author?.username || "official"}\n${urlToShare}`,
         });
       } catch (error) {
         console.error("Error sharing reply:", error);
@@ -362,7 +362,6 @@ ReplyItem.displayName = "ReplyItem";
 // ────────────────────────────────────────────────
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const currentUser = useSelector((state: any) => state.auth.user);
 
@@ -485,9 +484,9 @@ export default function PostDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       if (!rootPost) return;
-      const urlToShare = `https://oasis-social.com/post/${rootPost.id}`;
+      const urlToShare = `https://social-app.com/post/${rootPost.id}`;
       await Share.share({
-        message: `Check out this post by @${rootPost.author?.username || "oasis"}\n${urlToShare}`,
+        message: `Check out this post by @${rootPost.author?.username || "official"}\n${urlToShare}`,
       });
     } catch (error) {
       console.error("Error sharing post:", error);
@@ -605,7 +604,7 @@ export default function PostDetailScreen() {
                       <Text className="font-black text-[18px] text-gray-900 tracking-tighter">
                         {rootPost.author?.name || "Member"}
                       </Text>
-                      {rootPost.author?.username === "oasis" && (
+                      {rootPost.author?.username === "official" && (
                         <Ionicons
                           name="checkmark-sharp"
                           size={18}
@@ -615,7 +614,7 @@ export default function PostDetailScreen() {
                       )}
                     </View>
                     <Text className="text-sky-500 font-bold text-[14px]">
-                      @{rootPost.author?.username || "oasis"}
+                      @{rootPost.author?.username || "official"}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -839,7 +838,8 @@ export default function PostDetailScreen() {
             <TouchableOpacity
               onPress={handleSendReply}
               disabled={!replyContent.trim()}
-              className={`w-10 h-10 rounded-2xl items-center justify-center ${replyContent.trim() ? "bg-sky-500 shadow-sm shadow-sky-200" : "bg-gray-200"}`}
+              className="w-10 h-10 rounded-2xl items-center justify-center"
+              style={{ backgroundColor: replyContent.trim() ? "#0ea5e9" : "#e5e7eb" }}
             >
               <Ionicons name="arrow-up" size={20} color="white" />
             </TouchableOpacity>

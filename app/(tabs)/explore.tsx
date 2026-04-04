@@ -176,7 +176,7 @@ export default function ExploreScreen() {
                  className="w-7 h-7 rounded-xl mr-3 bg-white border border-gray-50" 
                />
             </View>
-            <Text className="text-gray-500 font-black text-[12px] uppercase tracking-wider">@{hero.author?.username || "oasis"}</Text>
+            <Text className="text-gray-500 font-black text-[12px] uppercase tracking-wider">@official</Text>
           </View>
         </BlurView>
       </TouchableOpacity>

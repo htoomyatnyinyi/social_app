@@ -204,7 +204,7 @@ export default function FeedScreen() {
         </TouchableOpacity>
 
         <View className="items-center">
-          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Oasis</Text>
+          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Feed</Text>
         </View>
 
         <TouchableOpacity
@@ -252,7 +252,7 @@ export default function FeedScreen() {
                     className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "public" ? "text-gray-900" : "text-gray-400"
                       }`}
                   >
-                    Discovery
+                    Public
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity

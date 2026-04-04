@@ -252,7 +252,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text className="mt-4 text-[16px] text-gray-600 font-medium leading-[22px]">
-          {profile?.bio || "Finding my rhythm in the ananta of mindfulness. "}
+          {profile?.bio || "Finding my rhythm in the infinite space of creativity. "}
         </Text>
 
         <View className="flex-row flex-wrap mt-4">
@@ -282,9 +282,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View className="flex-row mt-4 space-x-6">
+        <View className="flex-row mt-6 bg-white/50 border border-white/50 rounded-[32px] p-4 items-center justify-between shadow-sm">
           <TouchableOpacity
-            className="flex-row items-baseline mr-4"
+            className="items-center flex-1"
             onPress={() =>
               router.push({
                 pathname: "/profile/following",
@@ -295,13 +295,15 @@ export default function ProfileScreen() {
             <Text className="text-xl font-black text-gray-900">
               {profile?._count?.following || 0}
             </Text>
-            <Text className="text-gray-400 font-bold ml-1 text-xs uppercase tracking-widest">
+            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-[1.5px] mt-1">
               Following
             </Text>
           </TouchableOpacity>
 
+          <View className="w-[1px] h-8 bg-gray-100" />
+
           <TouchableOpacity
-            className="flex-row items-baseline mr-4"
+            className="items-center flex-1"
             onPress={() =>
               router.push({
                 pathname: "/profile/followers",
@@ -312,13 +314,15 @@ export default function ProfileScreen() {
             <Text className="text-xl font-black text-gray-900">
               {profile?._count?.followers || 0}
             </Text>
-            <Text className="text-gray-400 font-bold ml-1 text-xs uppercase tracking-widest">
+            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-[1.5px] mt-1">
               Followers
             </Text>
           </TouchableOpacity>
 
+          <View className="w-[1px] h-8 bg-gray-100" />
+
           <TouchableOpacity
-            className="flex-row items-center ml-auto"
+            className="items-center flex-1"
             onPress={() =>
               router.push({
                 pathname: "/bookmarks",
@@ -326,8 +330,10 @@ export default function ProfileScreen() {
               })
             }
           >
-            <Ionicons name="bookmark" size={20} color="#0EA5E9" />
-            <Text className="text-sky-500 font-bold ml-1 text-xs uppercase tracking-widest">
+            <View className="w-8 h-8 rounded-xl bg-sky-50 items-center justify-center">
+              <Ionicons name="bookmark" size={16} color="#0EA5E9" />
+            </View>
+            <Text className="text-sky-500 font-black text-[10px] uppercase tracking-[1.5px] mt-1">
               Vault
             </Text>
           </TouchableOpacity>
@@ -335,7 +341,7 @@ export default function ProfileScreen() {
       </View>
 
       <View className="bg-[#F8FAFC]">
-        <View className="flex-row px-5 py-2">
+        <View className="flex-row px-5 py-3">
           {(["posts", "replies", "likes"] as const).map((tab) => (
             <TouchableOpacity
               key={tab}
@@ -350,7 +356,7 @@ export default function ProfileScreen() {
                   }`}
               >
                 <Text
-                  className={`font-black text-[13px] uppercase tracking-widest ${activeTab === tab ? "text-sky-500" : "text-gray-400"
+                  className={`font-black text-[11px] uppercase tracking-widest ${activeTab === tab ? "text-sky-500" : "text-gray-400"
                     }`}
                 >
                   {tab}
@@ -408,7 +414,7 @@ export default function ProfileScreen() {
               No {activeTab} yet
             </Text>
             <Text className="text-gray-400 text-center mt-2 font-medium leading-5">
-              Your {activeTab} will weave the social fabric of the oasis.
+              Your {activeTab} will weave the social fabric of the community.
             </Text>
           </View>
         }
