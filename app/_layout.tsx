@@ -19,17 +19,18 @@ configureCSSInterop();
 // Prevent the splash screen from hiding automatically
 SplashScreen.preventAutoHideAsync();
 
+import { WebRTCProvider } from "../context/WebRTCContext";
+import { GlobalCallHandler } from "../components/GlobalCallHandler";
+
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
 
   useEffect(() => {
-    // Once migrations succeed (or fail), hide the splash screen
     if (success || error) {
       SplashScreen.hideAsync();
     }
   }, [success, error]);
 
-  // If there's an error, we show a fallback
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-white p-5">
@@ -51,14 +52,17 @@ export default function RootLayout() {
   return (
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <SafeAreaProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "white" },
-            }}
-          />
-        </SafeAreaProvider>
+        <WebRTCProvider>
+          <SafeAreaProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "white" },
+              }}
+            />
+            <GlobalCallHandler />
+          </SafeAreaProvider>
+        </WebRTCProvider>
       </PersistGate>
     </ReduxProvider>
   );

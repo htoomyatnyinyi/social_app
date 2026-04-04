@@ -31,14 +31,15 @@ export type CallState = 'IDLE' | 'RINGING' | 'CALLING' | 'CONNECTED';
 export type CallType = 'voice' | 'video';
 
 interface UseWebRTCProps {
-  chatId: string;
+  initialChatId?: string;
   currentUserId?: string;
   sendSignal: (payload: any) => void;
 }
 
-export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps) => {
+export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRTCProps) => {
   const [callState, setCallState] = useState<CallState>('IDLE');
   const [callType, setCallType] = useState<CallType>('video');
+  const [chatId, setChatId] = useState<string>(initialChatId || '');
   const [localStream, setLocalStreamState] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStreamState] = useState<MediaStream | null>(null);
 
@@ -58,6 +59,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
   };
 
   const cleanup = useCallback(() => {
+    console.log("Ananta WebRTC: Cleaning up...");
     setCallState('IDLE');
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t: any) => t.stop());
@@ -93,7 +95,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     }
   };
 
-  const initPeerConnection = async () => {
+  const initPeerConnection = async (targetChatId: string) => {
     const config = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -101,13 +103,8 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
       ],
     };
 
-    // Close any existing peer connection to avoid leaks/conflicts
     if (peerConnection.current) {
-      try {
-        peerConnection.current.close();
-      } catch (e) {
-        console.warn("Ananta: Error closing existing PC:", e);
-      }
+      try { peerConnection.current.close(); } catch (e) {}
     }
 
     const pc = new ActualRTCPeerConnection(config);
@@ -116,7 +113,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
       if (event.candidate) {
         sendSignal({
           type: 'ice_candidate',
-          chatId,
+          chatId: targetChatId,
           senderId: currentUserId,
           candidate: event.candidate,
         });
@@ -125,21 +122,19 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
 
     pc.addEventListener('track', (event: any) => {
       if (event.streams && event.streams[0]) {
-        console.log("Ananta: Received remote stream");
+        console.log("Ananta: Global remote stream received");
         setRemoteStream(event.streams[0]);
       }
     });
 
-    // For older versions of react-native-webrtc
     pc.addEventListener('addstream', (event: any) => {
       if (event.stream) {
-        console.log("Ananta: Received remote stream (via addstream)");
         setRemoteStream(event.stream);
       }
     });
 
     pc.addEventListener('connectionstatechange', () => {
-      console.log("Ananta: Connection state changed to:", pc.connectionState);
+      console.log("Ananta: Connection state:", pc.connectionState);
       if (pc.connectionState === 'connected') {
         setCallState('CONNECTED');
       }
@@ -152,15 +147,22 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     return pc;
   };
 
-  const startCall = async (type: CallType = 'video') => {
+  const startCall = async (targetChatId: string, type: CallType = 'video', senderName?: string) => {
     if (!isNativeAvailable) {
       alert("Please use a Development Build for calls.");
       return;
     }
+    setChatId(targetChatId);
     setCallType(type);
     setCallState('CALLING');
     await setupLocalStream(type);
-    sendSignal({ type: 'call_invite', chatId, senderId: currentUserId, callType: type });
+    sendSignal({ 
+      type: 'call_invite', 
+      chatId: targetChatId, 
+      senderId: currentUserId, 
+      senderName: senderName || 'User',
+      callType: type 
+    });
   };
 
   const acceptCall = async () => {
@@ -169,28 +171,32 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     sendSignal({ type: 'call_accept', chatId, senderId: currentUserId });
   };
 
+  const [remoteName, setRemoteName] = useState<string>('');
+
   const processSignalingMessage = async (data: any) => {
     if (data.senderId === currentUserId) return;
 
     try {
       switch (data.type) {
         case 'call_invite':
+          setChatId(data.chatId);
+          setRemoteName(data.senderName || 'Anonymous');
           setCallType(data.callType || 'video');
           setCallState('RINGING');
           break;
 
         case 'call_accept':
-          const pc = await initPeerConnection();
+          const pc = await initPeerConnection(data.chatId || chatId);
           if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
           }
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          sendSignal({ type: 'offer', chatId, senderId: currentUserId, offer });
+          sendSignal({ type: 'offer', chatId: data.chatId || chatId, senderId: currentUserId, offer });
           break;
 
         case 'offer':
-          const calleePc = await initPeerConnection();
+          const calleePc = await initPeerConnection(data.chatId || chatId);
           await calleePc.setRemoteDescription(new ActualRTCSessionDescription(data.offer));
 
           if (localStreamRef.current) {
@@ -199,7 +205,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
 
           const answer = await calleePc.createAnswer();
           await calleePc.setLocalDescription(answer);
-          sendSignal({ type: 'answer', chatId, senderId: currentUserId, answer });
+          sendSignal({ type: 'answer', chatId: data.chatId || chatId, senderId: currentUserId, answer });
 
           while (pendingIceCandidates.current.length > 0) {
             const cand = pendingIceCandidates.current.shift();
@@ -231,7 +237,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
           break;
       }
     } catch (e) {
-      console.error("Ananta WebRTC Signaling Error:", e);
+      console.error("Ananta Signaling Error:", e);
     }
   };
 
@@ -254,6 +260,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
   return {
     callState,
     callType,
+    chatId,
     localStream,
     remoteStream,
     startCall,
@@ -269,6 +276,7 @@ export const useWebRTC = ({ chatId, currentUserId, sendSignal }: UseWebRTCProps)
     processSignalingMessage,
     toggleMute,
     toggleVideo,
+    remoteName,
   };
 };
 

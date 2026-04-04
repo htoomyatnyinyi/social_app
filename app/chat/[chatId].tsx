@@ -32,8 +32,7 @@ import * as Location from "expo-location";
 import * as FileSystem from "expo-file-system";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import { useWebRTC } from "@/hooks/useWebRTC";
-import CallOverlay from "@/components/CallOverlay";
+import { useWebRTCContext } from "@/context/WebRTCContext";
 
 type ReplyContext = {
   id: string;
@@ -361,7 +360,7 @@ export default function ChatScreen() {
   const [replyContext, setReplyContext] = useState<ReplyContext | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const webRTCRef = useRef<any>(null);
+  const { startGlobalCall } = useWebRTCContext();
 
   const { sendTyping, deleteMessage, sendReaction, sendSignal } = useChatWebSocket({
     chatId: resolvedChatId,
@@ -376,20 +375,7 @@ export default function ChatScreen() {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
     },
-    onSignalingMessage: (data) => {
-      webRTCRef.current?.processSignalingMessage?.(data);
-    }
   });
-
-  const webRTC = useWebRTC({
-    chatId: resolvedChatId,
-    currentUserId: user?.id,
-    sendSignal,
-  });
-
-  useEffect(() => {
-    webRTCRef.current = webRTC;
-  }, [webRTC]);
 
   const handleTextChange = (text: string) => {
     setInputText(text);
@@ -483,11 +469,11 @@ export default function ChatScreen() {
   };
 
   const startVideoCall = () => {
-    webRTC.startCall('video');
+    startGlobalCall(resolvedChatId, 'video', title as string);
   };
 
   const startVoiceCall = () => {
-    webRTC.startCall('voice');
+    startGlobalCall(resolvedChatId, 'voice', title as string);
   };
 
   const handleLongPress = useCallback(
@@ -906,19 +892,6 @@ export default function ChatScreen() {
           </View>
         </View>
       </View>
-
-      <CallOverlay
-        callState={webRTC.callState}
-        callType={webRTC.callType}
-        localStream={webRTC.localStream}
-        remoteStream={webRTC.remoteStream}
-        callerName={title as string}
-        onAccept={webRTC.acceptCall}
-        onReject={webRTC.rejectCall}
-        onEnd={webRTC.endCall}
-        onToggleMute={webRTC.toggleMute}
-        onToggleVideo={webRTC.toggleVideo}
-      />
     </View>
   );
 }

@@ -9,10 +9,12 @@ import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { Platform, View } from "react-native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
+import { useWebRTCContext } from "../../context/WebRTCContext";
 
 export default function TabLayout() {
   const token = useSelector((state: any) => state.auth.token);
   const dispatch = useDispatch();
+  const { processGlobalSignaling, setGlobalSendSignal } = useWebRTCContext();
 
   const { data: notificationData, refetch: refetchUnread } =
     useGetUnreadCountQuery(undefined, {
@@ -51,9 +53,26 @@ export default function TabLayout() {
       );
       socketRef = socket;
 
+      socket.onopen = () => {
+        console.log("✅ Global Signaling Connected");
+        setGlobalSendSignal((payload: any) => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(payload));
+          }
+        });
+      };
+
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Handle Signaling
+          const signalingTypes = ["call_invite", "call_accept", "call_reject", "offer", "answer", "ice_candidate", "end_call"];
+          if (signalingTypes.includes(data.type)) {
+            processGlobalSignaling(data);
+            return;
+          }
+
           if (data.type === "refresh") {
             refetchRef.current();
             dispatch(api.util.invalidateTags(["Notification", "Chat"]));
@@ -73,7 +92,7 @@ export default function TabLayout() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       socketRef?.close();
     };
-  }, [token, dispatch]);
+  }, [token, dispatch, processGlobalSignaling, setGlobalSendSignal]);
 
   return (
     <Tabs
