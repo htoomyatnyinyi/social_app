@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions, Platform } from 'react-native';
 import { RTCView as NativeRTCView, MediaStream } from 'react-native-webrtc';
 import { Ionicons } from '@expo/vector-icons';
 import { CallState, CallType } from '../hooks/useWebRTC';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 
 // Mock RTCView for Expo Go
-const RTCView = !!NativeRTCView ? NativeRTCView : (props: any) => <View style={[props.style, { backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: '#94a3b8', fontSize: 10 }}>Video Not Available</Text></View>;
+const RTCView = !!NativeRTCView ? NativeRTCView : (props: any) => (
+  <View style={[props.style, { backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }]}>
+    <Ionicons name="videocam-off" size={40} color="#334155" />
+    <Text style={{ color: '#475569', fontSize: 12, marginTop: 10, fontWeight: '700', textTransform: 'uppercase' }}>Video Not Available</Text>
+  </View>
+);
 
 interface CallOverlayProps {
   callState: CallState;
@@ -30,7 +37,7 @@ export default function CallOverlay({
   callType,
   localStream,
   remoteStream,
-  callerName = 'Unknown',
+  callerName = 'User',
   callerImage,
   onAccept,
   onReject,
@@ -40,24 +47,42 @@ export default function CallOverlay({
 }: CallOverlayProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const insets = useSafeAreaInsets();
 
   if (callState === 'IDLE') return null;
 
   const handleMute = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggleMute();
     setIsMuted(!isMuted);
   };
 
   const handleVideo = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggleVideo();
     setIsVideoOff(!isVideoOff);
   };
 
-  return (
-    <Modal visible={true} animationType="slide" transparent={false}>
-      <View style={styles.container}>
+  const handleAccept = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onAccept();
+  };
 
-        {/* BACKGROUND LAYER (Ringing/Calling Avatars or Native Remote Video) */}
+  const handleReject = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    onReject();
+  };
+
+  const handleEnd = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onEnd();
+  };
+
+  return (
+    <Modal visible={true} animationType="slide" transparent={false} presentationStyle="fullScreen">
+      <View style={styles.container}>
+        
+        {/* BACKGROUND LAYER */}
         {callState === 'CONNECTED' && callType === 'video' && remoteStream ? (
           <RTCView
             streamURL={remoteStream.toURL()}
@@ -65,16 +90,23 @@ export default function CallOverlay({
             objectFit="cover"
           />
         ) : (
-          <View style={styles.avatarContainer}>
-            <Image
-              source={{ uri: callerImage || `https://api.dicebear.com/7.x/avataaars/png?seed=${callerName}` }}
-              style={styles.largeAvatar}
-              contentFit="cover"
-            />
+          <View style={styles.centeredContent}>
+            <View className="shadow-2xl shadow-sky-500/20">
+              <Image
+                source={{ uri: callerImage || `https://api.dicebear.com/7.x/avataaars/png?seed=${callerName}` }}
+                style={styles.largeAvatar}
+                contentFit="cover"
+                transition={500}
+              />
+            </View>
             <Text style={styles.callerName}>{callerName}</Text>
-            <Text style={styles.callStatus}>
-              {callState === 'RINGING' ? `Incoming ${callType} Call...` : 'Calling...'}
-            </Text>
+            <View style={styles.statusBadge}>
+              <Text style={styles.callStatus}>
+                {callState === 'RINGING' ? `Incoming ${callType} Call` : 
+                 callState === 'CALLING' ? 'Connecting...' : 
+                 callState === 'CONNECTED' ? 'Voice Call Connected' : 'Call Ended'}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -91,46 +123,62 @@ export default function CallOverlay({
         )}
 
         {/* CONTROLS LAYER */}
-        <SafeAreaView style={styles.controlsSafeArea}>
-          <View style={styles.controlsContainer}>
-
-            {callState === 'RINGING' ? (
-              <View style={styles.ringingControls}>
-                <TouchableOpacity style={[styles.controlButton, styles.rejectButton]} onPress={onReject}>
-                  <Ionicons name="close" size={32} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.controlButton, styles.acceptButton]} onPress={onAccept}>
-                  <Ionicons name={callType === 'video' ? "videocam" : "call"} size={32} color="white" />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            {callState === 'CALLING' || callState === 'CONNECTED' ? (
-              <View style={styles.activeControls}>
-                <TouchableOpacity
-                  style={[styles.smallControlButton, isMuted && styles.controlActive]}
-                  onPress={handleMute}
-                >
-                  <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color="white" />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.controlButton, styles.rejectButton]} onPress={onEnd}>
-                  <Ionicons name="call" size={32} color="white" style={{ transform: [{ rotate: '135deg' }] }} />
-                </TouchableOpacity>
-
-                {callType === 'video' && (
-                  <TouchableOpacity
-                    style={[styles.smallControlButton, isVideoOff && styles.controlActive]}
-                    onPress={handleVideo}
+        <BlurView intensity={30} tint="dark" style={styles.bottomBlur}>
+          <SafeAreaView edges={['bottom']}>
+            <View style={styles.controlsContainer}>
+              
+              {callState === 'RINGING' ? (
+                <View style={styles.ringingRow}>
+                  <TouchableOpacity 
+                    style={[styles.mainButton, styles.declineButton]} 
+                    onPress={handleReject}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name={isVideoOff ? "videocam-off" : "videocam"} size={28} color="white" />
+                    <Ionicons name="close" size={32} color="white" />
                   </TouchableOpacity>
-                )}
-              </View>
-            ) : null}
+                  
+                  <TouchableOpacity 
+                    style={[styles.mainButton, styles.acceptButton]} 
+                    onPress={handleAccept}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name={callType === 'video' ? "videocam" : "call"} size={32} color="white" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.activeRow}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, isMuted && styles.actionButtonActive]}
+                    onPress={handleMute}
+                  >
+                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="white" />
+                  </TouchableOpacity>
 
-          </View>
-        </SafeAreaView>
+                  <TouchableOpacity 
+                    style={[styles.mainButton, styles.declineButton, { width: 72, height: 72 }]} 
+                    onPress={handleEnd}
+                  >
+                    <Ionicons name="call" size={32} color="white" style={{ transform: [{ rotate: '135deg' }] }} />
+                  </TouchableOpacity>
+
+                  {callType === 'video' ? (
+                    <TouchableOpacity
+                      style={[styles.actionButton, isVideoOff && styles.actionButtonActive]}
+                      onPress={handleVideo}
+                    >
+                      <Ionicons name={isVideoOff ? "videocam-off" : "videocam"} size={26} color="white" />
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.actionButton}>
+                      <Ionicons name="volume-high" size={26} color="white" />
+                    </View>
+                  )}
+                </View>
+              )}
+
+            </View>
+          </SafeAreaView>
+        </BlurView>
 
       </View>
     </Modal>
@@ -145,97 +193,115 @@ const styles = StyleSheet.create({
   fullScreenVideo: {
     ...StyleSheet.absoluteFillObject,
   },
-  avatarContainer: {
+  centeredContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -100,
+    paddingBottom: 150,
   },
   largeAvatar: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     backgroundColor: '#1E293B',
-    marginBottom: 24,
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 32,
+    borderWidth: 6,
+    borderColor: 'rgba(14, 165, 233, 0.2)', // Sky-500 low opacity
   },
   callerName: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '900',
     color: 'white',
-    marginBottom: 8,
+    letterSpacing: -1,
+    marginBottom: 12,
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   callStatus: {
-    fontSize: 16,
-    color: '#94A3B8',
+    fontSize: 13,
+    color: '#0EA5E9',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '600',
+    letterSpacing: 2,
+    fontWeight: '900',
   },
   pipContainer: {
     position: 'absolute',
     top: 60,
     right: 20,
-    width: 100,
-    height: 150,
-    borderRadius: 16,
+    width: 110,
+    height: 160,
+    borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.2)',
     backgroundColor: '#000',
-    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 10,
   },
   pipVideo: {
     width: '100%',
     height: '100%',
   },
-  controlsSafeArea: {
+  bottomBlur: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    overflow: 'hidden',
   },
   controlsContainer: {
-    paddingBottom: 40,
-    paddingHorizontal: 30,
-  },
-  ringingControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingTop: 30,
     paddingHorizontal: 40,
   },
-  activeControls: {
+  ringingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  controlButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  activeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mainButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  actionButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  smallControlButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  controlActive: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
+  actionButtonActive: {
+    backgroundColor: '#0EA5E9',
   },
   acceptButton: {
     backgroundColor: '#10B981',
   },
-  rejectButton: {
-    backgroundColor: '#EF4444',
+  declineButton: {
+    backgroundColor: '#F43F5E',
   }
 });

@@ -25,7 +25,7 @@ const WebRTCContext = createContext<WebRTCContextType | undefined>(undefined);
 export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const user = useSelector((state: any) => state.auth.user);
   const sendSignalRef = useRef<(payload: any) => void>(() => {
-    console.warn("Ananta: Attempted to send signal before WebSocket was ready.");
+    console.warn("WebRTC: Attempted to send signal before WebSocket was ready.");
   });
 
   const setGlobalSendSignal = (fn: (payload: any) => void) => {

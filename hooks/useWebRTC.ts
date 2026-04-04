@@ -27,6 +27,7 @@ class MockRTCPeerConnection {
 const ActualRTCPeerConnection = isNativeAvailable ? RTCPeerConnection : (MockRTCPeerConnection as any);
 const ActualRTCIceCandidate = isNativeAvailable ? RTCIceCandidate : (class { constructor(c: any) { } } as any);
 const ActualRTCSessionDescription = isNativeAvailable ? RTCSessionDescription : (class { constructor(d: any) { } } as any);
+
 export type CallState = 'IDLE' | 'RINGING' | 'CALLING' | 'CONNECTED';
 export type CallType = 'voice' | 'video';
 
@@ -59,7 +60,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
   };
 
   const cleanup = useCallback(() => {
-    console.log("Ananta WebRTC: Cleaning up...");
+    console.log("WebRTC: Cleaning up...");
     setCallState('IDLE');
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t: any) => t.stop());
@@ -69,7 +70,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     if (peerConnection.current) {
       try {
         peerConnection.current.close();
-      } catch (e) {}
+      } catch (e) { }
       peerConnection.current = null;
     }
     pendingIceCandidates.current = [];
@@ -85,12 +86,12 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
           frameRate: 30,
         } : false,
       };
-      
+
       const stream = await (mediaDevices as any).getUserMedia(constraints);
       setLocalStream(stream);
       return stream;
     } catch (e) {
-      console.error('Ananta: Error getting user media:', e);
+      console.error('WebRTC: Error getting user media:', e);
       return null;
     }
   };
@@ -104,7 +105,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     };
 
     if (peerConnection.current) {
-      try { peerConnection.current.close(); } catch (e) {}
+      try { peerConnection.current.close(); } catch (e) { }
     }
 
     const pc = new ActualRTCPeerConnection(config);
@@ -122,7 +123,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
 
     pc.addEventListener('track', (event: any) => {
       if (event.streams && event.streams[0]) {
-        console.log("Ananta: Global remote stream received");
+        console.log("WebRTC: Remote stream received");
         setRemoteStream(event.streams[0]);
       }
     });
@@ -134,7 +135,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     });
 
     pc.addEventListener('connectionstatechange', () => {
-      console.log("Ananta: Connection state:", pc.connectionState);
+      console.log("WebRTC: Connection state:", pc.connectionState);
       if (pc.connectionState === 'connected') {
         setCallState('CONNECTED');
       }
@@ -156,12 +157,12 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     setCallType(type);
     setCallState('CALLING');
     await setupLocalStream(type);
-    sendSignal({ 
-      type: 'call_invite', 
-      chatId: targetChatId, 
-      senderId: currentUserId, 
+    sendSignal({
+      type: 'call_invite',
+      chatId: targetChatId,
+      senderId: currentUserId,
       senderName: senderName || 'User',
-      callType: type 
+      callType: type
     });
   };
 
@@ -237,7 +238,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
           break;
       }
     } catch (e) {
-      console.error("Ananta Signaling Error:", e);
+      console.error("WebRTC Signaling Error:", e);
     }
   };
 
@@ -279,6 +280,3 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     remoteName,
   };
 };
-
-// ... existing commented out code is removed ...
-

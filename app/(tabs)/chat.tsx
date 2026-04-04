@@ -8,6 +8,7 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -50,6 +51,10 @@ export default function ChatListScreen() {
     }, [refetch]),
   );
 
+const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index: number; user: any; onPress: (item: any) => void }) => {
+  const otherUser = item.users.find((u: any) => u.id !== user?.id);
+  const lastMessage = item.messages?.[0];
+
   const formatLastMessageTime = (dateString: string) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -65,84 +70,71 @@ export default function ChatListScreen() {
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
 
-  const ChatItem = ({ item, index }: { item: any; index: number }) => {
-    const otherUser = item.users.find((u: any) => u.id !== user?.id);
-    const lastMessage = item.messages?.[0];
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 50)}>
+      <TouchableOpacity
+        onPress={() => onPress(item)}
+        activeOpacity={0.8}
+        className="flex-row px-5 py-4 items-center bg-[#F8FAFC] border-b border-gray-100/50"
+      >
+        <View className="relative shadow-md shadow-sky-100">
+          <Image
+            source={{
+              uri:
+                otherUser?.image ||
+                `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.id}`,
+            }}
+            className="w-[64px] h-[64px] rounded-[24px] bg-white border border-gray-50"
+            contentFit="cover"
+            transition={300}
+          />
+          <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white rounded-full shadow-sm" />
+        </View>
 
-    return (
-      <Animated.View entering={FadeInDown.delay(index * 50)}>
-        <TouchableOpacity
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            //   // original
-            router.push(`/chat/${item.id}?title=${otherUser?.name || "Chat"}`);
-            //   // // Change this:
-            //   // // router.push(`/chat/${item.id}?title=${otherUser?.name}`);
-
-            //   // // To this (if your filename is [chatId].tsx):
-            //   // router.push({
-            //   //   pathname: "/chat/[chatId]",
-            //   //   params: { chatId: item.id, title: otherUser?.name }
-            //   // });
-          }}
-
-          activeOpacity={0.8}
-          className="flex-row px-5 py-4 items-center bg-[#F8FAFC] border-b border-gray-100/50"
-        >
-          <View className="relative shadow-md shadow-sky-100">
-            <Image
-              source={{
-                uri:
-                  otherUser?.image ||
-                  `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.id}`,
-              }}
-              className="w-[64px] h-[64px] rounded-[24px] bg-white border border-gray-50"
-              contentFit="cover"
-              transition={300}
-            />
-            <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white rounded-full shadow-sm" />
+        <View className="flex-1 ml-5 justify-center">
+          <View className="flex-row justify-between items-center mb-1.5">
+            <Text
+              className="font-black text-[17px] text-gray-900 tracking-tight"
+              numberOfLines={1}
+            >
+              {otherUser?.name || "Member"}
+            </Text>
+            {lastMessage && (
+              <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                {formatLastMessageTime(lastMessage.createdAt)}
+              </Text>
+            )}
           </View>
 
-          <View className="flex-1 ml-5 justify-center">
-            <View className="flex-row justify-between items-center mb-1.5">
-              <Text
-                className="font-black text-[17px] text-gray-900 tracking-tight"
-                numberOfLines={1}
-              >
-                {otherUser?.name || "Member"}
-              </Text>
-              {lastMessage && (
-                <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                  {formatLastMessageTime(lastMessage.createdAt)}
+          <View className="flex-row justify-between items-center">
+            <Text
+              className={`text-[14px] leading-5 flex-1 mr-3 ${item.unreadCount > 0 ? "text-gray-900 font-bold" : "text-gray-500 font-medium"}`}
+              numberOfLines={1}
+            >
+              {lastMessage?.senderId === user?.id && (
+                <Text className="text-sky-500 font-black">You </Text>
+              )}
+              {lastMessage?.content || "No messages yet..."}
+            </Text>
+            {item.unreadCount > 0 && (
+              <View className="bg-sky-500 min-w-[22px] h-[22px] rounded-[11px] px-1.5 items-center justify-center shadow-md shadow-sky-200">
+                <Text className="text-white text-[10px] font-black">
+                  {item.unreadCount}
                 </Text>
-              )}
-            </View>
-
-            <View className="flex-row justify-between items-center">
-              <Text
-                className={`text-[14px] leading-5 flex-1 mr-3 ${item.unreadCount > 0 ? "text-gray-900 font-bold" : "text-gray-500 font-medium"}`}
-                numberOfLines={1}
-              >
-                {lastMessage?.senderId === user?.id ? (
-                  <Text className="text-sky-500 font-black">You </Text>
-                ) : (
-                  ""
-                )}
-                {lastMessage?.content || "No messages yet..."}
-              </Text>
-              {item.unreadCount > 0 && (
-                <View className="bg-sky-500 min-w-[22px] h-[22px] rounded-[11px] px-1.5 items-center justify-center shadow-md shadow-sky-200">
-                  <Text className="text-white text-[10px] font-black">
-                    {item.unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+              </View>
+            )}
           </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
+
+  const handleChatItemPress = useCallback((item: any) => {
+    const otherUser = item.users.find((u: any) => u.id !== user?.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(`/chat/${item.id}?title=${otherUser?.name || "Chat"}`);
+  }, [user?.id, router]);
 
   const filteredRooms = useMemo(() => {
     if (!search.trim()) return rooms;
@@ -173,23 +165,15 @@ export default function ChatListScreen() {
               Direct Chats
             </Text>
           </View>
-          {/* <TouchableOpacity
-            onPress={() =>
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-            }
-            className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
-          >
-            <Ionicons name="options" size={20} color="#64748B" />
-          </TouchableOpacity> */}
         </View>
 
-        {/* Search Header Search Bar */}
-        {/* <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[20px] px-4 py-2.5 shadow-sm shadow-gray-50">
+        {/* Search Bar */}
+        <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[20px] px-4 py-2.5 shadow-sm shadow-gray-50">
           <Ionicons name="search" size={18} color="#94A3B8" />
           <TextInput
-            placeholder="Search Messages..."
+            placeholder="Search messages..."
             placeholderTextColor="#CBD5E1"
-            className="flex-1 ml-3 text-[15px] text-gray-900 font-medium"
+            className="flex-1 ml-3 text-[15px] text-gray-900 font-bold"
             value={search}
             onChangeText={setSearch}
             autoCorrect={false}
@@ -204,13 +188,20 @@ export default function ChatListScreen() {
               <Ionicons name="close-circle" size={18} color="#CBD5E1" />
             </TouchableOpacity>
           )}
-        </View> */}
+        </View>
       </BlurView>
 
       <FlatList
         data={filteredRooms}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => <ChatItem item={item} index={index} />}
+        renderItem={({ item, index }) => (
+          <ChatItem 
+            item={item} 
+            index={index} 
+            user={user} 
+            onPress={handleChatItemPress} 
+          />
+        )}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -222,91 +213,22 @@ export default function ChatListScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 0, paddingBottom: 20 }}
+        contentContainerStyle={{ paddingTop: 0, paddingBottom: 120 }}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         ListHeaderComponent={
           <>
-            {/* Active Circle Swiper */}
-            {/* {!search && (
-              <View className="mb-8">
-                <View className="px-6 mb-4 flex-row items-center justify-between">
-                  <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Temporal Presence
-                  </Text>
-                  <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingLeft: 22 }}
-                >
-                  <TouchableOpacity
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push("/chat/new");
-                    }}
-                    className="items-center mr-6"
-                  >
-                    <View className="w-[66px] h-[66px] rounded-[28px] border-2 border-dashed border-sky-200 items-center justify-center bg-sky-50 shadow-sm shadow-sky-50">
-                      <Ionicons name="add" size={28} color="#0EA5E9" />
-                    </View>
-                    <Text className="text-[10px] font-black text-sky-600 mt-2.5 uppercase tracking-wider">
-                      Bond
-                    </Text>
-                  </TouchableOpacity>
-                  {(rooms || []).slice(0, 8).map((room: any, index: number) => {
-                    const u = room.users.find((un: any) => un.id !== user?.id);
-                    return (
-                      <Animated.View
-                        key={room.id}
-                        entering={ZoomIn.delay(index * 50)}
-                      >
-                        <TouchableOpacity
-                          onPress={() => {
-                            Haptics.impactAsync(
-                              Haptics.ImpactFeedbackStyle.Light,
-                            );
-                            router.push(
-                              `/chat/${room.id}?title=${u?.name || "Chat"}`,
-                            );
-                          }}
-                          className="items-center mr-6"
-                        >
-                          <View className="shadow-md shadow-sky-100">
-                            <Image
-                              source={{
-                                uri:
-                                  u?.image ||
-                                  `https://api.dicebear.com/7.x/avataaars/png?seed=${u?.id}`,
-                              }}
-                              className="w-[66px] h-[66px] rounded-[28px] bg-white border border-gray-50"
-                              contentFit="cover"
-                            />
-                          </View>
-                          <View className="absolute top-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white rounded-full shadow-sm" />
-                          <Text className="text-[11px] font-black text-gray-900 mt-2.5 tracking-tight">
-                            {u?.name.split(" ")[0]}
-                          </Text>
-                        </TouchableOpacity>
-                      </Animated.View>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            )} */}
-
-            {/* Global Oasis Featured Card */}
-            {publicRoom && (
-              // {publicRoom && !search && (
+            {publicRoom && !search && (
               <Animated.View entering={FadeInRight.delay(200)}>
                 <TouchableOpacity
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    router.push(
-                      `/chat/${publicRoom?.id}?title=Public Group`,
-                    );
+                    router.push(`/chat/${publicRoom?.id}?title=Public Lounge`);
                   }}
                   activeOpacity={0.9}
-                  className="mx-5 mb-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 border border-white"
+                  className="mx-5 my-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 border border-white"
                 >
                   <Image
                     source={{
@@ -324,17 +246,12 @@ export default function ChatListScreen() {
                     </View>
                     <View className="ml-5 flex-1">
                       <Text className="font-black text-[20px] text-white tracking-tight uppercase">
-                        Public
+                        Public Lounge
                       </Text>
                       <Text className="text-white/80 text-[12px] font-bold uppercase tracking-widest mt-1">
-                        Community Room
+                        Community Chat
                       </Text>
                     </View>
-                    {/* <View className="bg-sky-500/80 px-4 py-2 rounded-2xl border border-white/30 shadow-sm">
-                      <Text className="text-white text-[10px] font-black uppercase tracking-widest">
-                        Join
-                      </Text>
-                    </View> */}
                   </BlurView>
                 </TouchableOpacity>
               </Animated.View>
@@ -342,7 +259,7 @@ export default function ChatListScreen() {
           </>
         }
         ListEmptyComponent={
-          <View className="items-center justify-center mt-20 px-14 opacity-20">
+          <View className="items-center justify-center mt-32 px-14 opacity-20">
             <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100">
               <Ionicons name="chatbubbles" size={48} color="#94A3B8" />
             </View>
@@ -350,14 +267,14 @@ export default function ChatListScreen() {
               No Messages
             </Text>
             <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-              No messages found yet. Start a conversation with someone.
+              No conversations started yet. Connect with someone to begin.
             </Text>
           </View>
         }
       />
 
       <TouchableOpacity
-        activeOpacity={0.5}
+        activeOpacity={0.9}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           router.push("/chat/new");
@@ -369,7 +286,7 @@ export default function ChatListScreen() {
           shadowRadius: 15,
           elevation: 10,
         }}
-        className="absolute bottom-28 right-6 w-16 h-16 bg-[#0EA5E9] rounded-[24px] items-center justify-center border-2 border-white/20"
+        className="absolute bottom-28 right-6 w-16 h-16 bg-sky-500 rounded-[28px] items-center justify-center border-2 border-white/20"
       >
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>

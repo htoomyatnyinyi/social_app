@@ -662,6 +662,10 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={Platform.OS === 'android'}
         />
 
         <View
@@ -859,7 +863,7 @@ export default function ChatScreen() {
               }}
             >
               <TextInput
-                placeholder="Diffuse a message..."
+                placeholder="Type a message..."
                 placeholderTextColor="#94A3B8"
                 value={inputText}
                 onChangeText={handleTextChange}

@@ -86,10 +86,10 @@ export default function NewChatScreen() {
             </TouchableOpacity>
             <View>
               <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">
-                Resonance
+                New Message
               </Text>
               <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                Initiate Connection
+                Start a Chat
               </Text>
             </View>
           </View>
@@ -99,7 +99,7 @@ export default function NewChatScreen() {
         <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[24px] px-4 py-2.5 shadow-sm shadow-gray-50">
           <Ionicons name="search" size={18} color="#94A3B8" />
           <TextInput
-            placeholder="Search for an Echo..."
+            placeholder="Search users..."
             placeholderTextColor="#CBD5E1"
             className="flex-1 ml-3 text-[16px] text-gray-900 font-medium h-10"
             value={search}
@@ -191,10 +191,10 @@ export default function NewChatScreen() {
                 </View>
               </Animated.View>
               <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
-                Search for Resonance
+                Find someone
               </Text>
               <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-                Find anyone by name or unique frequency to begin a new dialogue.
+                Search by name or username to start a new conversation.
               </Text>
             </View>
           )}
@@ -206,10 +206,10 @@ export default function NewChatScreen() {
                 <Ionicons name="search-outline" size={48} color="#94A3B8" />
               </View>
               <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
-                No Echoes Found
+                No users found
               </Text>
               <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-                The frequency &quot;{search}&quot; did not return any resonance from the Oasis.
+                No users matched "{search}".
               </Text>
             </View>
           )}
@@ -233,7 +233,7 @@ export default function NewChatScreen() {
           <View className="bg-white/80 p-10 rounded-[40px] border border-white shadow-2xl items-center">
             <ActivityIndicator size="large" color="#0EA5E9" />
             <Text className="mt-6 text-[11px] font-black text-sky-600 uppercase tracking-[2px]">
-              Tuning Frequency...
+              Starting chat...
             </Text>
           </View>
         </BlurView>
