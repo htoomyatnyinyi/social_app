@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -44,7 +45,6 @@ const TRENDING_TOPICS = [
 ];
 
 export default function FeedScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"public" | "private">("public");
   const [cursor, setCursor] = useState<string | null>(null);
@@ -179,13 +179,15 @@ export default function FeedScreen() {
     refetch();
   }, [refetch]);
 
+  const { isDark, accentColor } = useTheme();
+
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       {/* Premium Sticky Header */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="flex-row items-center justify-between px-5 pb-4 z-50 border-b border-gray-100/50"
+        tint={isDark ? "dark" : "light"}
+        className={`flex-row items-center justify-between px-5 pb-4 z-50 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`}
         style={{ paddingTop: insets.top + 10 }}
       >
         <TouchableOpacity
@@ -193,18 +195,18 @@ export default function FeedScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/profile");
           }}
-          className="shadow-md shadow-sky-100"
+          className={`${isDark ? "shadow-black" : "shadow-sky-100"} shadow-md`}
         >
           <Image
             source={{ uri: user?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.id}` }}
-            className="w-10 h-10 rounded-[16px] bg-white border border-gray-50"
+            className={`w-10 h-10 rounded-[16px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-50"}`}
             contentFit="cover"
             transition={300}
           />
         </TouchableOpacity>
 
         <View className="items-center">
-          <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">Feed</Text>
+          <Text className={`text-2xl font-black tracking-[-1.5px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}>Feed</Text>
         </View>
 
         <TouchableOpacity
@@ -212,9 +214,11 @@ export default function FeedScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/settings");
           }}
-          className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
+          className={`w-10 h-10 rounded-[16px] items-center justify-center border shadow-sm ${
+            isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
+          }`}
         >
-          <Ionicons name="notifications-outline" size={20} color="#64748B" />
+          <Ionicons name="notifications-outline" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
         </TouchableOpacity>
       </BlurView>
 
@@ -224,7 +228,9 @@ export default function FeedScreen() {
         ListHeaderComponent={() => (
           <View>
             <View className="px-5 py-5">
-              <View className="flex-row bg-gray-100/30 p-1.5 rounded-[24px] h-[52px] relative border border-gray-100/80">
+              <View className={`flex-row p-1.5 rounded-[24px] h-[52px] relative border ${
+                isDark ? "bg-slate-900/50 border-slate-800" : "bg-gray-100/30 border-gray-100/80"
+              }`}>
                 <Animated.View
                   style={[
                     {
@@ -233,9 +239,9 @@ export default function FeedScreen() {
                       bottom: 4,
                       left: 4,
                       width: '48%',
-                      backgroundColor: 'white',
+                      backgroundColor: isDark ? '#1E293B' : 'white',
                       borderRadius: 20,
-                      shadowColor: '#0EA5E9',
+                      shadowColor: accentColor,
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.1,
                       shadowRadius: 8,
@@ -249,7 +255,7 @@ export default function FeedScreen() {
                   onPress={() => handleTabChange("public")}
                 >
                   <Text
-                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "public" ? "text-gray-900" : "text-gray-400"
+                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "public" ? (isDark ? "text-white" : "text-gray-900") : "text-gray-400"
                       }`}
                   >
                     Public
@@ -260,7 +266,7 @@ export default function FeedScreen() {
                   onPress={() => handleTabChange("private")}
                 >
                   <Text
-                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "private" ? "text-gray-900" : "text-gray-400"
+                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "private" ? (isDark ? "text-white" : "text-gray-900") : "text-gray-400"
                       }`}
                   >
                     Following
@@ -289,8 +295,8 @@ export default function FeedScreen() {
           <RefreshControl
             refreshing={isLoading && !cursor}
             onRefresh={onRefresh}
-            tintColor="#0EA5E9"
-            colors={["#0EA5E9"]}
+            tintColor={accentColor}
+            colors={[accentColor]}
           />
         }
         onEndReached={() => {
@@ -305,10 +311,10 @@ export default function FeedScreen() {
         removeClippedSubviews={Platform.OS === 'android'}
         ListFooterComponent={
           isFetching && cursor ? (
-            <ActivityIndicator className="py-8" color="#0EA5E9" />
+            <ActivityIndicator className="py-8" color={accentColor} />
           ) : (
             <View className="py-20 items-center opacity-20">
-              <Ionicons name="infinite" size={24} color="#94A3B8" />
+              <Ionicons name="infinite" size={24} color={isDark ? "#475569" : "#94A3B8"} />
             </View>
           )
         }
@@ -323,13 +329,14 @@ export default function FeedScreen() {
           router.push("/compose/post");
         }}
         style={{
-          shadowColor: "#0EA5E9",
+          backgroundColor: accentColor,
+          shadowColor: accentColor,
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.3,
           shadowRadius: 15,
           elevation: 10,
         }}
-        className="absolute bottom-28 right-6 bg-sky-500 w-16 h-16 rounded-[24px] items-center justify-center border-2 border-white/20"
+        className="absolute bottom-28 right-6 w-16 h-16 rounded-[24px] items-center justify-center border-2 border-white/20"
       >
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>

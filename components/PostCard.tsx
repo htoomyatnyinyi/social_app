@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import { useTheme } from "../context/ThemeContext";
 
 // ────────────────────────────────────────────────
 // Types & Interfaces
@@ -160,6 +161,8 @@ const PostCard = React.memo(
     onBookmark,
   }: PostCardProps) => {
 
+    const { isDark, accentColor } = useTheme();
+
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSeeMore, setShowSeeMore] = useState(false);
 
@@ -188,7 +191,7 @@ const PostCard = React.memo(
       const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
       return (
         <Text
-          className="text-[15px] leading-[22px] text-gray-800 font-medium"
+          className={`text-[15px] leading-[22px] font-medium ${isDark ? "text-slate-200" : "text-gray-800"}`}
           numberOfLines={isExpanded ? undefined : 5}
           onTextLayout={handleTextLayout}
         >
@@ -196,7 +199,8 @@ const PostCard = React.memo(
             part.startsWith("#") ? (
               <Text
                 key={i}
-                className="text-sky-500 font-black"
+                className="font-black"
+                style={{ color: accentColor }}
                 onPress={(e) => {
                   e.stopPropagation();
                   router.push(`/explore?q=${encodeURIComponent(part)}`);
@@ -230,14 +234,14 @@ const PostCard = React.memo(
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => onPressPost(displayId)}
-        className="bg-white border border-gray-100 rounded-[32px] p-5 shadow-sm shadow-gray-200/50 mb-3"
+        className={`${isDark ? "bg-slate-900 border-slate-800 shadow-black/20" : "bg-white border-gray-100 shadow-gray-200/50"} border rounded-[32px] p-5 shadow-sm mb-3`}
       >
         {/* Repost Indicator */}
         {isRepostAction && item.author && (
           <View className="flex-row items-center mb-4 ml-1">
-            <View className="bg-emerald-50 px-2 py-1 rounded-lg flex-row items-center border border-emerald-100">
-              <Ionicons name="repeat" size={12} color="#10B981" />
-              <Text className="ml-1.5 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+            <View className={`${isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-100"} px-2 py-1 rounded-lg flex-row items-center border`}>
+              <Ionicons name="repeat" size={12} color={isDark ? "#10B981" : "#10B981"} />
+              <Text className={`ml-1.5 text-[10px] font-black uppercase tracking-widest ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
                 {item.author.id === user?.id ? "You" : item.author.name} Shared
               </Text>
             </View>
@@ -250,14 +254,14 @@ const PostCard = React.memo(
             onPress={() => displayAuthor.id && onPressProfile(displayAuthor.id)}
             className="mr-4"
           >
-            <View className="shadow-lg shadow-sky-500/10">
+            <View className={`shadow-lg`} style={{ shadowColor: accentColor, shadowOpacity: 0.1 }}>
               <Image
                 source={{
                   uri:
                     displayAuthor.image ||
                     `https://api.dicebear.com/7.x/avataaars/png?seed=${displayAuthor.id}`,
                 }}
-                className="w-13 h-13 rounded-[22px] bg-gray-50 border border-gray-100"
+                className={`w-13 h-13 rounded-[22px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-gray-50 border-gray-100"} border`}
                 contentFit="cover"
                 transition={400}
                 style={{ width: 52, height: 52 }}
@@ -271,7 +275,7 @@ const PostCard = React.memo(
               <View className="flex-1 mr-2">
                 <View className="flex-row items-center">
                   <Text
-                    className="font-black text-[16px] text-gray-900 tracking-tight"
+                    className={`font-black text-[16px] tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
                     numberOfLines={1}
                   >
                     {displayAuthor.name || "Member"}
@@ -280,23 +284,23 @@ const PostCard = React.memo(
                     <Ionicons
                       name="checkmark-circle"
                       size={16}
-                      color="#0EA5E9"
+                      color={accentColor}
                       className="ml-1"
                     />
                   )}
                 </View>
-                <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-widest mt-0.5">
+                <Text className={`text-[11px] font-bold uppercase tracking-widest mt-0.5 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
                   @{displayAuthor.username} · {createdAtFormatted}
                 </Text>
               </View>
               <TouchableOpacity
-                className="w-9 h-9 items-center justify-center rounded-2xl bg-gray-50/80 border border-gray-100/50"
+                className={`w-9 h-9 items-center justify-center rounded-2xl border ${isDark ? "bg-slate-800 border-slate-700" : "bg-gray-50/80 border-gray-100/50"}`}
                 onPress={() => onPressOptions(item)}
               >
                 <Ionicons
                   name="ellipsis-horizontal"
                   size={16}
-                  color="#94A3B8"
+                  color={isDark ? "#64748B" : "#94A3B8"}
                 />
               </TouchableOpacity>
             </View>
@@ -304,9 +308,9 @@ const PostCard = React.memo(
             {/* Body */}
             <View className="mb-4">
               {displayPost.parentPost && !isRepostAction && (
-                <View className="mb-2 bg-sky-50/50 px-2.5 py-1.5 rounded-xl self-start border border-sky-100/50">
-                  <Text className="text-[11px] font-black text-sky-600 uppercase tracking-tight">
-                    Replying to <Text className="text-sky-400">@{displayPost.parentPost.author?.username}</Text>
+                <View className={`${isDark ? "bg-slate-800 border-slate-700" : "bg-sky-50/50 border-sky-100/50"} mb-2 px-2.5 py-1.5 rounded-xl self-start border`}>
+                  <Text className={`text-[11px] font-black uppercase tracking-tight ${isDark ? "text-slate-400" : "text-sky-600"}`}>
+                    Replying to <Text style={{ color: accentColor }}>@{displayPost.parentPost.author?.username}</Text>
                   </Text>
                 </View>
               )}
@@ -316,7 +320,7 @@ const PostCard = React.memo(
                   onPress={() => setIsExpanded(true)}
                   className="mt-1"
                 >
-                  <Text className="text-sky-500 font-black text-[13px] uppercase tracking-wider">
+                  <Text style={{ color: accentColor }} className="font-black text-[13px] uppercase tracking-wider">
                     Show more
                   </Text>
                 </TouchableOpacity>
@@ -336,8 +340,8 @@ const PostCard = React.memo(
               <ActionButton
                 icon="chatbubble-outline"
                 count={displayPost._count?.replies}
-                activeColor="#64748B"
-                activeBg="bg-gray-100/50"
+                activeColor={isDark ? "#94A3B8" : "#64748B"}
+                activeBg={isDark ? "bg-slate-800" : "bg-gray-100/50"}
                 onPress={() => onPressComment(displayId)}
               />
               <ActionButton
@@ -345,7 +349,7 @@ const PostCard = React.memo(
                 count={item.repostsCount ?? displayPost._count?.reposts}
                 active={!!item.repostedByMe}
                 activeColor="#10B981"
-                activeBg="bg-emerald-50"
+                activeBg={isDark ? "bg-emerald-500/10" : "bg-emerald-50"}
                 onPress={handleRepost}
               />
               <ActionButton
@@ -353,7 +357,7 @@ const PostCard = React.memo(
                 count={displayPost._count?.likes}
                 active={displayPost.isLiked}
                 activeColor="#F43F5E"
-                activeBg="bg-rose-50"
+                activeBg={isDark ? "bg-rose-500/10" : "bg-rose-50"}
                 onPress={handleLike}
               />
               <ActionButton
@@ -361,8 +365,8 @@ const PostCard = React.memo(
                   displayPost.isBookmarked ? "bookmark" : "bookmark-outline"
                 }
                 active={displayPost.isBookmarked}
-                activeColor="#0EA5E9"
-                activeBg="bg-sky-50"
+                activeColor={accentColor}
+                activeBg={isDark ? `${accentColor}20` : `${accentColor}10`}
                 onPress={() => onBookmark(displayId)}
               />
             </View>

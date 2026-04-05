@@ -1,14 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.auth.user);
@@ -118,13 +118,15 @@ export default function SettingsScreen() {
     },
   ];
 
+  const { isDark, accentColor } = useTheme();
+
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       {/* Premium Header */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="px-5 pb-5 z-50 border-b border-gray-100/50"
+        tint={isDark ? "dark" : "light"}
+        className={`px-5 pb-5 z-50 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`}
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row items-center">
@@ -133,13 +135,15 @@ export default function SettingsScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.back();
             }}
-            className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${
+              isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
+            } mr-4`}
           >
-            <Ionicons name="chevron-back" size={20} color="#64748B" />
+            <Ionicons name="chevron-back" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
           </TouchableOpacity>
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Settings</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">App Configuration</Text>
+            <Text className={`text-2xl font-black tracking-[-1px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}>Settings</Text>
+            <Text className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-400" : "text-gray-400"}`}>App Configuration</Text>
           </View>
         </View>
       </BlurView>
@@ -147,10 +151,12 @@ export default function SettingsScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         {sections.map((section, index) => (
           <View key={index} className="mt-8 px-5">
-            <Text className="px-1 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">
+            <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>
               {section.title}
             </Text>
-            <View className="bg-white rounded-[32px] border border-gray-100/50 shadow-sm shadow-gray-100 overflow-hidden">
+            <View className={`rounded-[32px] border overflow-hidden ${
+              isDark ? "bg-slate-800/50 border-slate-800 shadow-black" : "bg-white border-gray-100/50 shadow-sm shadow-gray-100"
+            }`}>
               {section.items.map((item, i) => (
                 <TouchableOpacity
                   key={i}
@@ -158,20 +164,24 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     item.onPress();
                   }}
-                  className={`flex-row items-center px-6 py-5 ${i !== section.items.length - 1 ? "border-b border-gray-100/30" : ""}`}
+                  className={`flex-row items-center px-6 py-5 ${
+                    i !== section.items.length - 1 ? (isDark ? "border-b border-slate-700/50" : "border-b border-gray-100/30") : ""
+                  }`}
                 >
-                  <View className="w-10 h-10 rounded-2xl bg-gray-50 items-center justify-center mr-4">
-                    <Ionicons name={item.icon as any} size={20} color="#64748B" />
+                  <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 ${
+                    isDark ? "bg-slate-700/50" : "bg-gray-50"
+                  }`}>
+                    <Ionicons name={item.icon as any} size={20} color={isDark ? accentColor : "#64748B"} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-[15px] font-black text-gray-900 tracking-tight">
+                    <Text className={`text-[15px] font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
                       {item.label}
                     </Text>
-                    <Text className="text-[11px] font-medium text-gray-400 mt-0.5">
+                    <Text className={`text-[11px] font-medium mt-0.5 ${isDark ? "text-slate-400" : "text-gray-400"}`}>
                       {item.sublabel}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+                  <Ionicons name="chevron-forward" size={18} color={isDark ? "#334155" : "#CBD5E1"} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -181,9 +191,13 @@ export default function SettingsScreen() {
         <View className="mt-12 px-5 mb-10">
           <TouchableOpacity
             onPress={handleLogout}
-            className="flex-row items-center px-6 py-5 bg-rose-50 rounded-[32px] border border-rose-100/50 mb-6 shadow-sm shadow-rose-100"
+            className={`flex-row items-center px-6 py-5 rounded-[32px] border mb-6 shadow-sm ${
+              isDark ? "bg-rose-500/10 border-rose-500/20 shadow-black" : "bg-rose-50 border-rose-100/50 shadow-rose-100"
+            }`}
           >
-            <View className="w-10 h-10 rounded-2xl bg-white items-center justify-center mr-4">
+            <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 ${
+              isDark ? "bg-rose-500/20" : "bg-white"
+            }`}>
               <Ionicons name="log-out" size={20} color="#F43F5E" />
             </View>
             <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
@@ -195,17 +209,18 @@ export default function SettingsScreen() {
             onPress={() => router.push("/settings/delete-account")}
             className="items-center py-4"
           >
-            <Text className="text-center text-gray-400 font-bold text-[12px] uppercase tracking-widest">
+            <Text className={`text-center font-bold text-[12px] uppercase tracking-widest ${isDark ? "text-slate-600" : "text-gray-400"}`}>
               Delete Account
             </Text>
           </TouchableOpacity>
 
           <View className="items-center mt-12 opacity-20">
-            <Text className="text-[10px] font-black text-gray-900 uppercase tracking-[4px]">Social App</Text>
-            <Text className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Version Alpha 2.4.1009</Text>
+            <Text className={`text-[10px] font-black uppercase tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>Social App</Text>
+            <Text className={`text-[9px] font-bold mt-2 uppercase tracking-widest ${isDark ? "text-slate-400" : "text-gray-500"}`}>Version Alpha 2.4.1009</Text>
           </View>
         </View>
       </ScrollView>
     </View>
   );
 }
+

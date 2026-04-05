@@ -14,11 +14,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { api } from "./api"; // Your base API
 import authReducer from "./authSlice"; // The persisted auth slice
+import settingsReducer from "./settingsSlice"; // The persisted settings slice
 
 // 1. Combine all your reducers
 const rootReducer = combineReducers({
   [api.reducerPath]: api.reducer,
   auth: authReducer,
+  settings: settingsReducer,
 });
 
 // 2. Configure persistence for the entire root or parts of it
@@ -26,7 +28,7 @@ const persistConfig = {
   key: "root",
   version: 1,
   storage: AsyncStorage,
-  whitelist: ["auth"], // ONLY persist the auth state (user/token)
+  whitelist: ["auth", "settings"], // Persist auth and settings state
   blacklist: [api.reducerPath], // NEVER persist the API cache
 };
 

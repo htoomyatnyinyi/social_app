@@ -21,6 +21,23 @@ SplashScreen.preventAutoHideAsync();
 
 import { WebRTCProvider } from "../context/WebRTCContext";
 import { GlobalCallHandler } from "../components/GlobalCallHandler";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
+
+function ThemeLayout() {
+  const { isDark } = useTheme();
+
+  return (
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: isDark ? "#0F172A" : "white" },
+        }}
+      />
+      <GlobalCallHandler />
+    </>
+  );
+}
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
@@ -53,15 +70,11 @@ export default function RootLayout() {
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <WebRTCProvider>
-          <SafeAreaProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "white" },
-              }}
-            />
-            <GlobalCallHandler />
-          </SafeAreaProvider>
+          <ThemeProvider>
+            <SafeAreaProvider>
+              <ThemeLayout />
+            </SafeAreaProvider>
+          </ThemeProvider>
         </WebRTCProvider>
       </PersistGate>
     </ReduxProvider>
