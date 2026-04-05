@@ -175,20 +175,20 @@ export default function ExploreScreen() {
           setActiveTab("posts");
           tabProgress.value = withSpring(1 / 3, { damping: 20 });
         }}
-        className="flex-row items-center p-5 border-b border-gray-100/50 bg-[#F8FAFC] justify-between"
+        className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A] justify-between"
       >
         <View className="flex-1 mr-4">
-          <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1.5">
+          <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
             Rising · #{index + 1}
           </Text>
-          <Text className="font-black text-[18px] text-gray-900 tracking-tight">
+          <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
             #{item.name}
           </Text>
-          <Text className="text-gray-500 font-bold text-[11px] mt-1.5 uppercase tracking-wider">
+          <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] mt-1.5 uppercase tracking-wider">
             {item.count} Posts
           </Text>
         </View>
-        <TouchableOpacity className="bg-gray-100/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50">
+        <TouchableOpacity className="bg-gray-100/80 dark:bg-slate-800/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50 dark:border-slate-700/50">
           <Ionicons name="trending-up" size={18} color="#94A3B8" />
         </TouchableOpacity>
       </TouchableOpacity>
@@ -220,13 +220,13 @@ export default function ExploreScreen() {
         <BlurView
           intensity={95}
           tint="light"
-          className="p-6 bg-white/40 absolute bottom-0 left-0 right-0"
+          className="p-6 bg-white/40 dark:bg-slate-900/60 absolute bottom-0 left-0 right-0"
         >
           <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">
             Featured Post
           </Text>
           <Text
-            className="text-xl font-black text-gray-900 tracking-tight leading-7"
+            className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-7"
             numberOfLines={2}
           >
             {hero.content}
@@ -239,10 +239,10 @@ export default function ExploreScreen() {
                     hero.author?.image ||
                     `https://api.dicebear.com/7.x/avataaars/png?seed=${hero.author?.id}`,
                 }}
-                className="w-7 h-7 rounded-xl mr-3 bg-white border border-gray-50"
+                className="w-7 h-7 rounded-xl mr-3 bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
               />
             </View>
-            <Text className="text-gray-500 font-black text-[12px] uppercase tracking-wider">
+            <Text className="text-gray-500 dark:text-slate-400 font-black text-[12px] uppercase tracking-wider">
               @official
             </Text>
           </View>
@@ -275,9 +275,9 @@ export default function ExploreScreen() {
                 }}
                 className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 shadow-sm ${
                   selectedCategory === cat.id
-                    ? "bg-white border-sky-100"
-                    : "bg-gray-100/50 border-gray-50"
-                } border shadow-gray-200`}
+                    ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
+                    : "bg-gray-100/50 dark:bg-slate-800/50 border-gray-50 dark:border-slate-700"
+                } border shadow-gray-200 dark:shadow-none`}
               >
                 <Ionicons
                   name={cat.icon as any}
@@ -285,7 +285,7 @@ export default function ExploreScreen() {
                   color={selectedCategory === cat.id ? cat.color : "#94A3B8"}
                 />
                 <Text
-                  className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900" : "text-gray-400"}`}
+                  className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
                 >
                   {cat.name}
                 </Text>
@@ -296,7 +296,7 @@ export default function ExploreScreen() {
           {renderHeroTrending()}
 
           <View className="px-6 pb-4">
-            <Text className="text-xl font-black text-gray-900 tracking-tighter uppercase">
+            <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
               Trending Topics
             </Text>
           </View>
@@ -342,7 +342,7 @@ export default function ExploreScreen() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push(`/profile/${item.id}`);
                 }}
-                className="flex-row items-center p-5 border-b border-gray-100/50 bg-[#F8FAFC]"
+                className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A]"
               >
                 <Image
                   source={{
@@ -350,17 +350,17 @@ export default function ExploreScreen() {
                       item.image ||
                       `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
                   }}
-                  className="w-14 h-14 rounded-[22px] bg-white border border-gray-50 shadow-sm"
+                  className="w-14 h-14 rounded-[22px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
                 />
                 <View className="ml-4 flex-1">
-                  <Text className="font-black text-[16px] text-gray-900 tracking-tight">
+                  <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
                     {item.name}
                   </Text>
                   <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
                     @{item.username}
                   </Text>
                 </View>
-                <View className="bg-gray-100 w-10 h-10 rounded-2xl items-center justify-center">
+                <View className="bg-gray-100 dark:bg-slate-800 w-10 h-10 rounded-2xl items-center justify-center">
                   <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
                 </View>
               </TouchableOpacity>
@@ -387,10 +387,10 @@ export default function ExploreScreen() {
         }}
         ListEmptyComponent={() => (
           <View className="flex-1 items-center justify-center mt-20 px-10">
-            <View className="w-20 h-20 bg-gray-100 rounded-[40px] items-center justify-center mb-6">
+            <View className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-[40px] items-center justify-center mb-6">
               <Ionicons name="search" size={32} color="#CBD5E1" />
             </View>
-            <Text className="text-gray-400 font-black uppercase text-xs tracking-widest text-center">
+            <Text className="text-gray-400 dark:text-slate-500 font-black uppercase text-xs tracking-widest text-center">
               No results found for &quot;{search}&quot;
             </Text>
           </View>
@@ -404,21 +404,22 @@ export default function ExploreScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Search Header - Sticky Blur */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="z-50 border-b border-gray-100/50"
+        // @ts-ignore
+        tint="system"
+        className="z-50 border-b border-gray-100/50 dark:border-slate-800/50"
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="px-5 pb-4">
-          <View className="flex-row items-center bg-white rounded-[24px] px-5 py-3 border border-gray-100 shadow-sm shadow-gray-100/50">
+          <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] px-5 py-3 border border-gray-100 dark:border-slate-700 shadow-sm shadow-gray-100/50 dark:shadow-none">
             <Ionicons name="search" size={20} color="#94A3B8" />
             <TextInput
               placeholder="Search Posts..."
               placeholderTextColor="#CBD5E1"
-              className="flex-1 ml-4 text-[16px] text-gray-900 font-medium"
+              className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-medium"
               value={search}
               onChangeText={(text) => {
                 setSearch(text);
@@ -452,7 +453,7 @@ export default function ExploreScreen() {
                 onPress={() => handleTabChange(tab as any, index)}
               >
                 <Text
-                  className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? "text-gray-900" : "text-gray-400"}`}
+                  className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
                 >
                   {tab}
                 </Text>

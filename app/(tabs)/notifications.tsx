@@ -36,23 +36,23 @@ const { width } = Dimensions.get('window');
 const getNotificationConfig = (type: string) => {
   switch (type) {
     case "LIKE":
-      return { icon: "heart", color: "#F43F5E", text: "liked your post", bg: "bg-rose-50/50" };
+      return { icon: "heart", color: "#F43F5E", text: "liked your post", bg: "bg-rose-50/50 dark:bg-rose-500/10" };
     case "FOLLOW":
-      return { icon: "person", color: "#10B981", text: "is now following you", bg: "bg-emerald-50/50" };
+      return { icon: "person", color: "#10B981", text: "is now following you", bg: "bg-emerald-50/50 dark:bg-emerald-500/10" };
     case "REPOST":
-      return { icon: "repeat", color: "#0EA5E9", text: "reposted your post", bg: "bg-sky-50/50" };
+      return { icon: "repeat", color: "#0EA5E9", text: "reposted your post", bg: "bg-sky-50/50 dark:bg-sky-500/10" };
     case "QUOTE":
-      return { icon: "code-working", color: "#8B5CF6", text: "quoted your post", bg: "bg-violet-50/50" };
+      return { icon: "code-working", color: "#8B5CF6", text: "quoted your post", bg: "bg-violet-50/50 dark:bg-violet-500/10" };
     case "REPLY":
-      return { icon: "chatbubble", color: "#6366F1", text: "replied to your post", bg: "bg-indigo-50/50" };
+      return { icon: "chatbubble", color: "#6366F1", text: "replied to your post", bg: "bg-indigo-50/50 dark:bg-indigo-500/10" };
     case "MENTION":
-      return { icon: "at", color: "#F59E0B", text: "mentioned you", bg: "bg-amber-50/50" };
+      return { icon: "at", color: "#F59E0B", text: "mentioned you", bg: "bg-amber-50/50 dark:bg-amber-500/10" };
     case "MESSAGE":
-      return { icon: "mail", color: "#0EA5E9", text: "sent you a message", bg: "bg-sky-50/50" };
+      return { icon: "mail", color: "#0EA5E9", text: "sent you a message", bg: "bg-sky-50/50 dark:bg-sky-500/10" };
     case "SYSTEM":
-      return { icon: "sparkles", color: "#0EA5E9", text: "sent a system update", bg: "bg-sky-50/50" };
+      return { icon: "sparkles", color: "#0EA5E9", text: "sent a system update", bg: "bg-sky-50/50 dark:bg-sky-500/10" };
     default:
-      return { icon: "notifications", color: "#64748B", text: "interacted with you", bg: "bg-gray-50/50" };
+      return { icon: "notifications", color: "#64748B", text: "interacted with you", bg: "bg-gray-50/50 dark:bg-slate-800/50" };
   }
 };
 
@@ -90,11 +90,11 @@ const NotificationItem = React.memo(function NotificationItem({
       <TouchableOpacity
         onPress={() => onPress(item)}
         activeOpacity={0.8}
-        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${item.read ? "bg-white border-gray-50/50" : `${config.bg} border-gray-100/50`} items-start shadow-sm shadow-gray-100`}
+        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${item.read ? "bg-white dark:bg-slate-900 border-gray-50/50 dark:border-slate-800/50" : `${config.bg} border-gray-100/50 dark:border-slate-700/50`} items-start shadow-sm shadow-gray-100 dark:shadow-none`}
       >
         <View className="mr-4 pt-1">
           <View
-            className="w-12 h-12 rounded-[20px] items-center justify-center bg-white border border-gray-100 shadow-sm"
+            className="w-12 h-12 rounded-[20px] items-center justify-center bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none"
           >
             <Ionicons name={config.icon as any} size={22} color={config.color} />
           </View>
@@ -108,16 +108,16 @@ const NotificationItem = React.memo(function NotificationItem({
             >
               <Image
                 source={{ uri: item.issuer?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.issuer?.id}` }}
-                className="w-6 h-6 rounded-xl mr-2 bg-white border border-gray-50 shadow-sm"
+                className="w-6 h-6 rounded-xl mr-2 bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
               />
-              <Text className="font-black text-gray-900 text-[14px] tracking-tight">{item.issuer?.name || "Member"}</Text>
+              <Text className="font-black text-gray-900 dark:text-white text-[14px] tracking-tight">{item.issuer?.name || "Member"}</Text>
             </TouchableOpacity>
-            <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
+            <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest">
               {formatTimeAgo(item.createdAt)}
             </Text>
           </View>
 
-          <Text className="text-[14px] text-gray-700 font-medium leading-[20px] pr-4">
+          <Text className="text-[14px] text-gray-700 dark:text-slate-300 font-medium leading-[20px] pr-4">
             {config.text}
             {item._groupCount > 1 && (
               <Text className="text-sky-500 font-black"> & {item._groupCount - 1} others</Text>
@@ -125,8 +125,8 @@ const NotificationItem = React.memo(function NotificationItem({
           </Text>
 
           {item.post && (
-            <View className="mt-4 bg-white/60 p-4 rounded-[22px] border border-gray-100 shadow-sm shadow-gray-50">
-              <Text className="text-gray-500 text-[13px] leading-[18px] font-medium italic" numberOfLines={2}>
+            <View className="mt-4 bg-white/60 dark:bg-slate-800/60 p-4 rounded-[22px] border border-gray-100 dark:border-slate-700 shadow-sm shadow-gray-50 dark:shadow-none">
+              <Text className="text-gray-500 dark:text-slate-400 text-[13px] leading-[18px] font-medium italic" numberOfLines={2}>
                 &quot;{item.post.content}&quot;
               </Text>
             </View>
@@ -244,24 +244,24 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Premium Sticky Header */}
-      <BlurView intensity={90} tint="light" className="px-5 pb-5 z-50 border-b border-gray-100/50" style={{ paddingTop: insets.top + 10 }}>
+      <BlurView intensity={90} tint="light" className="px-5 pb-5 z-50 border-b border-gray-100/50 dark:border-slate-800/50" style={{ paddingTop: insets.top + 10 }}>
         <View className="flex-row justify-between items-center mb-6">
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Notifications</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Your Recent Activity</Text>
+            <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-[-1px] uppercase">Notifications</Text>
+            <Text className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Your Recent Activity</Text>
           </View>
           <TouchableOpacity
             onPress={handleMarkAllRead}
-            className="w-10 h-10 rounded-[16px] bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100"
+            className="w-10 h-10 rounded-[16px] bg-white dark:bg-slate-800 items-center justify-center border border-gray-50 dark:border-slate-700 shadow-sm shadow-gray-100 dark:shadow-none"
           >
             <Ionicons name="checkmark-done" size={20} color="#0EA5E9" />
           </TouchableOpacity>
         </View>
 
         {/* Status Tabs */}
-        <View className="flex-row bg-gray-100/50 p-1 rounded-2xl h-11 relative">
+        <View className="flex-row bg-gray-100/50 dark:bg-slate-800/50 p-1 rounded-2xl h-11 relative">
           <Animated.View
             style={[{ position: 'absolute', top: 4, bottom: 4, width: '33.33%', backgroundColor: '#fff', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }, indicatorStyle]}
           />
@@ -271,7 +271,7 @@ export default function NotificationsScreen() {
               className="flex-1 items-center justify-center"
               onPress={() => handleTabChange(tab as any, index)}
             >
-              <Text className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}>
+              <Text className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? 'text-gray-900' : 'text-gray-400 dark:text-slate-500'}`}>
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -310,11 +310,11 @@ export default function NotificationsScreen() {
           removeClippedSubviews={Platform.OS === 'android'}
           ListEmptyComponent={
             <View className="items-center justify-center mt-32 px-14 opacity-20">
-              <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 border border-gray-100">
+              <View className="w-24 h-24 bg-white dark:bg-slate-800 rounded-[40px] items-center justify-center mb-10 border border-gray-100 dark:border-slate-700">
                 <Ionicons name="notifications-off-outline" size={48} color="#94A3B8" />
               </View>
-              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">Quiet Here</Text>
-              <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+              <Text className="text-xl font-black text-center mb-2 text-gray-900 dark:text-white uppercase tracking-widest">Quiet Here</Text>
+              <Text className="text-gray-400 dark:text-slate-500 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
                 No notifications to show at the moment.
               </Text>
             </View>

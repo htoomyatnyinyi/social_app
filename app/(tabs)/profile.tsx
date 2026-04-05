@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
+import { useTheme } from "../../context/ThemeContext";
 import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
 import { logout } from "../../store/authSlice";
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const user = useSelector((state: any) => state.auth.user);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
+  const { isDark, accentColor } = useTheme();
 
   const [activeTab, setActiveTab] = useState<"posts" | "replies" | "likes">(
     "posts",
@@ -171,7 +173,7 @@ export default function ProfileScreen() {
   );
 
   const Header = () => (
-    <View className="bg-[#F8FAFC]">
+    <View className={isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}>
       <View className="h-44 bg-sky-100 overflow-hidden">
         {profile?.coverImage ? (
           <Image
@@ -204,33 +206,33 @@ export default function ProfileScreen() {
                   user?.image ||
                   "https://api.dicebear.com/7.x/avataaars/png?seed=user1",
               }}
-              className="w-28 h-28 rounded-[40px] border-4 border-white bg-white"
+              className={`w-28 h-28 rounded-[40px] border-4 ${isDark ? "border-[#0F172A] bg-slate-800" : "border-white bg-white"}`}
               contentFit="cover"
               transition={300}
             />
-            <View className="absolute bottom-1 right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white" />
+            <View className={`absolute bottom-1 right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 ${isDark ? "border-[#0F172A]" : "border-white"}`} />
           </View>
 
           <View className="flex-row items-center mb-1 space-x-2">
             <TouchableOpacity
               onPress={() => router.push("/settings")}
-              className="bg-white w-11 h-11 border border-gray-100 mr-2 items-center justify-center rounded-2xl shadow-sm"
+              className={`w-11 h-11 border mr-2 items-center justify-center rounded-2xl shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-none" : "bg-white border-gray-100"}`}
             >
-              <Ionicons name="settings-outline" size={20} color="#64748B" />
+              <Ionicons name="settings-outline" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => router.push("/profile/update")}
-              className="bg-white px-5 py-2.5 rounded-2xl border mr-2 border-gray-100 shadow-sm"
+              className={`px-5 py-2.5 rounded-2xl border mr-2 shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-none" : "bg-white border-gray-100"}`}
             >
-              <Text className="font-black text-gray-900 text-[13px] uppercase tracking-wider">
+              <Text className={`font-black text-[13px] uppercase tracking-wider ${isDark ? "text-white" : "text-gray-900"}`}>
                 Edit profile
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleLogout}
-              className="bg-rose-50 w-11 h-11 border border-rose-100 items-center justify-center rounded-2xl"
+              className={`w-11 h-11 border items-center justify-center rounded-2xl ${isDark ? "bg-rose-500/10 border-rose-500/20" : "bg-rose-50 border-rose-100"}`}
             >
               <Ionicons name="log-out-outline" size={20} color="#F43F5E" />
             </TouchableOpacity>
@@ -239,38 +241,38 @@ export default function ProfileScreen() {
 
         <View className="mt-4">
           <View className="flex-row items-center">
-            <Text className="text-3xl font-black text-gray-900 mt-1  tracking-tighter pt-5 mr-1">
+            <Text className={`text-3xl font-black mt-1 tracking-tighter pt-5 mr-1 ${isDark ? "text-white" : "text-gray-900"}`}>
               {profile?.name || user?.name || "Member"}
             </Text>
             {profile?.isVerified && (
-              <Ionicons name="checkmark-circle" size={22} color="#0EA5E9" />
+              <Ionicons name="checkmark-circle" size={22} color={accentColor} />
             )}
           </View>
-          <Text className="text-sky-600 font-bold text-[15px] -mt-1">
+          <Text className="font-bold text-[15px] -mt-1" style={{ color: accentColor }}>
             @{profile?.username || user?.username || "handle"}
           </Text>
         </View>
 
-        <Text className="mt-4 text-[16px] text-gray-600 font-medium leading-[22px]">
+        <Text className={`mt-4 text-[16px] font-medium leading-[22px] ${isDark ? "text-slate-300" : "text-gray-600"}`}>
           {profile?.bio || "Finding my rhythm in the infinite space of creativity. "}
         </Text>
 
         <View className="flex-row flex-wrap mt-4">
           {profile?.location && (
             <BlurView
-              intensity={30}
+              intensity={isDark ? 50 : 30}
               tint="light"
-              className="flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border border-white/50 bg-white/20"
+              className={`flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-white/50 bg-white/20"}`}
             >
-              <Ionicons name="location" size={14} color="#64748B" />
-              <Text className="text-gray-500 ml-1.5 text-[13px] font-bold">
+              <Ionicons name="location" size={14} color={isDark ? "#94A3B8" : "#64748B"} />
+              <Text className={`ml-1.5 text-[13px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>
                 {profile.location}
               </Text>
             </BlurView>
           )}
-          <View className="flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border border-white/50 bg-white/20">
-            <Ionicons name="calendar" size={14} color="#64748B" />
-            <Text className="text-gray-500 ml-1.5 text-[13px] font-bold">
+          <View className={`flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-white/50 bg-white/20"}`}>
+            <Ionicons name="calendar" size={14} color={isDark ? "#94A3B8" : "#64748B"} />
+            <Text className={`ml-1.5 text-[13px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>
               Joined{" "}
               {profile?.createdAt
                 ? new Date(profile.createdAt).toLocaleString("default", {
@@ -282,7 +284,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View className="flex-row mt-6 bg-white/50 border border-white/50 rounded-[32px] p-4 items-center justify-between shadow-sm">
+        <View className={`flex-row mt-6 border rounded-[32px] p-4 items-center justify-between shadow-sm ${isDark ? "bg-slate-800/80 border-slate-700 shadow-none" : "bg-white/50 border-white/50"}`}>
           <TouchableOpacity
             className="items-center flex-1"
             onPress={() =>
@@ -292,15 +294,15 @@ export default function ProfileScreen() {
               })
             }
           >
-            <Text className="text-xl font-black text-gray-900">
+            <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
               {profile?._count?.following || 0}
             </Text>
-            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-[1.5px] mt-1">
+            <Text className={`font-bold text-[10px] uppercase tracking-[1.5px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
               Following
             </Text>
           </TouchableOpacity>
 
-          <View className="w-[1px] h-8 bg-gray-100" />
+          <View className={`w-[1px] h-8 ${isDark ? "bg-slate-700" : "bg-gray-100"}`} />
 
           <TouchableOpacity
             className="items-center flex-1"
@@ -311,15 +313,15 @@ export default function ProfileScreen() {
               })
             }
           >
-            <Text className="text-xl font-black text-gray-900">
+            <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
               {profile?._count?.followers || 0}
             </Text>
-            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-[1.5px] mt-1">
+            <Text className={`font-bold text-[10px] uppercase tracking-[1.5px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
               Followers
             </Text>
           </TouchableOpacity>
 
-          <View className="w-[1px] h-8 bg-gray-100" />
+          <View className={`w-[1px] h-8 ${isDark ? "bg-slate-700" : "bg-gray-100"}`} />
 
           <TouchableOpacity
             className="items-center flex-1"
@@ -330,17 +332,17 @@ export default function ProfileScreen() {
               })
             }
           >
-            <View className="w-8 h-8 rounded-xl bg-sky-50 items-center justify-center">
-              <Ionicons name="bookmark" size={16} color="#0EA5E9" />
+            <View style={{ backgroundColor: isDark ? `${accentColor}20` : `${accentColor}10` }} className="w-8 h-8 rounded-xl items-center justify-center">
+              <Ionicons name="bookmark" size={16} color={accentColor} />
             </View>
-            <Text className="text-sky-500 font-black text-[10px] uppercase tracking-[1.5px] mt-1">
+            <Text style={{ color: accentColor }} className="font-black text-[10px] uppercase tracking-[1.5px] mt-1">
               Vault
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View className="bg-[#F8FAFC]">
+      <View className={isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}>
         <View className="flex-row px-5 py-3">
           {(["posts", "replies", "likes"] as const).map((tab) => (
             <TouchableOpacity
@@ -352,12 +354,13 @@ export default function ProfileScreen() {
               className="flex-1 items-center"
             >
               <View
-                className={`px-4 py-2.5 rounded-2xl ${activeTab === tab ? "bg-white shadow-sm border border-gray-100" : ""
+                className={`px-4 py-2.5 rounded-2xl ${activeTab === tab ? (isDark ? "bg-slate-800 border-slate-700 shadow-none border" : "bg-white shadow-sm border border-gray-100") : ""
                   }`}
               >
                 <Text
-                  className={`font-black text-[11px] uppercase tracking-widest ${activeTab === tab ? "text-sky-500" : "text-gray-400"
+                  className={`font-black text-[11px] uppercase tracking-widest ${activeTab === tab ? "text-primary" : (isDark ? "text-slate-500" : "text-gray-400")
                     }`}
+                  style={activeTab === tab ? { color: accentColor } : {}}
                 >
                   {tab}
                 </Text>
@@ -365,13 +368,13 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        <View className="h-[1px] bg-gray-100 mx-5" />
+        <View className={`h-[1px] mx-5 ${isDark ? "bg-slate-800" : "bg-gray-100"}`} />
       </View>
     </View>
   );
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       <FlatList
         data={currentData}
         ListHeaderComponent={Header}
@@ -400,20 +403,20 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={isLoading}
             onRefresh={onRefresh}
-            tintColor="#0EA5E9"
+            tintColor={accentColor}
           />
         }
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="items-center py-20 px-10">
-            <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
-              <Ionicons name="chatbubbles-outline" size={32} color="#94A3B8" />
+            <View className={`w-16 h-16 rounded-3xl items-center justify-center mb-4 ${isDark ? "bg-slate-800" : "bg-gray-100"}`}>
+              <Ionicons name="chatbubbles-outline" size={32} color={isDark ? "#475569" : "#94A3B8"} />
             </View>
-            <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">
+            <Text className={`text-xl font-black tracking-tight text-center uppercase ${isDark ? "text-white" : "text-gray-900"}`}>
               No {activeTab} yet
             </Text>
-            <Text className="text-gray-400 text-center mt-2 font-medium leading-5">
+            <Text className={`text-center mt-2 font-medium leading-5 ${isDark ? "text-slate-400" : "text-gray-400"}`}>
               Your {activeTab} will weave the social fabric of the community.
             </Text>
           </View>
