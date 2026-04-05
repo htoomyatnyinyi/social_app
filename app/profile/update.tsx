@@ -155,25 +155,25 @@ export default function UpdateProfileScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Premium Header */}
       <View
         style={{ paddingTop: insets.top }}
-        className="bg-white/80 border-b border-gray-100 flex-row items-center justify-between px-5 py-4"
+        className="bg-white/80 dark:bg-[#0F172A]/80 border-b border-gray-100 dark:border-slate-800 flex-row items-center justify-between px-5 py-4"
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-2xl bg-gray-50 border border-gray-100"
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700"
         >
           <Ionicons name="close-outline" size={24} color="#64748B" />
         </TouchableOpacity>
-        <Text className="text-xl font-black text-gray-900 tracking-tight uppercase">
+        <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tight uppercase">
           Refine Profile
         </Text>
         <TouchableOpacity
           onPress={handleUpdate}
           disabled={isLoading}
-          className={`px-6 py-2.5 rounded-2xl shadow-sm ${isLoading ? "bg-gray-100" : "bg-sky-500 shadow-sky-200"}`}
+          className={`px-6 py-2.5 rounded-2xl shadow-sm ${isLoading ? "bg-gray-100 dark:bg-slate-700" : "bg-sky-500 shadow-sky-200 dark:shadow-none"}`}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color="#0EA5E9" />
@@ -189,7 +189,7 @@ export default function UpdateProfileScreen() {
       >
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Banner Edit */}
-          <View className="relative h-48 bg-sky-100">
+          <View className="relative h-48 bg-sky-100 dark:bg-sky-900/30">
             {coverImage ? (
               <Image
                 source={{ uri: coverImage }}
@@ -200,13 +200,13 @@ export default function UpdateProfileScreen() {
             ) : (
               <LinearGradient
                 colors={["#38BDF8", "#0EA5E9"]}
-                className="w-full h-full"
+                className="w-full h-full opacity-100 dark:opacity-80"
               />
             )}
             <View className="absolute inset-0 items-center justify-center bg-black/10">
               <TouchableOpacity
                 onPress={() => pickImage(true)}
-                className="bg-white/90 p-4 rounded-3xl shadow-lg border border-white"
+                className="bg-white/90 dark:bg-slate-800/90 p-4 rounded-3xl shadow-lg border border-white dark:border-slate-700"
               >
                 <Ionicons name="camera" size={28} color="#0EA5E9" />
               </TouchableOpacity>
@@ -215,16 +215,16 @@ export default function UpdateProfileScreen() {
 
           {/* Profile Photo Edit */}
           <View className="px-5 -mt-14 mb-8">
-            <View className="relative w-28 h-28 shadow-2xl shadow-sky-300">
+            <View className="relative w-28 h-28 shadow-2xl shadow-sky-300 dark:shadow-none">
               <Image
                 source={{ uri: profileImage || "https://api.dicebear.com/7.x/avataaars/png?seed=user1" }}
-                className="w-28 h-28 rounded-[40px] border-4 border-white bg-white"
+                className="w-28 h-28 rounded-[40px] border-4 border-white dark:border-[#0F172A] bg-white dark:bg-[#0F172A]"
                 contentFit="cover"
                 transition={300}
               />
               <TouchableOpacity
                 onPress={() => pickImage(false)}
-                className="absolute bottom-0 right-0 bg-white p-2.5 rounded-2xl shadow-md border border-gray-100"
+                className="absolute bottom-0 right-0 bg-white dark:bg-slate-800 p-2.5 rounded-2xl shadow-md border border-gray-100 dark:border-slate-700"
               >
                 <Ionicons name="camera" size={20} color="#0EA5E9" />
               </TouchableOpacity>
@@ -233,18 +233,18 @@ export default function UpdateProfileScreen() {
 
           {/* Form Fields */}
           <View className="px-5 space-y-6">
-            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
               <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Full Identity</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
                 placeholder="What should we call you?"
                 placeholderTextColor="#94A3B8"
-                className="w-full px-1 text-[16px] text-gray-900 font-bold"
+                className="w-full px-1 text-[16px] text-gray-900 dark:text-white font-bold"
               />
             </View>
 
-            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
               <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Unique Handle</Text>
               <TextInput
                 value={username}
@@ -252,11 +252,11 @@ export default function UpdateProfileScreen() {
                 autoCapitalize="none"
                 placeholder="@handle"
                 placeholderTextColor="#94A3B8"
-                className="w-full px-1 text-[16px] text-gray-900 font-bold"
+                className="w-full px-1 text-[16px] text-gray-900 dark:text-white font-bold"
               />
             </View>
 
-            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
               <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Your Story (Bio)</Text>
               <TextInput
                 value={bio}
@@ -264,25 +264,25 @@ export default function UpdateProfileScreen() {
                 multiline
                 placeholder="A few words about your journey..."
                 placeholderTextColor="#94A3B8"
-                className="w-full px-1 text-[16px] text-gray-900 font-medium min-h-[80px]"
+                className="w-full px-1 text-[16px] text-gray-900 dark:text-white font-medium min-h-[80px]"
                 textAlignVertical="top"
               />
             </View>
 
             <View className="flex-row space-x-4">
-              <View className="flex-1 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+              <View className="flex-1 bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
                 <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Presence (Location)</Text>
                 <TextInput
                   value={location}
                   onChangeText={setLocation}
                   placeholder="Where are you?"
                   placeholderTextColor="#94A3B8"
-                  className="w-full px-1 text-[16px] text-gray-900 font-bold"
+                  className="w-full px-1 text-[16px] text-gray-900 dark:text-white font-bold"
                 />
               </View>
             </View>
 
-            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
               <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Digital Garden (Website)</Text>
               <TextInput
                 value={website}
@@ -291,11 +291,11 @@ export default function UpdateProfileScreen() {
                 keyboardType="url"
                 placeholder="https://yourpage.com"
                 placeholderTextColor="#94A3B8"
-                className="w-full px-1 text-[16px] text-gray-900 font-bold"
+                className="w-full px-1 text-[16px] text-gray-900 dark:text-white font-bold"
               />
             </View>
 
-            <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
               <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Inception (Birth Date)</Text>
               <TouchableOpacity
                 onPress={() => {
@@ -304,14 +304,14 @@ export default function UpdateProfileScreen() {
                 }}
                 className="w-full px-1 py-1 flex-row items-center justify-between"
               >
-                <Text className="text-[16px] text-gray-900 font-bold">
+                <Text className="text-[16px] text-gray-900 dark:text-white font-bold">
                   {dob.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
 
               {showDatePicker && (
-                <View className="mt-2 border-t border-gray-50 pt-2">
+                <View className="mt-2 border-t border-gray-50 dark:border-slate-700 pt-2">
                   <DateTimePicker
                     value={dob}
                     mode="date"

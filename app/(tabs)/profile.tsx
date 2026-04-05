@@ -210,7 +210,9 @@ export default function ProfileScreen() {
               contentFit="cover"
               transition={300}
             />
-            <View className={`absolute bottom-1 right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 ${isDark ? "border-[#0F172A]" : "border-white"}`} />
+            <View
+              className={`absolute bottom-1 right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 ${isDark ? "border-[#0F172A]" : "border-white"}`}
+            />
           </View>
 
           <View className="flex-row items-center mb-1 space-x-2">
@@ -218,14 +220,20 @@ export default function ProfileScreen() {
               onPress={() => router.push("/settings")}
               className={`w-11 h-11 border mr-2 items-center justify-center rounded-2xl shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-none" : "bg-white border-gray-100"}`}
             >
-              <Ionicons name="settings-outline" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
+              <Ionicons
+                name="settings-outline"
+                size={20}
+                color={isDark ? "#94A3B8" : "#64748B"}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => router.push("/profile/update")}
               className={`px-5 py-2.5 rounded-2xl border mr-2 shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-none" : "bg-white border-gray-100"}`}
             >
-              <Text className={`font-black text-[13px] uppercase tracking-wider ${isDark ? "text-white" : "text-gray-900"}`}>
+              <Text
+                className={`font-black text-[13px] uppercase tracking-wider ${isDark ? "text-white" : "text-gray-900"}`}
+              >
                 Edit profile
               </Text>
             </TouchableOpacity>
@@ -241,20 +249,28 @@ export default function ProfileScreen() {
 
         <View className="mt-4">
           <View className="flex-row items-center">
-            <Text className={`text-3xl font-black mt-1 tracking-tighter pt-5 mr-1 ${isDark ? "text-white" : "text-gray-900"}`}>
+            <Text
+              className={`text-3xl font-black mt-1 tracking-tighter pt-5 mr-1 ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               {profile?.name || user?.name || "Member"}
             </Text>
             {profile?.isVerified && (
               <Ionicons name="checkmark-circle" size={22} color={accentColor} />
             )}
           </View>
-          <Text className="font-bold text-[15px] -mt-1" style={{ color: accentColor }}>
+          <Text
+            className="font-bold text-[15px] -mt-1"
+            style={{ color: accentColor }}
+          >
             @{profile?.username || user?.username || "handle"}
           </Text>
         </View>
 
-        <Text className={`mt-4 text-[16px] font-medium leading-[22px] ${isDark ? "text-slate-300" : "text-gray-600"}`}>
-          {profile?.bio || "Finding my rhythm in the infinite space of creativity. "}
+        <Text
+          className={`mt-4 text-[16px] font-medium leading-[22px] ${isDark ? "text-slate-300" : "text-gray-600"}`}
+        >
+          {profile?.bio ||
+            "Finding my rhythm in the infinite space of creativity. "}
         </Text>
 
         <View className="flex-row flex-wrap mt-4">
@@ -264,27 +280,43 @@ export default function ProfileScreen() {
               tint="light"
               className={`flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-white/50 bg-white/20"}`}
             >
-              <Ionicons name="location" size={14} color={isDark ? "#94A3B8" : "#64748B"} />
-              <Text className={`ml-1.5 text-[13px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+              <Ionicons
+                name="location"
+                size={14}
+                color={isDark ? "#94A3B8" : "#64748B"}
+              />
+              <Text
+                className={`ml-1.5 text-[13px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}
+              >
                 {profile.location}
               </Text>
             </BlurView>
           )}
-          <View className={`flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-white/50 bg-white/20"}`}>
-            <Ionicons name="calendar" size={14} color={isDark ? "#94A3B8" : "#64748B"} />
-            <Text className={`ml-1.5 text-[13px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+          <View
+            className={`flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-white/50 bg-white/20"}`}
+          >
+            <Ionicons
+              name="calendar"
+              size={14}
+              color={isDark ? "#94A3B8" : "#64748B"}
+            />
+            <Text
+              className={`ml-1.5 text-[13px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}
+            >
               Joined{" "}
               {profile?.createdAt
                 ? new Date(profile.createdAt).toLocaleString("default", {
-                  month: "short",
-                  year: "numeric",
-                })
+                    month: "short",
+                    year: "numeric",
+                  })
                 : "2026"}
             </Text>
           </View>
         </View>
 
-        <View className={`flex-row mt-6 border rounded-[32px] p-4 items-center justify-between shadow-sm ${isDark ? "bg-slate-800/80 border-slate-700 shadow-none" : "bg-white/50 border-white/50"}`}>
+        <View
+          className={`flex-row mt-6 border rounded-[32px] p-4 items-center justify-between shadow-sm ${isDark ? "bg-slate-800/80 border-slate-700 shadow-none" : "bg-white/50 border-white/50"}`}
+        >
           <TouchableOpacity
             className="items-center flex-1"
             onPress={() =>
@@ -294,15 +326,21 @@ export default function ProfileScreen() {
               })
             }
           >
-            <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
+            <Text
+              className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               {profile?._count?.following || 0}
             </Text>
-            <Text className={`font-bold text-[10px] uppercase tracking-[1.5px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
+            <Text
+              className={`font-bold text-[10px] uppercase tracking-[1.5px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}
+            >
               Following
             </Text>
           </TouchableOpacity>
 
-          <View className={`w-[1px] h-8 ${isDark ? "bg-slate-700" : "bg-gray-100"}`} />
+          <View
+            className={`w-[1px] h-8 ${isDark ? "bg-slate-700" : "bg-gray-100"}`}
+          />
 
           <TouchableOpacity
             className="items-center flex-1"
@@ -313,15 +351,21 @@ export default function ProfileScreen() {
               })
             }
           >
-            <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
+            <Text
+              className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               {profile?._count?.followers || 0}
             </Text>
-            <Text className={`font-bold text-[10px] uppercase tracking-[1.5px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
+            <Text
+              className={`font-bold text-[10px] uppercase tracking-[1.5px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}
+            >
               Followers
             </Text>
           </TouchableOpacity>
 
-          <View className={`w-[1px] h-8 ${isDark ? "bg-slate-700" : "bg-gray-100"}`} />
+          <View
+            className={`w-[1px] h-8 ${isDark ? "bg-slate-700" : "bg-gray-100"}`}
+          />
 
           <TouchableOpacity
             className="items-center flex-1"
@@ -332,11 +376,21 @@ export default function ProfileScreen() {
               })
             }
           >
-            <View style={{ backgroundColor: isDark ? `${accentColor}20` : `${accentColor}10` }} className="w-8 h-8 rounded-xl items-center justify-center">
+            <View
+              style={{
+                backgroundColor: isDark
+                  ? `${accentColor}20`
+                  : `${accentColor}10`,
+              }}
+              className="w-8 h-8 rounded-xl items-center justify-center"
+            >
               <Ionicons name="bookmark" size={16} color={accentColor} />
             </View>
-            <Text style={{ color: accentColor }} className="font-black text-[10px] uppercase tracking-[1.5px] mt-1">
-              Vault
+            <Text
+              style={{ color: accentColor }}
+              className="font-black text-[10px] uppercase tracking-[1.5px] mt-1"
+            >
+              Bookmarks
             </Text>
           </TouchableOpacity>
         </View>
@@ -354,12 +408,22 @@ export default function ProfileScreen() {
               className="flex-1 items-center"
             >
               <View
-                className={`px-4 py-2.5 rounded-2xl ${activeTab === tab ? (isDark ? "bg-slate-800 border-slate-700 shadow-none border" : "bg-white shadow-sm border border-gray-100") : ""
-                  }`}
+                className={`px-4 py-2.5 rounded-2xl ${
+                  activeTab === tab
+                    ? isDark
+                      ? "bg-slate-800 border-slate-700 shadow-none border"
+                      : "bg-white shadow-sm border border-gray-100"
+                    : ""
+                }`}
               >
                 <Text
-                  className={`font-black text-[11px] uppercase tracking-widest ${activeTab === tab ? "text-primary" : (isDark ? "text-slate-500" : "text-gray-400")
-                    }`}
+                  className={`font-black text-[11px] uppercase tracking-widest ${
+                    activeTab === tab
+                      ? "text-primary"
+                      : isDark
+                        ? "text-slate-500"
+                        : "text-gray-400"
+                  }`}
                   style={activeTab === tab ? { color: accentColor } : {}}
                 >
                   {tab}
@@ -368,7 +432,9 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        <View className={`h-[1px] mx-5 ${isDark ? "bg-slate-800" : "bg-gray-100"}`} />
+        <View
+          className={`h-[1px] mx-5 ${isDark ? "bg-slate-800" : "bg-gray-100"}`}
+        />
       </View>
     </View>
   );
@@ -410,13 +476,23 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="items-center py-20 px-10">
-            <View className={`w-16 h-16 rounded-3xl items-center justify-center mb-4 ${isDark ? "bg-slate-800" : "bg-gray-100"}`}>
-              <Ionicons name="chatbubbles-outline" size={32} color={isDark ? "#475569" : "#94A3B8"} />
+            <View
+              className={`w-16 h-16 rounded-3xl items-center justify-center mb-4 ${isDark ? "bg-slate-800" : "bg-gray-100"}`}
+            >
+              <Ionicons
+                name="chatbubbles-outline"
+                size={32}
+                color={isDark ? "#475569" : "#94A3B8"}
+              />
             </View>
-            <Text className={`text-xl font-black tracking-tight text-center uppercase ${isDark ? "text-white" : "text-gray-900"}`}>
+            <Text
+              className={`text-xl font-black tracking-tight text-center uppercase ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               No {activeTab} yet
             </Text>
-            <Text className={`text-center mt-2 font-medium leading-5 ${isDark ? "text-slate-400" : "text-gray-400"}`}>
+            <Text
+              className={`text-center mt-2 font-medium leading-5 ${isDark ? "text-slate-400" : "text-gray-400"}`}
+            >
               Your {activeTab} will weave the social fabric of the community.
             </Text>
           </View>
@@ -641,7 +717,6 @@ export default function ProfileScreen() {
 //               <Ionicons name="settings-outline" size={20} color="#64748B" />
 //             </TouchableOpacity>
 
-
 //             <TouchableOpacity
 //               onPress={() => router.push("/profile/update")}
 //               className="bg-white px-5 py-2.5 rounded-2xl border mr-5 border-gray-100 shadow-sm"
@@ -650,7 +725,6 @@ export default function ProfileScreen() {
 //                 Edit profile
 //               </Text>
 //             </TouchableOpacity>
-
 
 //             <TouchableOpacity
 //               onPress={handleLogout}

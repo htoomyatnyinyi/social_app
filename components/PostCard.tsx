@@ -93,7 +93,7 @@ const ActionButton = React.memo(({
   activeBg: string;
 }) => (
   <TouchableOpacity
-    className={`flex-row items-center px-3 py-1.5 rounded-xl ${active ? activeBg : "bg-gray-50/50"}`}
+    className={`flex-row items-center px-3 py-1.5 rounded-xl ${active ? activeBg : "bg-gray-50/50 dark:bg-slate-800/50"}`}
     onPress={onPress}
   >
     <Ionicons
@@ -103,7 +103,7 @@ const ActionButton = React.memo(({
     />
     {count !== undefined && (
       <Text
-        className={`text-[11px] font-black ml-1.5 ${active ? `text-[${activeColor}]` : "text-gray-500"}`}
+        className={`text-[11px] font-black ml-1.5 ${active ? `text-[${activeColor}]` : "text-gray-500 dark:text-slate-400"}`}
       >
         {count}
       </Text>
@@ -119,7 +119,7 @@ const MediaGallery = React.memo(({ images }: { images: string[] }) => {
     return (
       <Image
         source={{ uri: images[0] }}
-        className="w-full h-64 rounded-3xl mb-3 border border-gray-50 bg-gray-50"
+        className="w-full h-64 rounded-3xl mb-3 border border-gray-50 dark:border-slate-800 bg-gray-50 dark:bg-slate-800"
         contentFit="cover"
         transition={400}
       />
@@ -137,7 +137,7 @@ const MediaGallery = React.memo(({ images }: { images: string[] }) => {
         <Image
           key={idx}
           source={{ uri }}
-          className="w-64 h-64 rounded-3xl border border-gray-50 bg-gray-50 mr-3"
+          className="w-64 h-64 rounded-3xl border border-gray-50 dark:border-slate-800 bg-gray-50 dark:bg-slate-800 mr-3"
           contentFit="cover"
           transition={400}
         />

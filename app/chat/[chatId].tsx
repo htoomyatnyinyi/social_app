@@ -23,6 +23,7 @@ import { useSelector } from "react-redux";
 import { useMarkMessagesAsReadMutation } from "../../store/chatApi";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
+import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useChatMessages } from "@/hooks/useChatMessages";
@@ -40,7 +41,7 @@ type ReplyContext = {
   content: string;
 };
 
-const AudioPlayer = ({ uri, isMe }: { uri: string; isMe: boolean }) => {
+const AudioPlayer = ({ uri, isMe, isDark }: { uri: string; isMe: boolean; isDark: boolean }) => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -82,7 +83,7 @@ const AudioPlayer = ({ uri, isMe }: { uri: string; isMe: boolean }) => {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: isMe ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.05)",
+        backgroundColor: isMe ? "rgba(255,255,255,0.2)" : isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
         padding: 8,
         borderRadius: 20,
         minWidth: 120,
@@ -110,12 +111,14 @@ const MessageBubble = memo(function MessageBubble({
   item,
   prevMessage,
   user,
+  isDark,
   onReply,
   onLongPress,
 }: {
   item: any;
   prevMessage: any;
   user: any;
+  isDark: boolean;
   onReply: (reply: ReplyContext) => void;
   onLongPress: (item: any) => void;
 }) {
@@ -155,7 +158,7 @@ const MessageBubble = memo(function MessageBubble({
               width: 28,
               height: 28,
               borderRadius: 10,
-              backgroundColor: "#F1F5F9",
+              backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
             }}
             contentFit="cover"
           />
@@ -171,9 +174,9 @@ const MessageBubble = memo(function MessageBubble({
           paddingHorizontal: 14,
           paddingVertical: 10,
           borderRadius: 20,
-          backgroundColor: isMe ? "#0EA5E9" : "white",
+          backgroundColor: isMe ? "#0EA5E9" : isDark ? "#1E293B" : "white",
           borderWidth: isMe ? 0 : 1,
-          borderColor: "#F1F5F9",
+          borderColor: isDark ? "#334155" : "#F1F5F9",
           opacity: isPending ? 0.7 : 1,
           borderTopRightRadius: isMe && isSameSenderAsPrev ? 4 : isMe ? 2 : 20,
           borderTopLeftRadius: !isMe && isSameSenderAsPrev ? 4 : !isMe ? 2 : 20,
@@ -187,7 +190,7 @@ const MessageBubble = memo(function MessageBubble({
               borderRadius: 8,
               borderLeftWidth: 3,
               borderLeftColor: isMe ? "rgba(255,255,255,0.4)" : "#0EA5E9",
-              backgroundColor: isMe ? "rgba(0,0,0,0.05)" : "#F8FAFC",
+              backgroundColor: isMe ? "rgba(0,0,0,0.05)" : isDark ? "rgba(14,165,233,0.1)" : "#F8FAFC",
             }}
           >
             <Text
@@ -206,7 +209,7 @@ const MessageBubble = memo(function MessageBubble({
               style={{
                 fontSize: 11,
                 lineHeight: 14,
-                color: isMe ? "rgba(255, 255, 255, 0.8)" : "#64748B",
+                color: isMe ? "rgba(255, 255, 255, 0.8)" : isDark ? "#94A3B8" : "#64748B",
               }}
               numberOfLines={2}
             >
@@ -216,7 +219,7 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {item.type === "audio" && item.mediaUrl && (
-          <AudioPlayer uri={item.mediaUrl} isMe={isMe} />
+          <AudioPlayer uri={item.mediaUrl} isMe={isMe} isDark={isDark} />
         )}
 
         {item.type === "location" && item.metadata && (
@@ -243,7 +246,7 @@ const MessageBubble = memo(function MessageBubble({
             />
             <Text
               style={{
-                color: isMe ? "white" : "#1E293B",
+                color: isMe ? "white" : isDark ? "white" : "#1E293B",
                 fontSize: 12,
                 marginTop: 4,
                 textAlign: "center",
@@ -263,7 +266,7 @@ const MessageBubble = memo(function MessageBubble({
             />
             <Text
               style={{
-                color: isMe ? "white" : "#1E293B",
+                color: isMe ? "white" : isDark ? "white" : "#1E293B",
                 fontWeight: "600",
                 marginTop: 4,
               }}
@@ -316,7 +319,7 @@ const MessageBubble = memo(function MessageBubble({
               fontSize: 15,
               fontWeight: "400",
               lineHeight: 20,
-              color: isMe ? "white" : "#1E293B",
+              color: isMe ? "white" : isDark ? "white" : "#1E293B",
             }}
           >
             {item.content}
@@ -368,12 +371,12 @@ const MessageBubble = memo(function MessageBubble({
               bottom: -6,
               left: -4,
               flexDirection: "row",
-              backgroundColor: "white",
+              backgroundColor: isDark ? "#334155" : "white",
               borderRadius: 10,
               paddingHorizontal: 6,
               paddingVertical: 1,
               borderWidth: 1,
-              borderColor: "#F1F5F9",
+              borderColor: isDark ? "#475569" : "#F1F5F9",
             }}
           >
             {Array.from(new Set(reactionEmojis))
@@ -395,6 +398,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const resolvedChatId = Array.isArray(chatId) ? chatId[0] : chatId;
+  const { isDark } = useTheme();
 
   const user = useSelector((state: any) => state.auth.user);
   const token = useSelector((state: any) => state.auth.token);
@@ -607,11 +611,11 @@ export default function ChatScreen() {
     () => (
       <View
         style={{
-          backgroundColor: "white",
+          backgroundColor: isDark ? "#0F172A" : "white",
           paddingHorizontal: 20,
           paddingBottom: 16,
           borderBottomWidth: 1,
-          borderBottomColor: "#F1F5F9",
+          borderBottomColor: isDark ? "#1E293B" : "#F1F5F9",
           paddingTop: insets.top,
         }}
       >
@@ -625,22 +629,22 @@ export default function ChatScreen() {
               width: 40,
               height: 40,
               borderRadius: 16,
-              backgroundColor: "#F8FAFC",
+              backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,
-              borderColor: "#F1F5F9",
+              borderColor: isDark ? "#334155" : "#F1F5F9",
               marginRight: 16,
             }}
           >
-            <Ionicons name="chevron-back" size={20} color="#334155" />
+            <Ionicons name="chevron-back" size={20} color={isDark ? "white" : "#334155"} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text
               style={{
                 fontSize: 18,
                 fontWeight: "900",
-                color: "#0F172A",
+                color: isDark ? "white" : "#0F172A",
                 letterSpacing: -0.5,
               }}
               numberOfLines={1}
@@ -682,7 +686,7 @@ export default function ChatScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: "#F0FDF4",
+              backgroundColor: isDark ? "#064E3B" : "#F0FDF4",
               alignItems: "center",
               justifyContent: "center",
               marginRight: 8,
@@ -696,7 +700,7 @@ export default function ChatScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: "#E0F2FE",
+              backgroundColor: isDark ? "#0C4A6E" : "#E0F2FE",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -710,7 +714,7 @@ export default function ChatScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? "#0B1120" : "#F8FAFC" }}>
       {headerContent}
 
       <View style={{ flex: 1 }}>
@@ -722,6 +726,7 @@ export default function ChatScreen() {
               item={item}
               prevMessage={reversedMessages[index + 1] || null}
               user={user}
+              isDark={isDark}
               onReply={(rep) => setReplyContext(rep)}
               onLongPress={handleLongPress}
             />
@@ -737,9 +742,9 @@ export default function ChatScreen() {
 
         <View
           style={{
-            backgroundColor: "white",
+            backgroundColor: isDark ? "#0F172A" : "white",
             borderTopWidth: 1,
-            borderTopColor: "#F1F5F9",
+            borderTopColor: isDark ? "#1E293B" : "#F1F5F9",
             paddingBottom:
               keyboardHeight > 0
                 ? keyboardHeight -
@@ -752,13 +757,13 @@ export default function ChatScreen() {
           {replyContext && (
             <View
               style={{
-                backgroundColor: "#F8FAFC",
+                backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                 paddingHorizontal: 16,
                 paddingVertical: 10,
                 flexDirection: "row",
                 alignItems: "center",
                 borderBottomWidth: 1,
-                borderBottomColor: "#F1F5F9",
+                borderBottomColor: isDark ? "#334155" : "#F1F5F9",
                 marginBottom: 8,
               }}
             >
@@ -806,9 +811,9 @@ export default function ChatScreen() {
                 paddingVertical: 10,
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "#F8FAFC",
+                backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                 borderBottomWidth: 1,
-                borderBottomColor: "#F1F5F9",
+                borderBottomColor: isDark ? "#334155" : "#F1F5F9",
                 marginBottom: 8,
               }}
             >
@@ -831,12 +836,12 @@ export default function ChatScreen() {
                     right: -8,
                     width: 24,
                     height: 24,
-                    backgroundColor: "white",
+                    backgroundColor: isDark ? "#334155" : "white",
                     borderRadius: 12,
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 1,
-                    borderColor: "#F1F5F9",
+                    borderColor: isDark ? "#475569" : "#F1F5F9",
                   }}
                 >
                   <Ionicons name="close" size={14} color="#64748B" />
@@ -870,11 +875,11 @@ export default function ChatScreen() {
                 width: 44,
                 height: 44,
                 borderRadius: 18,
-                backgroundColor: "#F8FAFC",
+                backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 1,
-                borderColor: "#F1F5F9",
+                borderColor: isDark ? "#334155" : "#F1F5F9",
                 marginRight: 8,
               }}
             >
@@ -888,11 +893,11 @@ export default function ChatScreen() {
                 width: 44,
                 height: 44,
                 borderRadius: 18,
-                backgroundColor: isRecording ? "#FEE2E2" : "#F8FAFC",
+                backgroundColor: isRecording ? (isDark ? "#7F1D1D" : "#FEE2E2") : (isDark ? "#1E293B" : "#F8FAFC"),
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 1,
-                borderColor: isRecording ? "#FECACA" : "#F1F5F9",
+                borderColor: isRecording ? (isDark ? "#991B1B" : "#FECACA") : (isDark ? "#334155" : "#F1F5F9"),
                 marginRight: 8,
               }}
             >
@@ -909,11 +914,11 @@ export default function ChatScreen() {
                 width: 44,
                 height: 44,
                 borderRadius: 18,
-                backgroundColor: "#F8FAFC",
+                backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 1,
-                borderColor: "#F1F5F9",
+                borderColor: isDark ? "#334155" : "#F1F5F9",
                 marginRight: 10,
               }}
             >
@@ -925,9 +930,9 @@ export default function ChatScreen() {
                 flex: 1,
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "#F8FAFC",
+                backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                 borderWidth: 1,
-                borderColor: "#E2E8F0",
+                borderColor: isDark ? "#475569" : "#E2E8F0",
                 borderRadius: 28,
                 paddingHorizontal: 16,
                 paddingVertical: 4,
@@ -942,7 +947,7 @@ export default function ChatScreen() {
                 style={{
                   flex: 1,
                   fontSize: 16,
-                  color: "#0F172A",
+                  color: isDark ? "white" : "#0F172A",
                   paddingVertical: 8,
                   minHeight: 40,
                 }}
@@ -958,7 +963,7 @@ export default function ChatScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor:
-                    inputText.trim() || selectedImage ? "#0EA5E9" : "#E2E8F0",
+                    inputText.trim() || selectedImage ? "#0EA5E9" : (isDark ? "#475569" : "#E2E8F0"),
                   opacity: pressed ? 0.7 : 1,
                 })}
               >
