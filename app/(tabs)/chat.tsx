@@ -110,6 +110,7 @@ export default function ChatListScreen() {
               className="text-gray-500 text-[14px] flex-1 mr-2"
               numberOfLines={1}
             >
+            <Text className="text-gray-500 text-[14px] flex-1 mr-2" numberOfLines={1}>
               {lastMessage?.senderId === user?.id ? "You: " : ""}
               {lastMessage?.content || "Start a conversation"}
             </Text>
@@ -118,6 +119,7 @@ export default function ChatListScreen() {
                 <Text className="text-white text-[11px] font-bold">
                   {item.unreadCount}
                 </Text>
+                <Text className="text-white text-[11px] font-bold">{item.unreadCount}</Text>
               </View>
             )}
           </View>

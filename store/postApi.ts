@@ -123,8 +123,8 @@ export const postApi = api.injectEndpoints({
                   post.isLiked = true;
                   if (post._count) post._count.likes = (post._count.likes || 0) + 1;
                 }
-              }
-            }),
+              },
+            ),
           );
 
         const patchPublic = updateList("getPosts", { type: "public" } as any);
@@ -184,6 +184,58 @@ export const postApi = api.injectEndpoints({
           }),
         );
 
+        // ... (rest of legacy optimistic update logic if needed, but the main count update is key)
+
+        // 2. Optimistically add the comment to the comments list
+        const patchComments = dispatch(
+          postApi.util.updateQueryData(
+            "getComments" as any,
+            postId as any,
+            (draft: any) => {
+              if (draft && !parentId) {
+                // Only add to top-level comments if parentId is null
+                draft.unshift({
+                  id: tempId,
+                  content,
+                  userId: user.id,
+                  postId: postId,
+                  parentId: null,
+                  createdAt: new Date().toISOString(),
+                  user: {
+                    id: user.id,
+                    name: user.name,
+                    username: user.username,
+                    image: user.image,
+                  },
+                  replies: [],
+                });
+              } else if (draft && parentId) {
+                // If it's a reply, find the parent and add to its replies
+                const parent = draft.find((c: any) => c.id === parentId);
+                if (parent) {
+                  parent.replies = [
+                    ...(parent.replies || []),
+                    {
+                      id: tempId,
+                      content,
+                      userId: user.id,
+                      postId: postId,
+                      parentId,
+                      createdAt: new Date().toISOString(),
+                      user: {
+                        id: user.id,
+                        name: user.name,
+                        username: user.username,
+                        image: user.image,
+                      },
+                    },
+                  ];
+                }
+              }
+            },
+          ),
+        );
+
         try {
           await queryFulfilled;
         } catch {
@@ -191,6 +243,7 @@ export const postApi = api.injectEndpoints({
           patchPrivate.undo();
           patchFeed.undo();
           patchPost.undo();
+          patchComments.undo();
         }
       },
       invalidatesTags: ["Post"],
@@ -396,6 +449,12 @@ export const postApi = api.injectEndpoints({
         method: "POST",
       }),
       invalidatesTags: ["Post"],
+    }),
+    incrementCommentViewCount: builder.mutation({
+      query: ({ postId, commentId }) => ({
+        url: `/posts/${postId}/comment/${commentId}/view`,
+        method: "POST",
+      }),
     }),
   }),
 });

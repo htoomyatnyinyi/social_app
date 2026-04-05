@@ -22,3 +22,18 @@ export default function Index() {
 
   return <Redirect href="/(tabs)" />;
 }
+
+// import { Redirect } from "expo-router";
+// import { useSelector } from "react-redux";
+
+// export default function Index() {
+//   const token = useSelector((state: any) => state.auth.token);
+
+//   if (!token) {
+//     return <Redirect href="/auth" />;
+//   }
+
+//   return <Redirect href="/(tabs)" />;
+// }
+
+// ~/Android/Sdk/emulator/emulator -avd HMNN_2
