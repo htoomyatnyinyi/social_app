@@ -6,6 +6,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        primary: "var(--accent-color)",
+        accent: "var(--accent-color)",
         x: {
           blue: "#1d9bf0",
           black: "#000000",
@@ -13,6 +15,9 @@ module.exports = {
           gray: "#71767b",
           border: "#2f3336",
         },
+      },
+      fontSize: {
+        dynamic: "calc(16px * var(--font-scale))",
       },
     },
   },

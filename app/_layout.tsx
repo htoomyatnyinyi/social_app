@@ -24,7 +24,7 @@ import { GlobalCallHandler } from "../components/GlobalCallHandler";
 import { ThemeProvider, useTheme } from "../context/ThemeContext";
 
 function ThemeLayout() {
-  const { isDark } = useTheme();
+  const { isDark, accentColor } = useTheme();
 
   return (
     <>
@@ -32,6 +32,7 @@ function ThemeLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: isDark ? "#0F172A" : "white" },
+          headerTintColor: accentColor,
         }}
       />
       <GlobalCallHandler />

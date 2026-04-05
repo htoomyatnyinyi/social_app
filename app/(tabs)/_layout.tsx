@@ -9,9 +9,10 @@ import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { Platform, View, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { useWebRTCContext } from "../../context/WebRTCContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function TabLayout() {
+  const { accentColor, isDark } = useTheme();
   const token = useSelector((state: any) => state.auth.token);
   const dispatch = useDispatch();
   const { processGlobalSignaling, setGlobalSendSignal } = useWebRTCContext();
@@ -93,7 +94,10 @@ export default function TabLayout() {
 
   // Helper function to render icons consistently
   const renderTabIcon = (focused: boolean, color: string, iconName: any, iconFocusedName: any) => (
-    <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+    <View style={[
+      styles.iconContainer,
+      focused && { backgroundColor: accentColor, borderRadius: 12 }
+    ]}>
       <Ionicons
         name={focused ? iconFocusedName : iconName}
         size={24}
@@ -105,8 +109,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#0ea5e9", // Corrected Active Sky Blue
-        tabBarInactiveTintColor: "#94A3B8",
+        tabBarActiveTintColor: accentColor,
+        tabBarInactiveTintColor: isDark ? "#64748B" : "#94A3B8",
         tabBarShowLabel: false,
         tabBarLabelStyle: {
           fontSize: 11,
@@ -123,7 +127,7 @@ export default function TabLayout() {
         tabBarBackground: () => (
           <BlurView
             intensity={95}
-            tint="light"
+            tint={isDark ? "dark" : "light"}
             style={StyleSheet.absoluteFillObject}
           />
         ),
@@ -187,10 +191,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 12, // Keeps icon from being too close to the top
-  },
-  iconContainerActive: {
-    backgroundColor: "#0ea5e9", // Sky-500
-    borderRadius: 12,
   },
 });
 

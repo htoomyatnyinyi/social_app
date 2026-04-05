@@ -111,6 +111,8 @@ const ActionButton = React.memo(({
   </TouchableOpacity>
 ));
 
+ActionButton.displayName = "ActionButton";
+
 const MediaGallery = React.memo(({ images }: { images: string[] }) => {
   if (images.length === 0) return null;
   if (images.length === 1) {
@@ -144,6 +146,8 @@ const MediaGallery = React.memo(({ images }: { images: string[] }) => {
   );
 });
 
+MediaGallery.displayName = "MediaGallery";
+
 // ────────────────────────────────────────────────
 // Main Component
 // ────────────────────────────────────────────────
@@ -161,7 +165,7 @@ const PostCard = React.memo(
     onBookmark,
   }: PostCardProps) => {
 
-    const { isDark, accentColor } = useTheme();
+    const { isDark, accentColor, fontSizeScale } = useTheme();
 
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSeeMore, setShowSeeMore] = useState(false);
@@ -191,7 +195,8 @@ const PostCard = React.memo(
       const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
       return (
         <Text
-          className={`text-[15px] leading-[22px] font-medium ${isDark ? "text-slate-200" : "text-gray-800"}`}
+          className={`font-medium ${isDark ? "text-slate-200" : "text-gray-800"}`}
+          style={{ fontSize: 15 * fontSizeScale, lineHeight: 22 * fontSizeScale }}
           numberOfLines={isExpanded ? undefined : 5}
           onTextLayout={handleTextLayout}
         >
@@ -200,7 +205,7 @@ const PostCard = React.memo(
               <Text
                 key={i}
                 className="font-black"
-                style={{ color: accentColor }}
+                style={{ color: accentColor, fontSize: 15 * fontSizeScale }}
                 onPress={(e) => {
                   e.stopPropagation();
                   router.push(`/explore?q=${encodeURIComponent(part)}`);

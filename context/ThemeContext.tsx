@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
-import { useColorScheme as useNativeColorScheme } from "nativewind";
-import { useColorScheme as useSystemColorScheme } from "react-native";
+import { useColorScheme as useNativeColorScheme, vars } from "nativewind";
+import { useColorScheme as useSystemColorScheme, View } from "react-native";
 
 interface ThemeContextType {
   theme: "light" | "dark" | "system";
@@ -36,6 +36,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fontSize]);
 
+  const themeVars = useMemo(() => vars({
+    "--accent-color": accentColor,
+    "--font-scale": fontSizeScale.toString(),
+  }), [accentColor, fontSizeScale]);
+
   const value = useMemo(() => ({
     theme,
     accentColor,
@@ -46,7 +51,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={value}>
-      {children}
+      <View style={[{ flex: 1 }, themeVars]}>
+        {children}
+      </View>
     </ThemeContext.Provider>
   );
 }
