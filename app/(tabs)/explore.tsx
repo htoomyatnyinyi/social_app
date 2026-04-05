@@ -155,7 +155,6 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -163,24 +162,38 @@ import { useGlobalSearchQuery } from "../../store/searchApi";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FollowerSuggestions from "@/components/FollowerSuggestions";
+import PostCard from "../../components/PostCard";
+import PostOptionsModal from "../../components/PostOptionsModal";
+import {
+  useLikePostMutation,
+  useRepostPostMutation,
+  useBookmarkPostMutation,
+  useDeletePostMutation,
+} from "../../store/postApi";
 
 export default function ExploreScreen() {
   const router = useRouter();
   const { q } = useLocalSearchParams<{ q?: string }>();
   const [search, setSearch] = useState(q || "");
   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
-    q?.startsWith("#") ? "posts" : "users"
+    q?.startsWith("#") ? "posts" : "users",
   );
-  
+
   const { data, isLoading } = useGlobalSearchQuery(search, {
     skip: search.length < 2,
   });
+  const [likePost] = useLikePostMutation();
+  const [repostPost] = useRepostPostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
+  const [deletePost] = useDeletePostMutation();
+
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [postForOptions, setPostForOptions] = useState<any>(null);
 
   const currentUser = useSelector((state: any) => state.auth.user);
 
-  const filteredUsers = data?.users?.filter(
-    (user: any) => user.id !== currentUser?.id
-  ) || [];
+  const filteredUsers =
+    data?.users?.filter((user: any) => user.id !== currentUser?.id) || [];
 
   const renderUser = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -200,20 +213,24 @@ export default function ExploreScreen() {
   );
 
   const renderPost = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/post/${item.id}`)}
-      className="p-4 border-b border-gray-50 bg-white"
-    >
-      <View className="flex-row items-center mb-2">
-        <Image
-          source={{ uri: item.author.image || "https://via.placeholder.com/50" }}
-          className="w-8 h-8 rounded-full bg-gray-200 mr-2"
-        />
-        <Text className="font-bold text-gray-900">{item.author.name}</Text>
-        <Text className="text-gray-500 text-sm ml-1">@{item.author.username}</Text>
-      </View>
-      <Text className="text-gray-800 text-base" numberOfLines={3}>{item.content}</Text>
-    </TouchableOpacity>
+    <PostCard
+      item={item}
+      user={currentUser}
+      onPressPost={(id) => router.push(`/post/${id}`)}
+      onPressProfile={(id) =>
+        id === currentUser?.id
+          ? router.push("/profile")
+          : router.push(`/profile/${id}`)
+      }
+      onPressOptions={(p) => {
+        setPostForOptions(p);
+        setOptionsModalVisible(true);
+      }}
+      onPressComment={(id) => router.push(`/post/${id}`)}
+      onPressRepost={(p) => repostPost({ id: p.id })}
+      onLike={(id) => likePost({ postId: id }).unwrap()}
+      onBookmark={(id) => bookmarkPost(id).unwrap()}
+    />
   );
 
   const renderHashtag = ({ item }: { item: any }) => (
@@ -236,11 +253,14 @@ export default function ExploreScreen() {
 
   const renderContent = () => {
     if (!search || search.length < 2) return <FollowerSuggestions />;
-    if (isLoading) return <ActivityIndicator size="large" color="#1d9bf0" className="mt-10" />;
-    
+    if (isLoading)
+      return (
+        <ActivityIndicator size="large" color="#1d9bf0" className="mt-10" />
+      );
+
     let listData = [];
     let renderItemFn: any;
-    
+
     if (activeTab === "users") {
       listData = filteredUsers;
       renderItemFn = renderUser;
@@ -255,7 +275,7 @@ export default function ExploreScreen() {
     if (listData.length === 0) {
       return (
         <View className="flex-1 items-center justify-center mt-20 px-8">
-           <Text className="text-gray-500">No {activeTab} found for "{search}"</Text>
+          <Text className="text-gray-500">No {activeTab} found for search</Text>
         </View>
       );
     }
@@ -272,13 +292,13 @@ export default function ExploreScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1">
       {/* Search Header */}
       <View className="px-4 py-3 border-b border-gray-100 bg-white shadow-sm z-10">
         <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5">
           <Ionicons name="search" size={20} color="#6B7280" />
           <TextInput
-            placeholder="Search Oasis"
+            placeholder="Search Ananta..."
             placeholderTextColor="#6B7280"
             className="flex-1 ml-3 text-[16px] text-gray-900"
             value={search}
@@ -296,31 +316,56 @@ export default function ExploreScreen() {
       {/* Tabs */}
       {search.length >= 2 && (
         <View className="flex-row border-b border-gray-100 bg-white">
-          <TouchableOpacity 
-            className={`flex-1 py-3 items-center border-b-2 ${activeTab === 'users' ? 'border-[#1d9bf0]' : 'border-transparent'}`}
-            onPress={() => setActiveTab('users')}
+          <TouchableOpacity
+            className={`flex-1 py-3 items-center border-b-2 ${activeTab === "users" ? "border-[#1d9bf0]" : "border-transparent"}`}
+            onPress={() => setActiveTab("users")}
           >
-            <Text className={`font-bold ${activeTab === 'users' ? 'text-gray-900' : 'text-gray-500'}`}>Accounts</Text>
+            <Text
+              className={`font-bold ${activeTab === "users" ? "text-gray-900" : "text-gray-500"}`}
+            >
+              Accounts
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            className={`flex-1 py-3 items-center border-b-2 ${activeTab === 'posts' ? 'border-[#1d9bf0]' : 'border-transparent'}`}
-            onPress={() => setActiveTab('posts')}
+          <TouchableOpacity
+            className={`flex-1 py-3 items-center border-b-2 ${activeTab === "posts" ? "border-[#1d9bf0]" : "border-transparent"}`}
+            onPress={() => setActiveTab("posts")}
           >
-            <Text className={`font-bold ${activeTab === 'posts' ? 'text-gray-900' : 'text-gray-500'}`}>Posts</Text>
+            <Text
+              className={`font-bold ${activeTab === "posts" ? "text-gray-900" : "text-gray-500"}`}
+            >
+              Posts
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            className={`flex-1 py-3 items-center border-b-2 ${activeTab === 'hashtags' ? 'border-[#1d9bf0]' : 'border-transparent'}`}
-            onPress={() => setActiveTab('hashtags')}
+          {/* <TouchableOpacity
+            className={`flex-1 py-3 items-center border-b-2 ${activeTab === "hashtags" ? "border-[#1d9bf0]" : "border-transparent"}`}
+            onPress={() => setActiveTab("hashtags")}
           >
-            <Text className={`font-bold ${activeTab === 'hashtags' ? 'text-gray-900' : 'text-gray-500'}`}>Tags</Text>
-          </TouchableOpacity>
+            <Text
+              className={`font-bold ${activeTab === "hashtags" ? "text-gray-900" : "text-gray-500"}`}
+            >
+              Tags
+            </Text>
+          </TouchableOpacity> */}
         </View>
       )}
 
       {/* Content */}
-      <View className="flex-1 bg-gray-50">
-        {renderContent()}
-      </View>
+      <View className="flex-1">{renderContent()}</View>
+
+      <PostOptionsModal
+        isVisible={optionsModalVisible}
+        onClose={() => setOptionsModalVisible(false)}
+        isOwner={postForOptions?.author?.id === currentUser?.id}
+        onDelete={async () => {
+          if (!postForOptions?.id) return;
+          try {
+            await deletePost({ id: postForOptions.id }).unwrap();
+            setOptionsModalVisible(false);
+          } catch (err) {
+            console.error("Delete failed", err);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }

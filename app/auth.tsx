@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  KeyboardAvoidingView,
+  // KeyboardAvoidingView,
   Platform,
   ScrollView,
   Text,
@@ -21,6 +21,7 @@ import {
   useResetPasswordMutation,
 } from "../store/authApi";
 import { setCredentials } from "../store/authSlice";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function AuthScreen() {
   const [activeTab, setActiveTab] = useState(0); // 0: Sign In, 1: Sign Up, 2: Verify Email
@@ -34,7 +35,8 @@ export default function AuthScreen() {
   const [signup, { isLoading: isSignupLoading }] = useSignupMutation();
   const [signin, { isLoading: isSigninLoading }] = useSigninMutation();
   const [verifyCode, { isLoading: isVerifyLoading }] = useVerifyCodeMutation();
-  const [reqReset, { isLoading: isReqLoading }] = useRequestPasswordResetMutation();
+  const [reqReset, { isLoading: isReqLoading }] =
+    useRequestPasswordResetMutation();
   const [doReset, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const dispatch = useDispatch();
@@ -67,7 +69,9 @@ export default function AuthScreen() {
         setActiveTab(2);
         setError("Please verify your email to continue. We've sent a new OTP.");
       } else {
-        setError(err.data?.message || "Authentication failed. Please try again.");
+        setError(
+          err.data?.message || "Authentication failed. Please try again.",
+        );
       }
     }
   };
@@ -95,7 +99,11 @@ export default function AuthScreen() {
       return;
     }
     try {
-      await doReset({ email, token: verificationCode, newPassword: password }).unwrap();
+      await doReset({
+        email,
+        token: verificationCode,
+        newPassword: password,
+      }).unwrap();
       setActiveTab(0); // Go back to login
       setPassword("");
       alert("Password reset successful! Please log in.");
@@ -122,8 +130,15 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAwareScrollView
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+        }}
+        // behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <ScrollView
@@ -154,7 +169,8 @@ export default function AuthScreen() {
             {activeTab === 1 && "Join the conversation and stay connected."}
             {activeTab === 2 && `We sent a code to ${email || "your email"}.`}
             {activeTab === 3 && "Enter your email to receive a reset code."}
-            {activeTab === 4 && `Enter the 6-digit code sent to ${email || "your email"}.`}
+            {activeTab === 4 &&
+              `Enter the 6-digit code sent to ${email || "your email"}.`}
           </Text>
 
           {error ? (
@@ -306,11 +322,29 @@ export default function AuthScreen() {
           </View>
 
           <TouchableOpacity
-            onPress={activeTab === 2 ? handleVerify : activeTab === 3 ? handleForgotPassword : activeTab === 4 ? handleResetPassword : handleAuth}
-            disabled={isSignupLoading || isSigninLoading || isVerifyLoading || isReqLoading || isResetLoading}
+            onPress={
+              activeTab === 2
+                ? handleVerify
+                : activeTab === 3
+                  ? handleForgotPassword
+                  : activeTab === 4
+                    ? handleResetPassword
+                    : handleAuth
+            }
+            disabled={
+              isSignupLoading ||
+              isSigninLoading ||
+              isVerifyLoading ||
+              isReqLoading ||
+              isResetLoading
+            }
             activeOpacity={0.8}
             className={`py-4 rounded-2xl items-center shadow-lg shadow-sky-500/30 mt-4 ${
-              isSignupLoading || isSigninLoading || isVerifyLoading || isReqLoading || isResetLoading
+              isSignupLoading ||
+              isSigninLoading ||
+              isVerifyLoading ||
+              isReqLoading ||
+              isResetLoading
                 ? "bg-sky-400"
                 : "bg-[#1d9bf0]"
             }`}
@@ -325,8 +359,16 @@ export default function AuthScreen() {
           </TouchableOpacity>
 
           {activeTab === 0 && (
-            <TouchableOpacity onPress={() => { setActiveTab(3); setError(""); }} className="mt-5 mb-2 items-center">
-              <Text className="text-[#1d9bf0] font-semibold text-base">Forgot password?</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setActiveTab(3);
+                setError("");
+              }}
+              className="mt-5 mb-2 items-center"
+            >
+              <Text className="text-[#1d9bf0] font-semibold text-base">
+                Forgot password?
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -351,9 +393,9 @@ export default function AuthScreen() {
           )}
 
           {activeTab >= 2 && (
-              <TouchableOpacity
-                className="mt-6 items-center"
-                onPress={() => setActiveTab(activeTab === 2 ? 1 : 0)}
+            <TouchableOpacity
+              className="mt-6 items-center"
+              onPress={() => setActiveTab(activeTab === 2 ? 1 : 0)}
             >
               <Text className="text-gray-500 font-medium">
                 Change email or resend code
@@ -361,7 +403,7 @@ export default function AuthScreen() {
             </TouchableOpacity>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

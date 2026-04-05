@@ -19,7 +19,7 @@ import { useSelector } from "react-redux";
 import {
   useCreatePostMutation,
   useRepostPostMutation,
-  useCommentPostMutation,
+  useReplyPostMutation,
 } from "../../store/postApi";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements"; // Using this helps calculate exact header offsets
@@ -32,7 +32,6 @@ export default function ComposePostScreen() {
 
   const {
     replyToId,
-    parentId,
     replyToName,
     quoteId,
     quoteContent,
@@ -47,10 +46,10 @@ export default function ComposePostScreen() {
 
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
   const [repostPost, { isLoading: isReposting }] = useRepostPostMutation();
-  const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
+  const [replyPost, { isLoading: isReplying }] = useReplyPostMutation();
 
   const isLoading =
-    isCreating || isReposting || isCommenting || isFetchingLocation;
+    isCreating || isReposting || isReplying || isFetchingLocation;
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -144,9 +143,8 @@ export default function ComposePostScreen() {
           images: images.length > 0 ? images.map((img) => img.base64) : undefined,
         }).unwrap();
       } else if (replyToId) {
-        await commentPost({
-          id: replyToId as string,
-          parentId: parentId as string,
+        await replyPost({
+          postId: replyToId as string,
           content: finalContent,
         }).unwrap();
       } else {

@@ -5,7 +5,6 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   TextInput,
   ScrollView,
 } from "react-native";
@@ -107,12 +106,19 @@ export default function ChatListScreen() {
             )}
           </View>
           <View className="flex-row justify-between items-center mr-2">
+            <Text
+              className="text-gray-500 text-[14px] flex-1 mr-2"
+              numberOfLines={1}
+            >
             <Text className="text-gray-500 text-[14px] flex-1 mr-2" numberOfLines={1}>
               {lastMessage?.senderId === user?.id ? "You: " : ""}
               {lastMessage?.content || "Start a conversation"}
             </Text>
             {item.unreadCount > 0 && (
               <View className="bg-[#1d9bf0] rounded-full px-2 py-0.5">
+                <Text className="text-white text-[11px] font-bold">
+                  {item.unreadCount}
+                </Text>
                 <Text className="text-white text-[11px] font-bold">{item.unreadCount}</Text>
               </View>
             )}

@@ -1,5 +1,39 @@
 import { api } from "./api";
 
+// Reconstitute author objects from normalized `users` map
+const transformNormalizedResponse = (response: any) => {
+  if (response.posts && response.users) {
+    const mapUser = (post: any) => {
+      if (!post) return post;
+      // Map author to post
+      if (post.authorId && response.users[post.authorId]) {
+        post.author = response.users[post.authorId];
+      }
+      // Map author to quoted/original post
+      if (post.originalPost) {
+        if (
+          post.originalPost.authorId &&
+          response.users[post.originalPost.authorId]
+        ) {
+          post.originalPost.author = response.users[post.originalPost.authorId];
+        }
+      }
+      // Map author for parent post
+      if (post.parentPost) {
+        if (
+          post.parentPost.authorId &&
+          response.users[post.parentPost.authorId]
+        ) {
+          post.parentPost.author = response.users[post.parentPost.authorId];
+        }
+      }
+      return post;
+    };
+    response.posts = response.posts.map(mapUser);
+  }
+  return response;
+};
+
 export const profileApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getProfile: builder.query({
@@ -52,10 +86,25 @@ export const profileApi = api.injectEndpoints({
     }),
     getUserPosts: builder.query({
       query: (id) => `/profile/${id}/posts`,
+      transformResponse: transformNormalizedResponse,
       providesTags: ["Post"],
     }),
     getUserLikes: builder.query({
       query: (id) => `/profile/${id}/likes`,
+      transformResponse: transformNormalizedResponse,
+      providesTags: ["Post"],
+    }),
+    getSuggestions: builder.query({
+      query: () => "/profile/suggestions",
+      providesTags: ["Profile"],
+    }),
+    getUserReplies: builder.query({
+      query: (id) => `/profile/${id}/replies`,
+      transformResponse: transformNormalizedResponse,
+      providesTags: ["Post"],
+    }),
+    getUserReposts: builder.query({
+      query: (id) => `/profile/${id}/reposts`,
       providesTags: ["Post"],
     }),
     getSuggestions: builder.query({

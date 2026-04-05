@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, memo } from "react";
+import React, { useState, useCallback, useRef, memo, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,16 +15,12 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  useGetPostQuery,
-  useGetCommentsQuery,
-  useCommentPostMutation,
+  useGetThreadQuery,
+  useReplyPostMutation,
   useLikePostMutation,
   useRepostPostMutation,
   useIncrementViewCountMutation,
   useBookmarkPostMutation,
-  useLikeCommentMutation,
-  useRepostCommentMutation,
-  useDeleteCommentMutation,
   useDeletePostMutation,
 } from "../../store/postApi";
 import { useSelector } from "react-redux";
@@ -33,117 +29,128 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import PostOptionsModal from "../../components/PostOptionsModal";
 
 // ────────────────────────────────────────────────
-// Types (minimal)
+// Tree Builder helper
 // ────────────────────────────────────────────────
-interface User {
-  id: string;
-  name: string;
-  username?: string;
-  image?: string;
+function buildThreadTree(posts: any[], rootId: string) {
+  if (!posts || !rootId) return { rootPost: null, flatReplies: [] };
+
+  const map = new Map<string, any>();
+  // Clone each post and ensure ID is handled as string
+  posts.forEach((p) => {
+    if (p && p.id) {
+      map.set(String(p.id), { ...p, children: [] });
+    }
+  });
+
+  const targetId = String(rootId);
+  // Build parent→children links
+  map.forEach((p) => {
+    if (String(p.id) === targetId) return;
+    if (p.replyToId && map.has(String(p.replyToId))) {
+      const parent = map.get(String(p.replyToId));
+      p.parent = parent;
+      parent.children.push(p);
+    }
+  });
+
+  // Sort children of each node by createdAt ascending (oldest first)
+  map.forEach((p) => {
+    if (p.children && p.children.length > 0) {
+      p.children.sort(
+        (a: any, b: any) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    }
+  });
+
+  const flatReplies: any[] = [];
+  const rootNode = map.get(targetId);
+
+  function dfs(node: any, depth: number) {
+    if (!node) return;
+    flatReplies.push({ ...node, depth });
+    if (node.children) {
+      for (const child of node.children) {
+        dfs(child, depth + 1);
+      }
+    }
+  }
+
+  if (rootNode && rootNode.children) {
+    for (const child of rootNode.children) {
+      dfs(child, 0);
+    }
+  }
+
+  return { rootPost: rootNode, flatReplies };
 }
 
-interface Comment {
-  id: string;
-  postId: string;
-  content: string;
-  createdAt: string;
-  user: User;
-  parentId?: string;
-  parent?: Comment;
-  replies?: Comment[];
-  commentLikes?: { userId: string }[];
-  commentReposts?: { userId: string }[];
-  _count?: { replies: number; commentLikes: number; commentReposts: number };
-  views?: number;
-}
-
-interface Post {
-  id: string;
-  content: string;
-  image?: string;
-  images?: string[];
-  createdAt: string;
-  author: User;
-  likes: { userId: string }[];
-  bookmarks: { userId: string }[];
-  repostedBy: { userId: string }[];
-  _count: {
-    comments: number;
-    reposts: number;
-    likes: number;
-    shares?: number;
-  };
-  views?: number;
-}
-
 // ────────────────────────────────────────────────
-// Memoized Comment Item
+// Memoized Reply Item (formerly CommentItem)
 // ────────────────────────────────────────────────
-const CommentItem = memo(
+const ReplyItem = memo(
   ({
     item,
     currentUserId,
     onReply,
     onOptions,
   }: {
-    item: Comment;
+    item: any;
     currentUserId?: string;
-    onReply: (commentId: string, username: string) => void;
-    onOptions: (item: Comment) => void;
+    onReply: (postId: string, username: string) => void;
+    onOptions: (item: any) => void;
   }) => {
-    const isReply = !!item.parentId;
+    const replyDepth = item.depth || 0;
+    const isDeepReply = replyDepth > 0;
+    // Cap indentation at 4 levels to prevent overflow on small screens
+    const indentLevel = Math.min(replyDepth, 4);
 
-    const [likeComment] = useLikeCommentMutation();
-    const [repostComment] = useRepostCommentMutation();
+    const [likePost] = useLikePostMutation();
+    const [repostPost] = useRepostPostMutation();
     const router = useRouter();
 
-    const handleCommentLike = useCallback(async () => {
+    const handleLike = useCallback(async () => {
       try {
-        await likeComment({ postId: item.postId, commentId: item.id }).unwrap();
+        await likePost({ postId: item.id }).unwrap();
       } catch (err) {
-        console.error("Failed to like comment:", err);
+        console.error("Failed to like reply:", err);
       }
-    }, [likeComment, item.postId, item.id]);
+    }, [likePost, item.id]);
 
-    const handleCommentRepost = useCallback(async () => {
+    const handleRepost = useCallback(async () => {
       try {
-        await repostComment({
-          postId: item.postId,
-          commentId: item.id,
-        }).unwrap();
+        await repostPost({ id: item.id }).unwrap();
       } catch (err) {
-        console.error("Failed to repost comment:", err);
+        console.error("Failed to repost reply:", err);
       }
-    }, [repostComment, item.postId, item.id]);
+    }, [repostPost, item.id]);
 
-    const handleCommentShare = useCallback(async () => {
+    const handleShare = useCallback(async () => {
       try {
-        const urlToShare = `https://oasis-social.com/comment/${item.id}`;
+        const urlToShare = `https://oasis-social.com/post/${item.id}`;
         await Share.share({
-          message: `Check out this comment by @${item.user?.username || item.user?.name}: "${item.content}"\n${urlToShare}`,
+          message: `Check out this reply by @${item.author?.username || item.author?.name}: "${item.content}"\n${urlToShare}`,
         });
       } catch (error) {
-        console.error("Error sharing comment:", error);
+        console.error("Error sharing reply:", error);
       }
     }, [item]);
 
-    const hasLiked =
-      item.commentLikes?.some((l: any) => l.userId === currentUserId) ?? false;
-    const hasReposted =
-      item.commentReposts?.some((r: any) => r.userId === currentUserId) ??
-      false;
+    const hasLiked = item.isLiked ?? false;
+    const hasReposted = item.repostedByMe ?? false;
 
     return (
       <View
-        className={`${isReply ? "ml-12 border-l-2 border-gray-200 pl-4" : "border-b border-gray-100"} bg-white`}
+        style={isDeepReply ? { marginLeft: indentLevel * 16 } : undefined}
+        className={`${isDeepReply ? "border-l-2 border-gray-200 pl-3" : "border-b border-gray-100"} bg-white`}
       >
         <TouchableOpacity
-          onPress={() => router.push(`/comment/${item.id}`)}
+          onPress={() => router.push(`/post/${item.id}`)}
           className="flex-row p-4"
         >
           <Image
             source={{
-              uri: item.user?.image || "https://via.placeholder.com/40",
+              uri: item.author?.image || "https://via.placeholder.com/40",
             }}
             className="w-10 h-10 rounded-full mr-3 bg-gray-100"
           />
@@ -151,12 +158,12 @@ const CommentItem = memo(
             <View className="flex-row items-center justify-between mb-0.5">
               <View className="flex-row items-baseline gap-1.5">
                 <Text className="font-bold text-[15px] text-gray-900">
-                  {item.user?.name || "User"}
+                  {item.author?.name || "User"}
                 </Text>
                 <Text className="text-gray-500 text-[13.5px]">
                   @
-                  {item.user?.username ||
-                    item.user?.name?.toLowerCase().replace(/\s+/g, "")}
+                  {item.author?.username ||
+                    item.author?.name?.toLowerCase().replace(/\s+/g, "")}
                 </Text>
                 <Text className="text-gray-400 text-[13px] ml-1">
                   ·{" "}
@@ -175,17 +182,22 @@ const CommentItem = memo(
               </TouchableOpacity>
             </View>
 
-            {item.parentId && item.parent?.user && (
+            {isDeepReply && item.parent?.author && (
               <Text className="text-[#1d9bf0] text-[13.5px] mb-1">
-                Replying to @{item.parent.user.name}
+                Replying to @
+                {item.parent.author.username || item.parent.author.name}
               </Text>
             )}
 
             <Text className="text-[15px] leading-6 text-gray-800">
               {(() => {
+                if (item.isDeleted)
+                  return (
+                    <Text className="italic text-gray-500">[Deleted]</Text>
+                  );
                 if (!item.content) return null;
                 const parts = item.content.split(/(#[a-zA-Z0-9_]+)/g);
-                return parts.map((part, i) => {
+                return parts.map((part: string, i: number) => {
                   if (part.startsWith("#")) {
                     return (
                       <Text
@@ -204,20 +216,58 @@ const CommentItem = memo(
               })()}
             </Text>
 
+            {/* Images */}
+            {(() => {
+              if (item.isDeleted) return null;
+              const imgs = item.images?.length
+                ? item.images
+                : item.image
+                  ? [item.image]
+                  : [];
+              if (imgs.length === 0) return null;
+              if (imgs.length === 1) {
+                return (
+                  <Image
+                    source={{ uri: imgs[0] }}
+                    className="w-full h-48 rounded-2xl mt-3 border border-gray-100"
+                    resizeMode="cover"
+                  />
+                );
+              }
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mt-3 flex-row"
+                >
+                  {imgs.map((uri: string, idx: number) => (
+                    <Image
+                      key={idx}
+                      source={{ uri }}
+                      className="w-64 h-48 rounded-2xl mr-3 border border-gray-100 bg-gray-50"
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+              );
+            })()}
+
             <View className="flex-row mt-3 items-center justify-between pr-4">
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={() => onReply(item.id, item.user?.name)}
+                onPress={() =>
+                  onReply(item.id, item.author?.username || item.author?.name)
+                }
               >
                 <Ionicons name="chatbubble-outline" size={17} color="#6B7280" />
                 <Text className="text-xs text-gray-500 ml-1.5">
-                  {item._count?.replies ?? item.replies?.length ?? 0}
+                  {item._count?.replies ?? 0}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={handleCommentRepost}
+                onPress={handleRepost}
               >
                 <Ionicons
                   name="repeat-outline"
@@ -227,13 +277,13 @@ const CommentItem = memo(
                 <Text
                   className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C]" : "text-gray-500"}`}
                 >
-                  {item._count?.commentReposts ?? 0}
+                  {item._count?.reposts ?? 0}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 className="flex-row items-center"
-                onPress={handleCommentLike}
+                onPress={handleLike}
               >
                 <Ionicons
                   name={hasLiked ? "heart" : "heart-outline"}
@@ -243,7 +293,7 @@ const CommentItem = memo(
                 <Text
                   className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880]" : "text-gray-500"}`}
                 >
-                  {item._count?.commentLikes ?? 0}
+                  {item._count?.likes ?? 0}
                 </Text>
               </TouchableOpacity>
 
@@ -254,37 +304,22 @@ const CommentItem = memo(
                   color="#6B7280"
                 />
                 <Text className="text-xs text-gray-500 ml-1.5">
-                  {item.views ?? 0}
+                  {item.viewCount ?? item.views ?? 0}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={handleCommentShare}>
+              <TouchableOpacity onPress={handleShare}>
                 <Ionicons name="share-outline" size={18} color="#6B7280" />
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
-
-        {/* Nested replies - render all replies recursively */}
-        {item.replies && item.replies.length > 0 && (
-          <View>
-            {item.replies.map((reply: any) => (
-              <CommentItem
-                key={reply.id}
-                item={reply}
-                currentUserId={currentUserId}
-                onReply={onReply}
-                onOptions={onOptions}
-              />
-            ))}
-          </View>
-        )}
       </View>
     );
   },
 );
 
-CommentItem.displayName = "CommentItem";
+ReplyItem.displayName = "ReplyItem";
 
 // ────────────────────────────────────────────────
 // Main Post Detail Screen
@@ -294,33 +329,35 @@ export default function PostDetailScreen() {
   const router = useRouter();
   const currentUser = useSelector((state: any) => state.auth.user);
 
-  const [commentContent, setCommentContent] = useState("");
+  const [replyContent, setReplyContent] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyTargetName, setReplyTargetName] = useState<string | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null); // Post | Comment
+  const [selectedItem, setSelectedItem] = useState<any>(null); // Post
 
   const inputRef = useRef<TextInput>(null);
 
-  const { data: post, isLoading: postLoading } = useGetPostQuery(id!, {
+  const {
+    data: threadData,
+    isLoading: threadLoading,
+    refetch: refetchThread,
+  } = useGetThreadQuery(id!, {
     skip: !id,
   });
-  const {
-    data: commentsData,
-    isLoading: commentsLoading,
-    refetch: refetchComments,
-  } = useGetCommentsQuery(id!, { skip: !id });
 
-  const [commentPost, { isLoading: isCommenting }] = useCommentPostMutation();
+  const [replyPost] = useReplyPostMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [deletePost] = useDeletePostMutation();
-  const [deleteComment] = useDeleteCommentMutation();
   const [incrementViewCount] = useIncrementViewCountMutation();
   const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
-  const comments = commentsData ?? [];
+  const { rootPost, flatReplies } = useMemo(() => {
+    if (!threadData || !Array.isArray(threadData) || threadData.length === 0)
+      return { rootPost: null, flatReplies: [] };
+    return buildThreadTree(threadData, id!);
+  }, [threadData, id]);
 
   // Auto-increment view count once
   React.useEffect(() => {
@@ -329,43 +366,32 @@ export default function PostDetailScreen() {
     }
   }, [id, incrementViewCount]);
 
-  const handleSendComment = useCallback(async () => {
-    if (!commentContent.trim() || !id) return;
+  const handleSendReply = useCallback(async () => {
+    if (!replyContent.trim() || !id) return;
 
-    const content = commentContent.trim();
-    const parentId = replyToId;
+    const content = replyContent.trim();
+    // Use replyToId if a child node was selected, otherwise route to main post ID
+    const targetPostId = replyToId || id;
 
-    setCommentContent("");
+    setReplyContent("");
     setReplyToId(null);
     setReplyTargetName(null);
 
     try {
-      await commentPost({
-        postId: id,
+      await replyPost({
+        postId: targetPostId,
         content,
-        // parentId: parentId,
-
-        ...(parentId ? { parentId } : {}),
       }).unwrap();
-      refetchComments();
+      refetchThread();
     } catch (err) {
-      console.error("Comment failed", err);
-      // Optionally show toast / alert
+      console.error("Reply failed", err);
     }
-  }, [commentContent, id, replyToId, commentPost, refetchComments]);
+  }, [replyContent, id, replyToId, replyPost, refetchThread]);
 
-  const handleReply = useCallback((commentId: string, username: string) => {
-    console.log(
-      "commentId",
-      commentId,
-      "username",
-      username,
-      "at handle reply comment callback",
-    );
-
-    setReplyToId(commentId);
+  const handleReplyIntent = useCallback((postId: string, username: string) => {
+    setReplyToId(postId);
     setReplyTargetName(username);
-    setCommentContent("");
+    setReplyContent("");
     inputRef.current?.focus();
   }, []);
 
@@ -375,41 +401,40 @@ export default function PostDetailScreen() {
   }, []);
 
   const handleFollow = useCallback(async () => {
-    if (!post?.author?.id) return;
+    if (!rootPost?.author?.id) return;
     try {
-      await followUser(post.author.id).unwrap();
+      await followUser(rootPost.author.id).unwrap();
     } catch (err) {
       console.error("Follow failed", err);
     }
-  }, [post?.author?.id, followUser]);
+  }, [rootPost?.author?.id, followUser]);
 
-  const hasLiked =
-    post?.likes?.some((l: any) => l.userId === currentUser?.id) ?? false;
-  const hasReposted =
-    post?.repostedBy?.some((r: any) => r.userId === currentUser?.id) ?? false;
-  const isBookmarked =
-    post?.bookmarks?.some((b: any) => b.userId === currentUser?.id) ?? false;
+  const hasLiked = rootPost?.isLiked ?? false;
+  const hasReposted = rootPost?.repostedByMe ?? false;
+  const isBookmarked = rootPost?.isBookmarked ?? false;
 
   const handlePostShare = useCallback(async () => {
     try {
-      const urlToShare = `https://oasis-social.com/post/${post.id}`;
+      if (!rootPost) return;
+      const urlToShare = `https://oasis-social.com/post/${rootPost.id}`;
       await Share.share({
-        message: `Check out this post by @${post.author?.username || post.author?.name}: "${post.content}"\n${urlToShare}`,
+        message: `Check out this post by @${rootPost.author?.username || rootPost.author?.name}: "${rootPost.content}"\n${urlToShare}`,
       });
     } catch (error) {
       console.error("Error sharing post:", error);
     }
-  }, [post]);
+  }, [rootPost]);
 
   const handlePostRepost = useCallback(async () => {
+    if (!rootPost) return;
     try {
-      await repostPost({ id: post.id }).unwrap();
+      await repostPost({ id: rootPost.id }).unwrap();
     } catch (err) {
       console.error("Repost failed", err);
     }
-  }, [post?.id, repostPost]);
+  }, [rootPost, repostPost]);
 
-  if (postLoading || commentsLoading) {
+  if (threadLoading) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
         <ActivityIndicator size="large" color="#0ea5e9" />
@@ -417,7 +442,7 @@ export default function PostDetailScreen() {
     );
   }
 
-  if (!post) {
+  if (!rootPost) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
         <Text className="text-gray-500 text-lg">Post not found</Text>
@@ -441,65 +466,99 @@ export default function PostDetailScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
         <FlatList
-          data={comments}
+          data={flatReplies}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <CommentItem
+            <ReplyItem
               item={item}
               currentUserId={currentUser?.id}
-              onReply={(commentId, username) => {
-                handleReply(commentId, username);
-              }}
+              onReply={handleReplyIntent}
               onOptions={handleOptions}
             />
           )}
           ListHeaderComponent={
             <View className="p-4 bg-white border-b border-gray-100">
+              {/* Parent context link if this is a standalone reply viewed directly */}
+              {rootPost.replyToId && (
+                <TouchableOpacity
+                  className="mb-3"
+                  onPress={() => router.push(`/post/${rootPost.replyToId}`)}
+                >
+                  <Text className="text-[#1d9bf0] text-[13.5px] font-medium">
+                    Show parent post
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               {/* Author row */}
               <View className="flex-row items-start justify-between mb-3">
                 <View className="flex-row items-center">
                   <Image
                     source={{
                       uri:
-                        post.author?.image || "https://via.placeholder.com/48",
+                        rootPost.author?.image ||
+                        "https://via.placeholder.com/48",
                     }}
                     className="w-12 h-12 rounded-full mr-3 bg-gray-100"
                   />
                   <View>
                     <Text className="font-bold text-[16px] text-gray-900">
-                      {post.author?.name || "User"}
+                      {rootPost.author?.name || "User"}
                     </Text>
                     <Text className="text-gray-500 text-[14.5px]">
                       @
-                      {post.author?.username ||
-                        post.author?.name?.toLowerCase().replace(/\s+/g, "")}
+                      {rootPost.author?.username ||
+                        rootPost.author?.name
+                          ?.toLowerCase()
+                          .replace(/\s+/g, "")}
                     </Text>
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  className={`border px-5 py-1.5 rounded-full ${
-                    isFollowing
-                      ? "bg-gray-100 border-gray-300"
-                      : "border-gray-300"
-                  }`}
-                  onPress={handleFollow}
-                  disabled={isFollowing}
-                >
-                  <Text className="font-semibold text-[14.5px] text-gray-800">
-                    {isFollowing ? "Following..." : "Follow"}
-                  </Text>
-                </TouchableOpacity>
+                {rootPost.author?.id !== currentUser?.id && (
+                  <TouchableOpacity
+                    className={`border px-5 py-1.5 rounded-full ${
+                      isFollowing
+                        ? "bg-gray-100 border-gray-300"
+                        : "border-gray-300"
+                    }`}
+                    onPress={handleFollow}
+                    disabled={isFollowing}
+                  >
+                    <Text className="font-semibold text-[14.5px] text-gray-800">
+                      {isFollowing ? "Following..." : "Follow"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {rootPost.author?.id === currentUser?.id && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedItem(rootPost);
+                      setOptionsVisible(true);
+                    }}
+                  >
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={20}
+                      color="#6B7280"
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Content */}
               <Text className="text-[17px] leading-6 text-gray-900 mb-4">
                 {(() => {
-                  if (!post.content) return null;
-                  const parts = post.content.split(/(#[a-zA-Z0-9_]+)/g);
+                  if (rootPost.isDeleted)
+                    return (
+                      <Text className="italic text-gray-500">[Deleted]</Text>
+                    );
+                  if (!rootPost.content) return null;
+                  const parts = rootPost.content.split(/(#[a-zA-Z0-9_]+)/g);
                   return parts.map((part: any, i: any) => {
                     if (part.startsWith("#")) {
                       return (
@@ -523,10 +582,11 @@ export default function PostDetailScreen() {
 
               {/* Images */}
               {(() => {
-                const imgs = post.images?.length
-                  ? post.images
-                  : post.image
-                    ? [post.image]
+                if (rootPost.isDeleted) return null;
+                const imgs = rootPost.images?.length
+                  ? rootPost.images
+                  : rootPost.image
+                    ? [rootPost.image]
                     : [];
                 if (imgs.length === 0) return null;
 
@@ -561,18 +621,18 @@ export default function PostDetailScreen() {
               {/* Timestamp + views */}
               <View className="flex-row items-center py-2.5 border-y border-gray-100 mb-2">
                 <Text className="text-gray-600 text-[15px]">
-                  {new Date(post.createdAt).toLocaleString("en-US", {
+                  {new Date(rootPost.createdAt).toLocaleString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
                   })}{" "}
                   ·{" "}
-                  {new Date(post.createdAt).toLocaleDateString("en-US", {
+                  {new Date(rootPost.createdAt).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
                   })}{" "}
-                  · {post.views ?? 0} Views
+                  · {rootPost.viewCount ?? rootPost.views ?? 0} Views
                 </Text>
               </View>
 
@@ -585,7 +645,7 @@ export default function PostDetailScreen() {
                     color="#6B7280"
                   />
                   <Text className="text-gray-600 text-[15px] ml-2">
-                    {post._count?.comments ?? 0}
+                    {rootPost._count?.replies ?? 0}
                   </Text>
                 </TouchableOpacity>
 
@@ -601,13 +661,13 @@ export default function PostDetailScreen() {
                   <Text
                     className={`text-[15px] ml-2 ${hasReposted ? "text-[#00BA7C]" : "text-gray-600"}`}
                   >
-                    {post._count?.reposts ?? 0}
+                    {rootPost._count?.reposts ?? 0}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   className="flex-row items-center"
-                  onPress={() => likePost({ postId: post.id })}
+                  onPress={() => likePost({ postId: rootPost.id })}
                 >
                   <Ionicons
                     name={hasLiked ? "heart" : "heart-outline"}
@@ -615,9 +675,9 @@ export default function PostDetailScreen() {
                     color={hasLiked ? "#F91880" : "#6B7280"}
                   />
                   <Text
-                    className={`text-[15px] ml-2 ${hasLiked ? "text-[#F91880] font-medium" : "text-gray-600"}`}
+                    className={`text-[15px] ml-2 ${hasLiked ? "text-[#f91880] font-medium" : "text-gray-600"}`}
                   >
-                    {post._count?.likes ?? 0}
+                    {rootPost._count?.likes ?? 0}
                   </Text>
                 </TouchableOpacity>
 
@@ -628,11 +688,11 @@ export default function PostDetailScreen() {
                     color="#6B7280"
                   />
                   <Text className="text-gray-600 text-[15px] ml-2">
-                    {post.views ?? 0}
+                    {rootPost.viewCount ?? rootPost.views ?? 0}
                   </Text>
                 </View>
 
-                <TouchableOpacity onPress={() => bookmarkPost(post.id)}>
+                <TouchableOpacity onPress={() => bookmarkPost(rootPost.id)}>
                   <Ionicons
                     name={isBookmarked ? "bookmark" : "bookmark-outline"}
                     size={23}
@@ -686,17 +746,17 @@ export default function PostDetailScreen() {
                 ref={inputRef}
                 placeholder="Post your reply..."
                 placeholderTextColor="#9CA3AF"
-                value={commentContent}
-                onChangeText={setCommentContent}
+                value={replyContent}
+                onChangeText={setReplyContent}
                 multiline
                 className="text-[16px] text-gray-900 max-h-24"
               />
             </View>
             <TouchableOpacity
-              onPress={handleSendComment}
-              disabled={!commentContent.trim()}
+              onPress={handleSendReply}
+              disabled={!replyContent.trim()}
               className={`ml-3 px-5 py-2.5 rounded-full ${
-                commentContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"
+                replyContent.trim() ? "bg-[#1d9bf0]" : "bg-sky-200"
               }`}
             >
               <Text className="text-white font-bold text-[15px]">Reply</Text>
@@ -711,25 +771,19 @@ export default function PostDetailScreen() {
           setOptionsVisible(false);
           setSelectedItem(null);
         }}
-        isOwner={
-          selectedItem?.user?.id === currentUser?.id ||
-          selectedItem?.author?.id === currentUser?.id
-        }
+        isOwner={selectedItem?.author?.id === currentUser?.id}
         onDelete={async () => {
           if (!selectedItem) return;
           try {
-            if (selectedItem.postId) {
-              await deleteComment({
-                postId: selectedItem.postId,
-                commentId: selectedItem.id,
-              }).unwrap();
-            } else {
-              await deletePost({ id: selectedItem.id }).unwrap();
+            await deletePost({ id: selectedItem.id }).unwrap();
+            if (selectedItem.id === id) {
               router.back();
+            } else {
+              refetchThread();
             }
           } catch (e) {
             console.error("Delete failed", e);
-            alert("Failed to delete content");
+            alert("Failed to delete post");
           }
           setOptionsVisible(false);
           setSelectedItem(null);

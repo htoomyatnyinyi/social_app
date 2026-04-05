@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -9,13 +9,12 @@ import {
   RefreshControl,
   TextInput,
   Alert,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useGetPostsQuery,
   useLikePostMutation,
-  useCommentPostMutation,
+  useReplyPostMutation,
   useRepostPostMutation,
   useBookmarkPostMutation,
   useDeletePostMutation,
@@ -28,325 +27,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PostOptionsModal from "../../components/PostOptionsModal";
 
-// ────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────
-interface User {
-  id: string;
-  name: string;
-  username?: string;
-  image?: string;
-}
-
-interface Post {
-  id: string;
-  content: string;
-  image?: string;
-  images?: string[];
-  createdAt: string;
-  author: User;
-  isRepost?: boolean;
-  originalPost?: Post;
-  likes: { userId: string }[];
-  bookmarks: { userId: string }[];
-  repostedBy: { userId: string }[];
-  _count: {
-    comments: number;
-    reposts: number;
-    likes: number;
-    quotes: number;
-  };
-  views?: number;
-  repostedByMe?: boolean; // ← preferred flag (if backend provides it)
-  repostsCount?: number; // ← optional fallback
-}
-
-// ────────────────────────────────────────────────
-// Post Card (Memoized)
-// ────────────────────────────────────────────────
-interface PostCardProps {
-  item: Post;
-  user: User | null;
-  onPressPost: (postId: string) => void;
-  onPressProfile: (authorId: string) => void;
-  onPressOptions: (post: Post) => void;
-  onPressComment: (postId: string) => void;
-  onPressRepost: (post: Post) => void;
-  onLike: (postId: string) => Promise<void>;
-  onBookmark: (postId: string) => Promise<void>;
-}
-
-// Memoized PostCard component with improved props
-const PostCard = React.memo(
-  ({
-    item,
-    user,
-    onPressPost,
-    onPressProfile,
-    onPressOptions,
-    onPressComment,
-    onPressRepost,
-    onLike,
-    onBookmark,
-  }: PostCardProps) => {
-    // State for handling "See more" text expansion
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [showSeeMore, setShowSeeMore] = useState(false);
-
-    const isRepost = !!item.isRepost || !!item.repostedByMe;
-    const displayPost =
-      isRepost && item.originalPost ? item.originalPost : item;
-
-    const displayAuthor = displayPost.author;
-    const displayId = displayPost.id;
-
-    const hasLiked = useMemo(
-      () => displayPost.likes?.some((l) => l.userId === user?.id) ?? false,
-      [displayPost.likes, user?.id],
-    );
-
-    const isBookmarked = useMemo(
-      () => (displayPost.bookmarks?.length ?? 0) > 0,
-      [displayPost.bookmarks],
-    );
-
-    // Prefer repostedByMe flag if available, otherwise fallback to array check
-    const hasReposted = useMemo(
-      () =>
-        item.repostedByMe ??
-        displayPost.repostedBy?.some((r) => r.userId === user?.id) ??
-        false,
-      [item.repostedByMe, displayPost.repostedBy, user?.id],
-    );
-
-    const createdAtFormatted = useMemo(() => {
-      if (!displayPost.createdAt) return "";
-      return new Intl.DateTimeFormat("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(displayPost.createdAt));
-    }, [displayPost.createdAt]);
-
-    // Check text layout to determine if "See more" is needed
-    const handleTextLayout = useCallback(
-      (e: any) => {
-        if (!showSeeMore && e.nativeEvent.lines.length > 5) {
-          setShowSeeMore(true);
-        }
-      },
-      [showSeeMore],
-    );
-
-    if (!displayPost) return null;
-
-    const renderContent = (text: string) => {
-      if (!text) return null;
-      const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
-      return (
-        <Text
-          className="text-[15px] leading-6 text-gray-800"
-          numberOfLines={isExpanded ? undefined : showSeeMore ? 5 : undefined}
-          onTextLayout={handleTextLayout}
-        >
-          {parts.map((part, i) => {
-            if (part.startsWith("#")) {
-              return (
-                <Text
-                  key={i}
-                  className="text-[#1D9BF0]"
-                  onPress={() => router.push(`/explore?q=${encodeURIComponent(part)}`)}
-                >
-                  {part}
-                </Text>
-              );
-            }
-            return <Text key={i}>{part}</Text>;
-          })}
-        </Text>
-      );
-    };
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.92}
-        onPress={() => onPressPost(displayId)}
-        className="bg-white border-b border-gray-100/80 px-4 pt-4 pb-2"
-      >
-        {/* Repost header */}
-        {isRepost && item.author && (
-          <View className="flex-row items-center mb-2 ml-14">
-            <Ionicons name="repeat" size={16} color="#6B7280" />
-            <Text className="ml-2 text-xs font-semibold text-gray-500">
-              {item.author.name} reposted
-            </Text>
-          </View>
-        )}
-
-        <View className="flex-row">
-          {/* Avatar */}
-          <TouchableOpacity
-            onPress={() => displayAuthor.id && onPressProfile(displayAuthor.id)}
-          >
-            <Image
-              source={{
-                uri: displayAuthor.image || "https://via.placeholder.com/48",
-              }}
-              className="w-12 h-12 rounded-full bg-gray-100 mr-3"
-            />
-          </TouchableOpacity>
-
-          <View className="flex-1">
-            {/* Name + username + time + options */}
-            <View className="flex-row items-center mb-0.5">
-              <Text
-                className="font-bold text-[15px] text-gray-900 flex-shrink"
-                numberOfLines={1}
-              >
-                {displayAuthor.name || "User"}
-              </Text>
-              <Text className="text-gray-500 text-[13.5px] ml-1.5">
-                @{displayAuthor.username || "user"} · {createdAtFormatted}
-              </Text>
-              <TouchableOpacity
-                className="ml-auto p-1.5"
-                onPress={() => onPressOptions(item)}
-              >
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={18}
-                  color="#6B7280"
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Content with See More Logic */}
-            <View className="mb-3">
-              {renderContent(displayPost.content)}
-
-              {/* See More Button */}
-              {showSeeMore && !isExpanded && (
-                <TouchableOpacity
-                  onPress={() => setIsExpanded(true)}
-                  className="mt-1"
-                >
-                  <Text className="text-[#1D9BF0] text-[15px]">See more</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Images */}
-            {(() => {
-              const imgs = displayPost.images?.length
-                ? displayPost.images
-                : displayPost.image
-                  ? [displayPost.image]
-                  : [];
-              if (imgs.length === 0) return null;
-
-              if (imgs.length === 1) {
-                return (
-                  <Image
-                    source={{ uri: imgs[0] }}
-                    className="w-full h-56 rounded-2xl mb-3 border border-gray-100 bg-gray-50"
-                    resizeMode="cover"
-                  />
-                );
-              }
-
-              return (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="mb-3 flex-row"
-                >
-                  {imgs.map((uri: string, idx: number) => (
-                    <Image
-                      key={idx}
-                      source={{ uri }}
-                      className="w-64 h-56 rounded-2xl border border-gray-100 bg-gray-50 mr-2"
-                      resizeMode="cover"
-                    />
-                  ))}
-                </ScrollView>
-              );
-            })()}
-
-            {/* Action row */}
-            <View className="flex-row justify-between items-center pr-2 mt-1">
-              {/* Comment */}
-              <TouchableOpacity
-                className="flex-row items-center"
-                onPress={() => onPressComment(displayId)}
-              >
-                <Ionicons name="chatbubble-outline" size={19} color="#6B7280" />
-                <Text className="text-xs text-gray-500 ml-1.5">
-                  {displayPost._count?.comments ?? 0}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Repost */}
-              <TouchableOpacity
-                className="flex-row items-center"
-                onPress={() => onPressRepost(item)}
-              >
-                <Ionicons
-                  name="repeat-outline"
-                  size={21}
-                  color={hasReposted ? "#00BA7C" : "#6B7280"}
-                />
-                <Text
-                  className={`text-xs ml-1.5 ${hasReposted ? "text-[#00BA7C] font-medium" : "text-gray-500"}`}
-                >
-                  {item.repostsCount ?? displayPost._count?.reposts ?? 0}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Like */}
-              <TouchableOpacity
-                className="flex-row items-center"
-                onPress={() => onLike(displayId)}
-              >
-                <Ionicons
-                  name={hasLiked ? "heart" : "heart-outline"}
-                  size={20}
-                  color={hasLiked ? "#F91880" : "#6B7280"}
-                />
-                <Text
-                  className={`text-xs ml-1.5 ${hasLiked ? "text-[#F91880] font-medium" : "text-gray-500"}`}
-                >
-                  {displayPost._count?.likes ?? 0}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Views */}
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="stats-chart-outline"
-                  size={18}
-                  color="#6B7280"
-                />
-                <Text className="text-xs text-gray-500 ml-1.5">
-                  {displayPost.views ?? 0}
-                </Text>
-              </View>
-
-              {/* Bookmark */}
-              <TouchableOpacity onPress={() => onBookmark(displayId)}>
-                <Ionicons
-                  name={isBookmarked ? "bookmark" : "bookmark-outline"}
-                  size={19}
-                  color={isBookmarked ? "#1D9BF0" : "#6B7280"}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-
-PostCard.displayName = "PostCard";
+import PostCard, { Post } from "../../components/PostCard";
 
 // ────────────────────────────────────────────────
 // Feed Screen
@@ -373,7 +54,7 @@ export default function FeedScreen() {
 
   const [likePost] = useLikePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
-  const [commentPost] = useCommentPostMutation();
+  const [replyPost] = useReplyPostMutation();
   const [repostPost] = useRepostPostMutation();
   const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
@@ -410,9 +91,7 @@ export default function FeedScreen() {
       const realPostId =
         isRepostItem && post.originalPost ? post.originalPost.id : post.id;
 
-      const alreadyReposted =
-        post.repostedByMe ??
-        post.repostedBy?.some((r) => r.userId === user?.id);
+      const alreadyReposted = post.repostedByMe ?? false;
 
       if (alreadyReposted) {
         // Undo repost
@@ -460,13 +139,13 @@ export default function FeedScreen() {
         ]);
       }
     },
-    [user?.id, repostPost, deleteRepost, router],
+    [repostPost, deleteRepost, router],
   );
 
   const handleCommentSubmit = useCallback(async () => {
     if (!commentContent.trim() || !selectedPostId) return;
     try {
-      await commentPost({
+      await replyPost({
         postId: selectedPostId,
         content: commentContent,
       }).unwrap();
@@ -476,7 +155,7 @@ export default function FeedScreen() {
     } catch (err) {
       console.error("Comment failed", err);
     }
-  }, [commentContent, selectedPostId, commentPost]);
+  }, [commentContent, selectedPostId, replyPost]);
 
   const uniquePosts = Array.from(
     new Map(posts.map((item: any) => [item.id, item])).values(),
