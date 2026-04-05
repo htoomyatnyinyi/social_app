@@ -2,7 +2,7 @@
   "expo": {
     "name": "ananta",
     "slug": "ananta",
-    "version": "2.4.5",
+    "version": "2.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ananta",
@@ -65,7 +65,8 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for video calls.",
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio calls."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

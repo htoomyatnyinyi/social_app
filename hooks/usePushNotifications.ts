@@ -100,11 +100,16 @@ async function registerForPushNotificationsAsync() {
       } else {
         token = (await Notifications.getExpoPushTokenAsync()).data;
       }
-    } catch (e) {
-      console.error('Failed to get push token:', e);
+    } catch (e: any) {
+      if (e.message?.includes('FirebaseApp is not initialized')) {
+        console.warn('Push Notifications (FCM): Android configuration missing (google-services.json). This is normal if you haven\'t configured Firebase yet for your bundle ID.');
+        console.warn('To fix: Download google-services.json from Firebase Console and add it to your project root, then add "googleServicesFile": "./google-services.json" to app.json under expo.android.');
+      } else {
+        console.error('Failed to get push token:', e);
+      }
     }
   } else {
-    console.log('Must use physical device for Push Notifications');
+    console.log('Push Notifications: Must use physical device or configured emulator for token generation.');
   }
 
   return token;

@@ -10,6 +10,7 @@ import { Platform, View, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
+import { useWebRTCContext } from "../../context/WebRTCContext";
 
 export default function TabLayout() {
   const { accentColor, isDark } = useTheme();
