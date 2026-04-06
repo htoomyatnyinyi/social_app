@@ -1,36 +1,34 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../store/store";
+import { useDispatch } from "react-redux";
 import {
   setTheme,
   setAccentColor,
   setFontSize,
 } from "../../store/settingsSlice";
-import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useTheme } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
 export default function AppearanceScreen() {
   const insets = useSafeAreaInsets();
-  const systemColorScheme = useColorScheme();
   const dispatch = useDispatch();
+  const router = useRouter();
 
-  const { theme, accentColor, fontSize } = useSelector(
-    (state: RootState) => state.settings,
-  );
+  const { isDark, accentColor, fontSize: currentFontSize, theme } = useTheme();
+  const fontSize = currentFontSize; // Maintain compatibility with local names
 
   const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -83,11 +81,11 @@ export default function AppearanceScreen() {
     { id: "large", label: "Comfortable", scale: 1.1 },
   ];
 
-  const isDark =
-    theme === "dark" || (theme === "system" && systemColorScheme === "dark");
-
   return (
-    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
+    <View 
+      className="flex-1"
+      style={{ backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}
+    >
       {/* Header */}
       <BlurView
         intensity={80}
@@ -101,11 +99,18 @@ export default function AppearanceScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.back();
             }}
-            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${
+            className={`w-10 h-10 rounded-2xl items-center justify-center border ${
               isDark
-                ? "bg-slate-800 border-slate-700 shadow-slate-900"
-                : "bg-white border-gray-50 shadow-gray-100"
+                ? "bg-slate-800 border-slate-700"
+                : "bg-white border-gray-50"
             } mr-4`}
+            style={{
+              shadowColor: isDark ? "#0f172a" : "#f3f4f6",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.5,
+              shadowRadius: 2,
+              elevation: 2,
+            }}
           >
             <Ionicons
               name="chevron-back"
@@ -144,11 +149,20 @@ export default function AppearanceScreen() {
             Live Preview
           </Text>
           <View
-            className={`p-6 rounded-[32px] border ${
-              isDark
-                ? "bg-slate-800/50 border-slate-700"
-                : "bg-white border-gray-100 shadow-sm shadow-gray-200"
-            }`}
+            className="p-6 rounded-[32px] border"
+            style={[
+              {
+                backgroundColor: isDark ? "rgba(30, 41, 59, 0.5)" : "white",
+                borderColor: isDark ? "#334155" : "#F1F5F9",
+              },
+              !isDark && {
+                shadowColor: "#e5e7eb",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.5,
+                shadowRadius: 2,
+                elevation: 2,
+              }
+            ]}
           >
             <View className="flex-row items-center mb-4">
               <View
@@ -190,13 +204,12 @@ export default function AppearanceScreen() {
               This is how your posts and interface will look with current
               settings.
             </Text>
-            <TouchableOpacity
-              disabled
+            <View
               style={{ backgroundColor: accentColor }}
-              className="py-3 px-6 rounded-2xl items-center"
+              className="py-3 px-6 rounded-2xl items-center opacity-50"
             >
               <Text className="text-white font-bold">Action Button</Text>
-            </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -215,12 +228,23 @@ export default function AppearanceScreen() {
               <TouchableOpacity
                 key={item.id}
                 onPress={() => handleThemeChange(item.id as any)}
-                style={{ width: (width - 60) / 3 }}
                 className={`p-4 rounded-[24px] items-center border ${
                   theme === item.id
-                    ? `bg-white ${isDark ? "border-white/20" : "border-gray-200"} shadow-md shadow-black/5`
+                    ? `bg-white ${isDark ? "border-white/20" : "border-gray-200"}`
                     : `${isDark ? "bg-slate-800/40 border-transparent" : "bg-gray-100/50 border-transparent"}`
                 }`}
+                style={[
+                  { width: (width - 60) / 3 },
+                  theme === item.id 
+                    ? {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 6,
+                        elevation: 3,
+                      } 
+                    : {}
+                ]}
               >
                 <View
                   className={`w-10 h-10 rounded-xl items-center justify-center mb-2 ${
@@ -266,11 +290,20 @@ export default function AppearanceScreen() {
             Accent Color
           </Text>
           <View
-            className={`p-5 rounded-[32px] border ${
-              isDark
-                ? "bg-slate-800/50 border-slate-700"
-                : "bg-white border-gray-100 shadow-sm shadow-gray-100"
-            }`}
+            className="p-5 rounded-[32px] border"
+            style={[
+              {
+                backgroundColor: isDark ? "rgba(30, 41, 59, 0.5)" : "white",
+                borderColor: isDark ? "#334155" : "#F1F5F9",
+              },
+              !isDark && {
+                shadowColor: "#f3f4f6",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.5,
+                shadowRadius: 2,
+                elevation: 2,
+              }
+            ]}
           >
             <View className="flex-row flex-wrap justify-between">
               {accents.map((item) => (
@@ -310,11 +343,20 @@ export default function AppearanceScreen() {
             Text Scaling
           </Text>
           <View
-            className={`rounded-[32px] border overflow-hidden ${
-              isDark
-                ? "bg-slate-800/50 border-slate-700"
-                : "bg-white border-gray-100 shadow-sm shadow-gray-100"
-            }`}
+            className="rounded-[32px] border overflow-hidden"
+            style={[
+              {
+                backgroundColor: isDark ? "rgba(30, 41, 59, 0.5)" : "white",
+                borderColor: isDark ? "#334155" : "#F1F5F9",
+              },
+              !isDark && {
+                shadowColor: "#f3f4f6",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.5,
+                shadowRadius: 2,
+                elevation: 2,
+              }
+            ]}
           >
             {fontSizes.map((item, i) => (
               <TouchableOpacity

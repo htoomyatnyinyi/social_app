@@ -75,26 +75,26 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
       <TouchableOpacity
         onPress={() => onPress(item)}
         activeOpacity={0.8}
-        className="flex-row px-5 py-4 items-center bg-[#F8FAFC] border-b border-gray-100/50"
+        className="flex-row px-5 py-4 items-center bg-[#F8FAFC] dark:bg-[#0F172A] border-b border-gray-100/50 dark:border-slate-800/50"
       >
-        <View className="relative shadow-md shadow-sky-100">
+        <View className="relative shadow-md shadow-sky-100 dark:shadow-none">
           <Image
             source={{
               uri:
                 otherUser?.image ||
                 `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.id}`,
             }}
-            className="w-[64px] h-[64px] rounded-[24px] bg-white border border-gray-50"
+            className="w-[64px] h-[64px] rounded-[24px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
             contentFit="cover"
             transition={300}
           />
-          <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white rounded-full shadow-sm" />
+          <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white dark:border-[#0F172A] rounded-full shadow-sm" />
         </View>
 
         <View className="flex-1 ml-5 justify-center">
           <View className="flex-row justify-between items-center mb-1.5">
             <Text
-              className="font-black text-[17px] text-gray-900 tracking-tight"
+              className="font-black text-[17px] text-gray-900 dark:text-white tracking-tight"
               numberOfLines={1}
             >
               {otherUser?.name || "Member"}
@@ -108,7 +108,7 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
 
           <View className="flex-row justify-between items-center">
             <Text
-              className={`text-[14px] leading-5 flex-1 mr-3 ${item.unreadCount > 0 ? "text-gray-900 font-bold" : "text-gray-500 font-medium"}`}
+              className={`text-[14px] leading-5 flex-1 mr-3 ${item.unreadCount > 0 ? "text-gray-900 dark:text-slate-100 font-bold" : "text-gray-500 dark:text-slate-400 font-medium"}`}
               numberOfLines={1}
             >
               {lastMessage?.senderId === user?.id && (
@@ -148,17 +148,17 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
   }, [rooms, search, user?.id]);
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Premium Sticky Header */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="px-5 pb-5 z-50 border-b border-gray-100/50 shadow-sm shadow-gray-100"
+        tint="default"
+        className="px-5 pb-5 z-50 border-b border-gray-100/50 dark:border-slate-800/50 shadow-sm shadow-gray-100 dark:shadow-none"
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row justify-between items-center mb-5">
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">
+            <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-[-1px] uppercase">
               Messages
             </Text>
             <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
@@ -168,12 +168,12 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
         </View>
 
         {/* Search Bar */}
-        <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[20px] px-4 py-2.5 shadow-sm shadow-gray-50">
+        <View className="flex-row items-center bg-white dark:bg-slate-800 border border-gray-100/80 dark:border-slate-700 rounded-[20px] px-4 py-2.5 shadow-sm shadow-gray-50 dark:shadow-none">
           <Ionicons name="search" size={18} color="#94A3B8" />
           <TextInput
             placeholder="Search messages..."
             placeholderTextColor="#CBD5E1"
-            className="flex-1 ml-3 text-[15px] text-gray-900 font-bold"
+            className="flex-1 ml-3 text-[15px] text-gray-900 dark:text-white font-bold"
             value={search}
             onChangeText={setSearch}
             autoCorrect={false}
@@ -228,7 +228,7 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
                     router.push(`/chat/${publicRoom?.id}?title=Public Lounge`);
                   }}
                   activeOpacity={0.9}
-                  className="mx-5 my-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 border border-white"
+                  className="mx-5 my-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 dark:shadow-none border border-white dark:border-slate-800"
                 >
                   <Image
                     source={{
@@ -260,10 +260,10 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
         }
         ListEmptyComponent={
           <View className="items-center justify-center mt-32 px-14 opacity-20">
-            <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100">
+            <View className="w-24 h-24 bg-white dark:bg-slate-800 rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100 dark:border-slate-700">
               <Ionicons name="chatbubbles" size={48} color="#94A3B8" />
             </View>
-            <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
+            <Text className="text-xl font-black text-center mb-2 text-gray-900 dark:text-white uppercase tracking-widest">
               No Messages
             </Text>
             <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">

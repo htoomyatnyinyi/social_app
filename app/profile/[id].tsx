@@ -194,27 +194,27 @@ export default function UserProfileScreen() {
 
   if (isProfileLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#F8FAFC]">
-        <ActivityIndicator size="large" color="#0EA5E9" />
+      <View className="flex-1 justify-center items-center bg-[#F8FAFC] dark:bg-[#0F172A]">
+        <ActivityIndicator size="large" color="#0ea5e9" />
       </View>
     );
   }
 
   if (!profile) {
     return (
-      <View className="flex-1 bg-[#F8FAFC] items-center justify-center px-10">
-        <View className="w-20 h-20 bg-gray-100 rounded-3xl items-center justify-center mb-6">
+      <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A] items-center justify-center px-10">
+        <View className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-3xl items-center justify-center mb-6">
           <Ionicons name="person-outline" size={40} color="#94A3B8" />
         </View>
-        <Text className="text-2xl font-black text-gray-900 tracking-tighter text-center uppercase">
+        <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter text-center uppercase">
           User Not Found
         </Text>
-        <Text className="text-gray-400 text-center mt-2 font-medium">
+        <Text className="text-gray-400 dark:text-slate-400 text-center mt-2 font-medium">
           The user you are looking for does not exist or has been removed.
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          className="mt-8 px-8 py-3 bg-sky-500 rounded-2xl shadow-lg shadow-sky-200"
+          className="mt-8 px-8 py-3 bg-sky-500 rounded-2xl shadow-lg shadow-sky-200 dark:shadow-none"
         >
           <Text className="text-white font-black uppercase tracking-widest text-xs">
             Return Home
@@ -257,22 +257,22 @@ export default function UserProfileScreen() {
   };
 
   const Header = () => (
-    <View className="bg-[#F8FAFC]">
+    <View className="bg-[#F8FAFC] dark:bg-[#0F172A]">
       <BlurView
         intensity={80}
-        tint="light"
-        className="absolute top-0 left-0 right-0 z-50 flex-row items-center px-5 py-4 border-b border-gray-100/50"
+        tint="default"
+        className="absolute top-0 left-0 right-0 z-50 flex-row items-center px-5 py-4 border-b border-gray-100/50 dark:border-slate-800/50"
         style={{ paddingTop: insets.top }}
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none"
         >
           <Ionicons name="chevron-back" size={24} color="#64748B" />
         </TouchableOpacity>
         <View className="ml-4 flex-1">
           <Text
-            className="text-lg font-black pt-2 text-gray-900 tracking-tighter"
+            className="text-lg font-black pt-2 text-gray-900 dark:text-white tracking-tighter"
             numberOfLines={1}
           >
             {profile.name}
@@ -283,13 +283,13 @@ export default function UserProfileScreen() {
         </View>
         <TouchableOpacity
           onPress={() => router.push("/settings")}
-          className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none"
         >
           <Ionicons name="ellipsis-horizontal" size={20} color="#64748B" />
         </TouchableOpacity>
       </BlurView>
 
-      <View className="h-56 bg-sky-100">
+      <View className="h-56 bg-sky-100 dark:bg-sky-900/30">
         {profile.coverImage ? (
           <Image
             source={{ uri: profile.coverImage }}
@@ -300,14 +300,14 @@ export default function UserProfileScreen() {
         ) : (
           <LinearGradient
             colors={["#0EA5E9", "#38BDF8", "#7DD3FC"]}
-            className="w-full h-full"
+            className="w-full h-full opacity-100 dark:opacity-80"
           />
         )}
       </View>
 
       <View className="px-5 -mt-20 pb-6">
         <View className="flex-row justify-between items-end">
-          <View className="shadow-2xl shadow-sky-400">
+          <View className="shadow-2xl shadow-sky-400 dark:shadow-none">
             <Image
               source={{
                 uri:
@@ -315,7 +315,7 @@ export default function UserProfileScreen() {
                   "https://api.dicebear.com/7.x/avataaars/png?seed=" +
                   profile.username,
               }}
-              className="w-32 h-32 rounded-[44px] border-4 border-white bg-white"
+              className="w-32 h-32 rounded-[44px] border-4 border-white dark:border-[#0F172A] bg-white dark:bg-slate-800"
               contentFit="cover"
               transition={300}
             />
@@ -326,7 +326,7 @@ export default function UserProfileScreen() {
               <>
                 <TouchableOpacity
                   onPress={handleMessage}
-                  className="bg-white w-12 h-12 border mr-3 border-gray-100 items-center justify-center rounded-2xl shadow-sm"
+                  className="bg-white dark:bg-slate-800 w-12 h-12 border mr-3 border-gray-100 dark:border-slate-700 items-center justify-center rounded-2xl shadow-sm dark:shadow-none"
                 >
                   <Ionicons
                     name="chatbubble-ellipses-outline"
@@ -337,10 +337,10 @@ export default function UserProfileScreen() {
 
                 <TouchableOpacity
                   onPress={handleFollow}
-                  className={`px-8 py-3 rounded-2xl mr-3 shadow-sm ${profile.isFollowing ? "bg-white border border-gray-100" : "bg-sky-500 shadow-sky-200"}`}
+                  className={`px-8 py-3 rounded-2xl mr-3 shadow-sm ${profile.isFollowing ? "bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700" : "bg-sky-500 shadow-sky-200 dark:shadow-none"}`}
                 >
                   <Text
-                    className={`font-black uppercase tracking-wider text-xs ${profile.isFollowing ? "text-gray-400" : "text-white"}`}
+                    className={`font-black uppercase tracking-wider text-xs ${profile.isFollowing ? "text-gray-400 dark:text-slate-400" : "text-white"}`}
                   >
                     {profile.isFollowing ? "Following" : "Follow"}
                   </Text>
@@ -348,7 +348,7 @@ export default function UserProfileScreen() {
 
                 <TouchableOpacity
                   onPress={handleMoreActions}
-                  className="bg-rose-50 w-12 h-12 border border-rose-100 items-center justify-center rounded-2xl"
+                  className="bg-rose-50 dark:bg-rose-500/10 w-12 h-12 border border-rose-100 dark:border-rose-500/20 items-center justify-center rounded-2xl"
                 >
                   <Ionicons name="shield-outline" size={20} color="#F43F5E" />
                 </TouchableOpacity>
@@ -357,9 +357,9 @@ export default function UserProfileScreen() {
             {isMe && (
               <TouchableOpacity
                 onPress={() => router.push("/profile/update")}
-                className="bg-white px-8 py-3 rounded-2xl border border-gray-100 shadow-sm"
+                className="bg-white dark:bg-slate-800 px-8 py-3 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none"
               >
-                <Text className="font-black text-gray-900 text-xs uppercase tracking-wider">
+                <Text className="font-black text-gray-900 dark:text-white text-xs uppercase tracking-wider">
                   Edit Profile
                 </Text>
               </TouchableOpacity>
@@ -369,7 +369,7 @@ export default function UserProfileScreen() {
 
         <View className="mt-5">
           <View className="flex-row items-center">
-            <Text className="text-3xl font-black pt-5 text-gray-900 tracking-tighter mr-1">
+            <Text className="text-3xl font-black pt-5 text-gray-900 dark:text-white tracking-tighter mr-1">
               {profile.name}
             </Text>
             {profile.isVerified && (
@@ -381,20 +381,20 @@ export default function UserProfileScreen() {
           </Text>
         </View>
 
-        <Text className="mt-4 text-[16px] text-gray-700 font-medium leading-6">
+        <Text className="mt-4 text-[16px] text-gray-700 dark:text-slate-300 font-medium leading-6">
           {profile.bio || "Crafting moments on the platform. ✨"}
         </Text>
 
         <View className="flex-row flex-wrap mt-5">
           {profile.location && (
-            <View className="flex-row items-center mr-4 mb-2 bg-white/50 px-3 py-1.5 rounded-xl border border-gray-100">
+            <View className="flex-row items-center mr-4 mb-2 bg-white/50 dark:bg-slate-800/50 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-slate-700">
               <Ionicons name="location-outline" size={14} color="#64748B" />
               <Text className="text-gray-500 ml-1.5 text-xs font-bold">
                 {profile.location}
               </Text>
             </View>
           )}
-          <View className="flex-row items-center mr-4 mb-2 bg-white/50 px-3 py-1.5 rounded-xl border border-gray-100">
+          <View className="flex-row items-center mr-4 mb-2 bg-white/50 dark:bg-slate-800/50 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-slate-700">
             <Ionicons name="calendar-outline" size={14} color="#64748B" />
             <Text className="text-gray-500 ml-1.5 text-xs font-bold">
               Joined{" "}
@@ -416,10 +416,10 @@ export default function UserProfileScreen() {
             }
             className="flex-row items-baseline"
           >
-            <Text className="text-2xl font-black text-gray-900">
+            <Text className="text-2xl font-black text-gray-900 dark:text-white">
               {profile._count?.following || 0}
             </Text>
-            <Text className="text-gray-400 ml-1 font-bold text-xs uppercase tracking-widest">
+            <Text className="text-gray-400 dark:text-slate-500 ml-1 font-bold text-xs uppercase tracking-widest">
               Following
             </Text>
           </TouchableOpacity>
@@ -432,10 +432,10 @@ export default function UserProfileScreen() {
             }
             className="flex-row items-baseline"
           >
-            <Text className="text-2xl font-black text-gray-900">
+            <Text className="text-2xl font-black text-gray-900 dark:text-white">
               {profile._count?.followers || 0}
             </Text>
-            <Text className="text-gray-400 ml-1 font-bold text-xs uppercase tracking-widest">
+            <Text className="text-gray-400 dark:text-slate-500 ml-1 font-bold text-xs uppercase tracking-widest">
               Followers
             </Text>
           </TouchableOpacity>
@@ -443,7 +443,7 @@ export default function UserProfileScreen() {
       </View>
 
       <View className="px-5 py-2">
-        <View className="flex-row bg-gray-100/50 rounded-2xl p-1">
+        <View className="flex-row bg-gray-100/50 dark:bg-slate-800/50 rounded-2xl p-1">
           {(["posts", "replies", "likes"] as const).map((tabName) => (
             <TouchableOpacity
               key={tabName}
@@ -451,10 +451,10 @@ export default function UserProfileScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setActiveTab(tabName);
               }}
-              className={`flex-1 items-center py-2.5 rounded-xl ${activeTab === tabName ? "bg-white shadow-sm" : ""}`}
+              className={`flex-1 items-center py-2.5 rounded-xl ${activeTab === tabName ? "bg-white dark:bg-slate-700 shadow-sm dark:shadow-none" : ""}`}
             >
               <Text
-                className={`font-black text-[12px] uppercase tracking-widest ${activeTab === tabName ? "text-[#0EA5E9]" : "text-gray-400"}`}
+                className={`font-black text-[12px] uppercase tracking-widest ${activeTab === tabName ? "text-[#0EA5E9]" : "text-gray-400 dark:text-slate-500"}`}
               >
                 {tabName}
               </Text>
@@ -466,7 +466,7 @@ export default function UserProfileScreen() {
   );
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       <FlatList
         data={currentData}
         ListHeaderComponent={Header}
@@ -501,10 +501,10 @@ export default function UserProfileScreen() {
         removeClippedSubviews={Platform.OS === 'android'}
         ListEmptyComponent={
           <View className="items-center py-20 px-10">
-            <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
+            <View className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-3xl items-center justify-center mb-4">
               <Ionicons name="layers-outline" size={32} color="#94A3B8" />
             </View>
-            <Text className="text-lg font-black text-gray-900 tracking-tight text-center uppercase">
+            <Text className="text-lg font-black text-gray-900 dark:text-white tracking-tight text-center uppercase">
               No {activeTab} yet
             </Text>
           </View>

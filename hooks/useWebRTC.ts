@@ -1,35 +1,55 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   RTCPeerConnection,
   RTCIceCandidate,
   RTCSessionDescription,
   mediaDevices,
   MediaStream,
-} from 'react-native-webrtc';
-import { Audio } from 'expo-av';
+} from "react-native-webrtc";
+import { Audio } from "expo-av";
 
 const isNativeAvailable = !!RTCPeerConnection;
 
 // Mock for Expo Go to prevent crashes during development
 class MockRTCPeerConnection {
-  constructor() { }
-  addEventListener() { }
-  removeEventListener() { }
-  addTrack() { }
-  createOffer() { return Promise.resolve({ type: 'offer', sdp: '' }); }
-  createAnswer() { return Promise.resolve({ type: 'answer', sdp: '' }); }
-  setLocalDescription() { return Promise.resolve(); }
-  setRemoteDescription() { return Promise.resolve(); }
-  addIceCandidate() { return Promise.resolve(); }
-  close() { }
+  constructor() {}
+  addEventListener() {}
+  removeEventListener() {}
+  addTrack() {}
+  createOffer() {
+    return Promise.resolve({ type: "offer", sdp: "" });
+  }
+  createAnswer() {
+    return Promise.resolve({ type: "answer", sdp: "" });
+  }
+  setLocalDescription() {
+    return Promise.resolve();
+  }
+  setRemoteDescription() {
+    return Promise.resolve();
+  }
+  addIceCandidate() {
+    return Promise.resolve();
+  }
+  close() {}
 }
 
-const ActualRTCPeerConnection = isNativeAvailable ? RTCPeerConnection : (MockRTCPeerConnection as any);
-const ActualRTCIceCandidate = isNativeAvailable ? RTCIceCandidate : (class { constructor(c: any) { } } as any);
-const ActualRTCSessionDescription = isNativeAvailable ? RTCSessionDescription : (class { constructor(d: any) { } } as any);
+const ActualRTCPeerConnection = isNativeAvailable
+  ? RTCPeerConnection
+  : (MockRTCPeerConnection as any);
+const ActualRTCIceCandidate = isNativeAvailable
+  ? RTCIceCandidate
+  : (class {
+      constructor(c: any) {}
+    } as any);
+const ActualRTCSessionDescription = isNativeAvailable
+  ? RTCSessionDescription
+  : (class {
+      constructor(d: any) {}
+    } as any);
 
-export type CallState = 'IDLE' | 'RINGING' | 'CALLING' | 'CONNECTED';
-export type CallType = 'voice' | 'video';
+export type CallState = "IDLE" | "RINGING" | "CALLING" | "CONNECTED";
+export type CallType = "voice" | "video";
 
 interface UseWebRTCProps {
   initialChatId?: string;
@@ -37,12 +57,18 @@ interface UseWebRTCProps {
   sendSignal: (payload: any) => void;
 }
 
-export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRTCProps) => {
-  const [callState, setCallState] = useState<CallState>('IDLE');
-  const [callType, setCallType] = useState<CallType>('video');
-  const [chatId, setChatId] = useState<string>(initialChatId || '');
+export const useWebRTC = ({
+  initialChatId,
+  currentUserId,
+  sendSignal,
+}: UseWebRTCProps) => {
+  const [callState, setCallState] = useState<CallState>("IDLE");
+  const [callType, setCallType] = useState<CallType>("video");
+  const [chatId, setChatId] = useState<string>(initialChatId || "");
   const [localStream, setLocalStreamState] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStreamState] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStreamState] = useState<MediaStream | null>(
+    null,
+  );
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -61,7 +87,7 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
 
   const cleanup = useCallback(() => {
     console.log("WebRTC: Cleaning up...");
-    setCallState('IDLE');
+    setCallState("IDLE");
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t: any) => t.stop());
       setLocalStream(null);
@@ -70,28 +96,31 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     if (peerConnection.current) {
       try {
         peerConnection.current.close();
-      } catch (e) { }
+      } catch (e) {}
       peerConnection.current = null;
     }
     pendingIceCandidates.current = [];
   }, []);
 
-  const setupLocalStream = async (type: CallType = 'video') => {
+  const setupLocalStream = async (type: CallType = "video") => {
     try {
       await Audio.requestPermissionsAsync();
       const constraints = {
         audio: true,
-        video: type === 'video' ? {
-          facingMode: 'user',
-          frameRate: 30,
-        } : false,
+        video:
+          type === "video"
+            ? {
+                facingMode: "user",
+                frameRate: 30,
+              }
+            : false,
       };
 
       const stream = await (mediaDevices as any).getUserMedia(constraints);
       setLocalStream(stream);
       return stream;
     } catch (e) {
-      console.error('WebRTC: Error getting user media:', e);
+      console.error("WebRTC: Error getting user media:", e);
       return null;
     }
   };
@@ -99,21 +128,23 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
   const initPeerConnection = async (targetChatId: string) => {
     const config = {
       iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
       ],
     };
 
     if (peerConnection.current) {
-      try { peerConnection.current.close(); } catch (e) { }
+      try {
+        peerConnection.current.close();
+      } catch (e) {}
     }
 
     const pc = new ActualRTCPeerConnection(config);
 
-    pc.addEventListener('icecandidate', (event: any) => {
+    pc.addEventListener("icecandidate", (event: any) => {
       if (event.candidate) {
         sendSignal({
-          type: 'ice_candidate',
+          type: "ice_candidate",
           chatId: targetChatId,
           senderId: currentUserId,
           candidate: event.candidate,
@@ -121,25 +152,29 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
       }
     });
 
-    pc.addEventListener('track', (event: any) => {
+    pc.addEventListener("track", (event: any) => {
       if (event.streams && event.streams[0]) {
         console.log("WebRTC: Remote stream received");
         setRemoteStream(event.streams[0]);
       }
     });
 
-    pc.addEventListener('addstream', (event: any) => {
+    pc.addEventListener("addstream", (event: any) => {
       if (event.stream) {
         setRemoteStream(event.stream);
       }
     });
 
-    pc.addEventListener('connectionstatechange', () => {
+    pc.addEventListener("connectionstatechange", () => {
       console.log("WebRTC: Connection state:", pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        setCallState('CONNECTED');
+      if (pc.connectionState === "connected") {
+        setCallState("CONNECTED");
       }
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+      if (
+        pc.connectionState === "disconnected" ||
+        pc.connectionState === "failed" ||
+        pc.connectionState === "closed"
+      ) {
         cleanup();
       }
     });
@@ -148,65 +183,87 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     return pc;
   };
 
-  const startCall = async (targetChatId: string, type: CallType = 'video', senderName?: string) => {
+  const startCall = async (
+    targetChatId: string,
+    type: CallType = "video",
+    senderName?: string,
+  ) => {
     if (!isNativeAvailable) {
       alert("Please use a Development Build for calls.");
       return;
     }
     setChatId(targetChatId);
     setCallType(type);
-    setCallState('CALLING');
+    setCallState("CALLING");
     await setupLocalStream(type);
     sendSignal({
-      type: 'call_invite',
+      type: "call_invite",
       chatId: targetChatId,
       senderId: currentUserId,
-      senderName: senderName || 'User',
-      callType: type
+      senderName: senderName || "User",
+      callType: type,
     });
   };
 
   const acceptCall = async () => {
-    setCallState('CONNECTED');
+    setCallState("CONNECTED");
     await setupLocalStream(callType);
-    sendSignal({ type: 'call_accept', chatId, senderId: currentUserId });
+    sendSignal({ type: "call_accept", chatId, senderId: currentUserId });
   };
 
-  const [remoteName, setRemoteName] = useState<string>('');
+  const [remoteName, setRemoteName] = useState<string>("");
 
   const processSignalingMessage = async (data: any) => {
     if (data.senderId === currentUserId) return;
 
     try {
       switch (data.type) {
-        case 'call_invite':
+        case "call_invite":
           setChatId(data.chatId);
-          setRemoteName(data.senderName || 'Anonymous');
-          setCallType(data.callType || 'video');
-          setCallState('RINGING');
+          setRemoteName(data.senderName || "Anonymous");
+          setCallType(data.callType || "video");
+          setCallState("RINGING");
           break;
 
-        case 'call_accept':
+        case "call_accept":
           const pc = await initPeerConnection(data.chatId || chatId);
           if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+            localStreamRef.current
+              .getTracks()
+              .forEach((track) => pc.addTrack(track, localStreamRef.current));
           }
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          sendSignal({ type: 'offer', chatId: data.chatId || chatId, senderId: currentUserId, offer });
+          sendSignal({
+            type: "offer",
+            chatId: data.chatId || chatId,
+            senderId: currentUserId,
+            offer,
+          });
           break;
 
-        case 'offer':
+        case "offer":
           const calleePc = await initPeerConnection(data.chatId || chatId);
-          await calleePc.setRemoteDescription(new ActualRTCSessionDescription(data.offer));
+          await calleePc.setRemoteDescription(
+            new ActualRTCSessionDescription(data.offer),
+          );
 
           if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => calleePc.addTrack(track, localStreamRef.current));
+            localStreamRef.current
+              .getTracks()
+              .forEach((track) =>
+                calleePc.addTrack(track, localStreamRef.current),
+              );
           }
 
           const answer = await calleePc.createAnswer();
           await calleePc.setLocalDescription(answer);
-          sendSignal({ type: 'answer', chatId: data.chatId || chatId, senderId: currentUserId, answer });
+          sendSignal({
+            type: "answer",
+            chatId: data.chatId || chatId,
+            senderId: currentUserId,
+            answer,
+          });
 
           while (pendingIceCandidates.current.length > 0) {
             const cand = pendingIceCandidates.current.shift();
@@ -214,26 +271,32 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
           }
           break;
 
-        case 'answer':
+        case "answer":
           if (peerConnection.current) {
-            await peerConnection.current.setRemoteDescription(new ActualRTCSessionDescription(data.answer));
+            await peerConnection.current.setRemoteDescription(
+              new ActualRTCSessionDescription(data.answer),
+            );
             while (pendingIceCandidates.current.length > 0) {
               const cand = pendingIceCandidates.current.shift();
-              await peerConnection.current.addIceCandidate(new ActualRTCIceCandidate(cand));
+              await peerConnection.current.addIceCandidate(
+                new ActualRTCIceCandidate(cand),
+              );
             }
           }
           break;
 
-        case 'ice_candidate':
+        case "ice_candidate":
           if (peerConnection.current?.remoteDescription) {
-            await peerConnection.current.addIceCandidate(new ActualRTCIceCandidate(data.candidate));
+            await peerConnection.current.addIceCandidate(
+              new ActualRTCIceCandidate(data.candidate),
+            );
           } else {
             pendingIceCandidates.current.push(data.candidate);
           }
           break;
 
-        case 'call_reject':
-        case 'end_call':
+        case "call_reject":
+        case "end_call":
           cleanup();
           break;
       }
@@ -244,13 +307,17 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
 
   const toggleMute = () => {
     if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(t => (t.enabled = !t.enabled));
+      localStreamRef.current
+        .getAudioTracks()
+        .forEach((t) => (t.enabled = !t.enabled));
     }
   };
 
   const toggleVideo = () => {
     if (localStreamRef.current) {
-      localStreamRef.current.getVideoTracks().forEach(t => (t.enabled = !t.enabled));
+      localStreamRef.current
+        .getVideoTracks()
+        .forEach((t) => (t.enabled = !t.enabled));
     }
   };
 
@@ -267,11 +334,11 @@ export const useWebRTC = ({ initialChatId, currentUserId, sendSignal }: UseWebRT
     startCall,
     acceptCall,
     rejectCall: () => {
-      sendSignal({ type: 'call_reject', chatId, senderId: currentUserId });
+      sendSignal({ type: "call_reject", chatId, senderId: currentUserId });
       cleanup();
     },
     endCall: () => {
-      sendSignal({ type: 'end_call', chatId, senderId: currentUserId });
+      sendSignal({ type: "end_call", chatId, senderId: currentUserId });
       cleanup();
     },
     processSignalingMessage,

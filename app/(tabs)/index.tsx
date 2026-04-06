@@ -12,14 +12,14 @@ import {
   RefreshControl,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withSpring
+  withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
@@ -33,16 +33,8 @@ import {
   useGetPostsQuery,
   useLikePostMutation,
   useReportPostMutation,
-  useRepostPostMutation
+  useRepostPostMutation,
 } from "../../store/postApi";
-
-const TRENDING_TOPICS = [
-  { id: "1", label: "Global", icon: "globe", color: "#10B981" },
-  { id: "2", label: "Tech", icon: "hardware-chip", color: "#0EA5E9" },
-  { id: "3", label: "Art", icon: "color-palette", color: "#F59E0B" },
-  { id: "4", label: "News", icon: "newspaper", color: "#6366F1" },
-  { id: "5", label: "Life", icon: "heart", color: "#F43F5E" },
-];
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -70,97 +62,127 @@ export default function FeedScreen() {
   const [blockUser] = useBlockUserMutation();
   const [reportPost] = useReportPostMutation();
 
-  const handleTabChange = useCallback((tab: "public" | "private") => {
-    if (tab === activeTab) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(tab);
-    setCursor(null);
-    tabProgress.value = withSpring(tab === "public" ? 0 : 1, { damping: 20, stiffness: 120 });
-  }, [activeTab, tabProgress]);
+  const handleTabChange = useCallback(
+    (tab: "public" | "private") => {
+      if (tab === activeTab) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setActiveTab(tab);
+      setCursor(null);
+      tabProgress.value = withSpring(tab === "public" ? 0 : 1, {
+        damping: 20,
+        stiffness: 120,
+      });
+    },
+    [activeTab, tabProgress],
+  );
 
   const indicatorStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateX: interpolate(tabProgress.value, [0, 1], [0, 150]) }
+        { translateX: interpolate(tabProgress.value, [0, 1], [0, 150]) },
       ],
     };
   });
 
-  const handleLike = useCallback(async (postId: string) => {
-    try {
-      await likePost({ postId }).unwrap();
-    } catch (err) {
-      console.error("Like failed", err);
-    }
-  }, [likePost]);
+  const handleLike = useCallback(
+    async (postId: string) => {
+      try {
+        await likePost({ postId }).unwrap();
+      } catch (err) {
+        console.error("Like failed", err);
+      }
+    },
+    [likePost],
+  );
 
-  const handleBookmark = useCallback(async (postId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      await bookmarkPost(postId).unwrap();
-    } catch (err) {
-      console.error("Bookmark failed", err);
-    }
-  }, [bookmarkPost]);
+  const handleBookmark = useCallback(
+    async (postId: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await bookmarkPost(postId).unwrap();
+      } catch (err) {
+        console.error("Bookmark failed", err);
+      }
+    },
+    [bookmarkPost],
+  );
 
-  const handleRepostAction = useCallback((post: Post) => {
-    const isRepostItem = !!post.isRepost || !!post.repostedByMe;
-    const realPostId = isRepostItem && post.originalPost ? post.originalPost.id : post.id;
-    const alreadyReposted = post.repostedByMe ?? false;
+  const handleRepostAction = useCallback(
+    (post: Post) => {
+      const isRepostItem = !!post.isRepost || !!post.repostedByMe;
+      const realPostId =
+        isRepostItem && post.originalPost ? post.originalPost.id : post.id;
+      const alreadyReposted = post.repostedByMe ?? false;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    if (alreadyReposted) {
-      Alert.alert("Undo Repost", "Remove this post from your timeline?", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteRepost(realPostId).unwrap();
-            } catch (err) {
-              console.error("Delete repost failed", err);
-            }
-          },
-        },
-      ]);
-    } else {
-      Alert.alert("Share Post", "How would you like to share this post?", [
-        {
-          text: "Repost Directly",
-          onPress: async () => {
-            try {
-              await repostPost({ id: realPostId }).unwrap();
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } catch (err: any) {
-              if (err?.status === 400) {
-                Alert.alert("Already Reposted", "You have already shared this post.");
+      if (alreadyReposted) {
+        Alert.alert("Undo Repost", "Remove this post from your timeline?", [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteRepost(realPostId).unwrap();
+              } catch (err) {
+                console.error("Delete repost failed", err);
               }
-            }
+            },
           },
-        },
-        {
-          text: "Quote Post",
-          onPress: () => {
-            router.push({
-              pathname: "/compose/post",
-              params: { quoteId: realPostId },
-            });
+        ]);
+      } else {
+        Alert.alert("Share Post", "How would you like to share this post?", [
+          {
+            text: "Repost Directly",
+            onPress: async () => {
+              try {
+                await repostPost({ id: realPostId }).unwrap();
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                );
+              } catch (err: any) {
+                if (err?.status === 400) {
+                  Alert.alert(
+                    "Already Reposted",
+                    "You have already shared this post.",
+                  );
+                }
+              }
+            },
           },
-        },
-        { text: "Cancel", style: "cancel" },
-      ]);
-    }
-  }, [repostPost, deleteRepost, router]);
+          {
+            text: "Quote Post",
+            onPress: () => {
+              router.push({
+                pathname: "/compose/post",
+                params: { quoteId: realPostId },
+              });
+            },
+          },
+          { text: "Cancel", style: "cancel" },
+        ]);
+      }
+    },
+    [repostPost, deleteRepost],
+    // [router, repostPost, deletePost]
+  );
 
-  const handlePressPost = useCallback((id: string) => {
-    router.push(`/post/${id}`);
-  }, [router]);
+  const handlePressPost = useCallback(
+    (id: string) => {
+      router.push(`/post/${id}`);
+    },
+    [],
+    // [router],
+  );
 
-  const handlePressProfile = useCallback((id: string) => {
-    router.push(`/profile/${id}`);
-  }, [router]);
+  const handlePressProfile = useCallback(
+    (id: string) => {
+      router.push(`/profile/${id}`);
+    },
+    // [router],
+    [],
+  );
 
   const handlePressOptions = useCallback((p: Post) => {
     setPostForOptions(p);
@@ -198,7 +220,11 @@ export default function FeedScreen() {
           className={`${isDark ? "shadow-black" : "shadow-sky-100"} shadow-md`}
         >
           <Image
-            source={{ uri: user?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.id}` }}
+            source={{
+              uri:
+                user?.image ||
+                `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.id}`,
+            }}
             className={`w-10 h-10 rounded-[16px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-50"}`}
             contentFit="cover"
             transition={300}
@@ -206,7 +232,11 @@ export default function FeedScreen() {
         </TouchableOpacity>
 
         <View className="items-center">
-          <Text className={`text-2xl font-black tracking-[-1.5px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}>Feed</Text>
+          <Text
+            className={`text-2xl font-black tracking-[-1.5px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}
+          >
+            TWINKLE
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -215,10 +245,16 @@ export default function FeedScreen() {
             router.push("/settings");
           }}
           className={`w-10 h-10 rounded-[16px] items-center justify-center border shadow-sm ${
-            isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
+            isDark
+              ? "bg-slate-800 border-slate-700 shadow-black"
+              : "bg-white border-gray-50 shadow-gray-100"
           }`}
         >
-          <Ionicons name="notifications-outline" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
+          <Ionicons
+            name="settings"
+            size={20}
+            color={isDark ? "#94A3B8" : "#64748B"}
+          />
         </TouchableOpacity>
       </BlurView>
 
@@ -228,18 +264,22 @@ export default function FeedScreen() {
         ListHeaderComponent={() => (
           <View>
             <View className="px-5 py-5">
-              <View className={`flex-row p-1.5 rounded-[24px] h-[52px] relative border ${
-                isDark ? "bg-slate-900/50 border-slate-800" : "bg-gray-100/30 border-gray-100/80"
-              }`}>
+              <View
+                className={`flex-row p-1.5 rounded-[24px] h-[52px] relative border ${
+                  isDark
+                    ? "bg-slate-900/50 border-slate-800"
+                    : "bg-gray-100/30 border-gray-100/80"
+                }`}
+              >
                 <Animated.View
                   style={[
                     {
-                      position: 'absolute',
+                      position: "absolute",
                       top: 4,
                       bottom: 4,
                       left: 4,
-                      width: '48%',
-                      backgroundColor: isDark ? '#1E293B' : 'white',
+                      width: "48%",
+                      backgroundColor: isDark ? "#1E293B" : "white",
                       borderRadius: 20,
                       shadowColor: accentColor,
                       shadowOffset: { width: 0, height: 4 },
@@ -247,7 +287,7 @@ export default function FeedScreen() {
                       shadowRadius: 8,
                       elevation: 4,
                     },
-                    indicatorStyle
+                    indicatorStyle,
                   ]}
                 />
                 <TouchableOpacity
@@ -255,8 +295,13 @@ export default function FeedScreen() {
                   onPress={() => handleTabChange("public")}
                 >
                   <Text
-                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "public" ? (isDark ? "text-white" : "text-gray-900") : "text-gray-400"
-                      }`}
+                    className={`font-black uppercase tracking-widest text-[10px] ${
+                      activeTab === "public"
+                        ? isDark
+                          ? "text-white"
+                          : "text-gray-900"
+                        : "text-gray-400"
+                    }`}
                   >
                     Public
                   </Text>
@@ -266,8 +311,13 @@ export default function FeedScreen() {
                   onPress={() => handleTabChange("private")}
                 >
                   <Text
-                    className={`font-black uppercase tracking-widest text-[10px] ${activeTab === "private" ? (isDark ? "text-white" : "text-gray-900") : "text-gray-400"
-                      }`}
+                    className={`font-black uppercase tracking-widest text-[10px] ${
+                      activeTab === "private"
+                        ? isDark
+                          ? "text-white"
+                          : "text-gray-900"
+                        : "text-gray-400"
+                    }`}
                   >
                     Following
                   </Text>
@@ -308,13 +358,17 @@ export default function FeedScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={Platform.OS === "android"}
         ListFooterComponent={
           isFetching && cursor ? (
             <ActivityIndicator className="py-8" color={accentColor} />
           ) : (
             <View className="py-20 items-center opacity-20">
-              <Ionicons name="infinite" size={24} color={isDark ? "#475569" : "#94A3B8"} />
+              <Ionicons
+                name="infinite"
+                size={24}
+                color={isDark ? "#475569" : "#94A3B8"}
+              />
             </View>
           )
         }

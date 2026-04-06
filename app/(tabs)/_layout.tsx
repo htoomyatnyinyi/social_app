@@ -10,6 +10,7 @@ import { Platform, View, StyleSheet } from "react-native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
+import { useWebRTCContext } from "../../context/WebRTCContext";
 
 export default function TabLayout() {
   const { accentColor, isDark } = useTheme();
@@ -66,7 +67,15 @@ export default function TabLayout() {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          const signalingTypes = ["call_invite", "call_accept", "call_reject", "offer", "answer", "ice_candidate", "end_call"];
+          const signalingTypes = [
+            "call_invite",
+            "call_accept",
+            "call_reject",
+            "offer",
+            "answer",
+            "ice_candidate",
+            "end_call",
+          ];
           if (signalingTypes.includes(data.type)) {
             processGlobalSignaling(data);
             return;
@@ -75,7 +84,9 @@ export default function TabLayout() {
             refetchRef.current();
             dispatch(api.util.invalidateTags(["Notification", "Chat"]));
           }
-        } catch (e) { }
+        } catch (e) {
+          console.error("Error processing message:", e);
+        }
       };
 
       socket.onclose = () => {
@@ -93,11 +104,18 @@ export default function TabLayout() {
   }, [token, dispatch, processGlobalSignaling, setGlobalSendSignal]);
 
   // Helper function to render icons consistently
-  const renderTabIcon = (focused: boolean, color: string, iconName: any, iconFocusedName: any) => (
-    <View style={[
-      styles.iconContainer,
-      focused && { backgroundColor: accentColor, borderRadius: 12 }
-    ]}>
+  const renderTabIcon = (
+    focused: boolean,
+    color: string,
+    iconName: any,
+    iconFocusedName: any,
+  ) => (
+    <View
+      style={[
+        styles.iconContainer,
+        focused && { backgroundColor: accentColor, borderRadius: 12 },
+      ]}
+    >
       <Ionicons
         name={focused ? iconFocusedName : iconName}
         size={24}
@@ -143,41 +161,52 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, focused }) => renderTabIcon(focused, color, "home-outline", "home"),
+          tabBarIcon: ({ color, focused }) =>
+            renderTabIcon(focused, color, "home-outline", "home"),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: "Explore",
-          tabBarIcon: ({ color, focused }) => renderTabIcon(focused, color, "search-outline", "search"),
+          tabBarIcon: ({ color, focused }) =>
+            renderTabIcon(focused, color, "search-outline", "search"),
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
           title: "Notifications",
-          tabBarBadge: notificationData?.count > 0 ? notificationData.count : undefined,
+          tabBarBadge:
+            notificationData?.count > 0 ? notificationData.count : undefined,
           tabBarBadgeStyle: {
             backgroundColor: "#F43F5E",
             fontSize: 10,
             color: "white",
           },
-          tabBarIcon: ({ color, focused }) => renderTabIcon(focused, color, "notifications-outline", "notifications"),
+          tabBarIcon: ({ color, focused }) =>
+            renderTabIcon(
+              focused,
+              color,
+              "notifications-outline",
+              "notifications",
+            ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
           title: "Chat",
-          tabBarIcon: ({ color, focused }) => renderTabIcon(focused, color, "mail-outline", "mail"),
+          tabBarIcon: ({ color, focused }) =>
+            renderTabIcon(focused, color, "mail-outline", "mail"),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, focused }) => renderTabIcon(focused, color, "person-outline", "person"),
+          tabBarIcon: ({ color, focused }) =>
+            renderTabIcon(focused, color, "person-outline", "person"),
         }}
       />
     </Tabs>
@@ -394,7 +423,6 @@ const styles = StyleSheet.create({
 //           ),
 //         }}
 //       />
-
 
 //       <Tabs.Screen
 //         name="notifications"

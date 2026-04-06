@@ -114,8 +114,7 @@ const ActionButton = memo(({
   size?: number;
 }) => (
   <TouchableOpacity
-    className={`flex-row items-center px-3 py-2 rounded-2xl`}
-    style={active ? { backgroundColor: activeBg } : { backgroundColor: "rgba(243, 244, 246, 0.5)" }}
+    className={`flex-row items-center px-3 py-2 rounded-2xl ${active ? activeBg : "bg-gray-100/50 dark:bg-slate-800/50"}`}
     onPress={onPress}
   >
     <Ionicons
@@ -125,7 +124,7 @@ const ActionButton = memo(({
     />
     {count !== undefined && (
       <Text
-        className={`text-[12px] font-black ml-1.5 ${active ? "" : "text-gray-500"}`}
+        className={`text-[12px] font-black ml-1.5 ${active ? "" : "text-gray-500 dark:text-slate-500"}`}
         style={active ? { color: activeColor } : {}}
       >
         {count}
@@ -192,7 +191,7 @@ const ReplyItem = memo(
     return (
       <View
         style={isDeepReply ? { marginLeft: indentLevel * 16 } : undefined}
-        className={`${isDeepReply ? "border-l-2 border-sky-100 pl-3" : "border-b border-gray-50"} bg-[#F8FAFC]`}
+        className={`${isDeepReply ? "border-l-2 border-sky-100 dark:border-slate-700 pl-3" : "border-b border-gray-50 dark:border-slate-800/50"} bg-[#F8FAFC] dark:bg-[#0F172A]`}
       >
         <TouchableOpacity
           onPress={() => {
@@ -207,14 +206,14 @@ const ReplyItem = memo(
                 item.author?.image ||
                 `https://api.dicebear.com/7.x/avataaars/png?seed=${item.author?.id}`,
             }}
-            className="w-10 h-10 rounded-2xl mr-3 bg-white shadow-sm"
+            className="w-10 h-10 rounded-2xl mr-3 bg-white dark:bg-slate-800 shadow-sm"
             contentFit="cover"
             transition={300}
           />
           <View className="flex-1">
             <View className="flex-row items-center justify-between mb-0.5">
               <View className="flex-row items-center">
-                <Text className="font-black text-[14px] text-gray-900 tracking-tight">
+                <Text className="font-black text-[14px] text-gray-900 dark:text-white tracking-tight">
                   {item.author?.name || "Member"}
                 </Text>
                 <Text className="text-sky-500 font-bold text-[11px] ml-2 uppercase tracking-widest">
@@ -223,7 +222,7 @@ const ReplyItem = memo(
               </View>
               <TouchableOpacity
                 onPress={() => onOptions(item)}
-                className="w-8 h-8 items-center justify-center rounded-xl bg-gray-50/50"
+                className="w-8 h-8 items-center justify-center rounded-xl bg-gray-50/50 dark:bg-slate-800/50"
               >
                 <Ionicons
                   name="ellipsis-horizontal"
@@ -234,18 +233,18 @@ const ReplyItem = memo(
             </View>
 
             {isDeepReply && item.parent?.author && (
-              <View className="bg-sky-50/50 self-start px-2 py-0.5 rounded-lg mb-1">
-                <Text className="text-sky-600 font-bold text-[11px]">
+              <View className="bg-sky-50/50 dark:bg-sky-500/10 self-start px-2 py-0.5 rounded-lg mb-1">
+                <Text className="text-sky-600 dark:text-sky-400 font-bold text-[11px]">
                   Replying to @{item.parent.author.username}
                 </Text>
               </View>
             )}
 
-            <Text className="text-[15px] leading-[22px] text-gray-800 font-medium">
+            <Text className="text-[15px] leading-[22px] text-gray-800 dark:text-slate-300 font-medium">
               {(() => {
                 if (item.isDeleted)
                   return (
-                    <Text className="italic text-gray-400 font-medium">
+                    <Text className="italic text-gray-400 dark:text-slate-500 font-medium">
                       [Post Deleted]
                     </Text>
                   );
@@ -284,7 +283,7 @@ const ReplyItem = memo(
                   return (
                     <Image
                       source={{ uri: imgs[0] }}
-                      className="w-full h-48 rounded-2xl border border-gray-100 bg-white"
+                      className="w-full h-48 rounded-2xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800"
                       contentFit="cover"
                       transition={400}
                     />
@@ -302,7 +301,7 @@ const ReplyItem = memo(
                       <Image
                         key={idx}
                         source={{ uri }}
-                        className="w-56 h-48 rounded-2xl mr-3 border border-gray-100 bg-white"
+                        className="w-56 h-48 rounded-2xl mr-3 border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800"
                         contentFit="cover"
                         transition={400}
                       />
@@ -317,7 +316,7 @@ const ReplyItem = memo(
                 icon="chatbubble-outline"
                 count={item._count?.replies}
                 activeColor="#64748B"
-                activeBg="bg-gray-100"
+                activeBg="bg-gray-100 dark:bg-slate-800"
                 onPress={() =>
                   onReply(item.id, item.author?.username || item.author?.name)
                 }
@@ -328,7 +327,7 @@ const ReplyItem = memo(
                 count={item._count?.reposts}
                 active={hasReposted}
                 activeColor="#10B981"
-                activeBg="bg-emerald-50"
+                activeBg="bg-emerald-50 dark:bg-emerald-500/10"
                 onPress={handleRepost}
                 size={16}
               />
@@ -337,13 +336,13 @@ const ReplyItem = memo(
                 count={item._count?.likes}
                 active={hasLiked}
                 activeColor="#F43F5E"
-                activeBg="bg-rose-50"
+                activeBg="bg-rose-50 dark:bg-rose-500/10"
                 onPress={handleLike}
                 size={16}
               />
               <TouchableOpacity
                 onPress={handleShare}
-                className="w-8 h-8 items-center justify-center rounded-xl bg-gray-50/50"
+                className="w-8 h-8 items-center justify-center rounded-xl bg-gray-50/50 dark:bg-slate-800/50"
               >
                 <Ionicons name="share-outline" size={16} color="#64748B" />
               </TouchableOpacity>
@@ -495,7 +494,7 @@ export default function PostDetailScreen() {
 
   if (threadLoading) {
     return (
-      <View className="flex-1 bg-[#F8FAFC] justify-center items-center">
+      <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A] justify-center items-center">
         <ActivityIndicator size="large" color="#0ea5e9" />
       </View>
     );
@@ -503,19 +502,19 @@ export default function PostDetailScreen() {
 
   if (!rootPost) {
     return (
-      <View className="flex-1 bg-[#F8FAFC] justify-center items-center px-10">
-        <View className="w-20 h-20 bg-gray-50 rounded-[40px] items-center justify-center mb-6">
+      <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A] justify-center items-center px-10">
+        <View className="w-20 h-20 bg-gray-50 dark:bg-slate-800 rounded-[40px] items-center justify-center mb-6">
           <Ionicons name="search-outline" size={40} color="#CBD5E1" />
         </View>
-        <Text className="text-2xl font-black text-gray-900 tracking-tighter uppercase text-center">
+        <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase text-center">
           Post Not Found
         </Text>
-        <Text className="text-gray-400 text-center mt-2 font-medium">
+        <Text className="text-gray-400 dark:text-slate-400 text-center mt-2 font-medium">
           This post seems to have been removed or lost.
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          className="mt-8 px-8 py-3 bg-sky-500 rounded-2xl shadow-lg shadow-sky-200"
+          className="mt-8 px-8 py-3 bg-sky-500 rounded-2xl shadow-lg shadow-sky-200 dark:shadow-none"
         >
           <Text className="text-white font-black uppercase tracking-widest text-xs">
             Return Home
@@ -526,21 +525,21 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Premium Sticky Header */}
       <BlurView
         intensity={80}
-        tint="light"
-        className="flex-row items-center px-5 py-4 border-b border-gray-100/50 z-50"
+        tint="default"
+        className="flex-row items-center px-5 py-4 border-b border-gray-100/50 dark:border-slate-800/50 z-50"
         style={{ paddingTop: insets.top }}
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm"
         >
           <Ionicons name="chevron-back" size={24} color="#64748B" />
         </TouchableOpacity>
-        <Text className="text-xl font-black ml-4 text-gray-900 tracking-tighter uppercase">
+        <Text className="text-xl font-black ml-4 text-gray-900 dark:text-white tracking-tighter uppercase">
           Post
         </Text>
       </BlurView>
@@ -567,17 +566,17 @@ export default function PostDetailScreen() {
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={
-            <View className="p-5 bg-white border-b border-gray-100 rounded-b-[48px] shadow-sm shadow-gray-100">
+            <View className="p-5 bg-white dark:bg-[#0F172A] border-b border-gray-100 dark:border-slate-800 rounded-b-[48px] shadow-sm shadow-gray-100">
               {/* Context Link */}
               {rootPost.replyToId && (
                 <TouchableOpacity
-                  className="mb-4 bg-sky-50 self-start px-3 py-1.5 rounded-xl border border-sky-100/50"
+                  className="mb-4 bg-sky-50 dark:bg-sky-500/10 self-start px-3 py-1.5 rounded-xl border border-sky-100/50 dark:border-sky-500/20"
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push(`/post/${rootPost.replyToId}`);
                   }}
                 >
-                  <Text className="text-sky-600 text-[12px] font-black uppercase tracking-wider">
+                  <Text className="text-sky-600 dark:text-sky-400 text-[12px] font-black uppercase tracking-wider">
                     Show Parent Post
                   </Text>
                 </TouchableOpacity>
@@ -595,13 +594,13 @@ export default function PostDetailScreen() {
                         rootPost.author?.image ||
                         `https://api.dicebear.com/7.x/avataaars/png?seed=${rootPost.author?.id}`,
                     }}
-                    className="w-14 h-14 rounded-[22px] mr-4 bg-white shadow-md shadow-sky-100"
+                    className="w-14 h-14 rounded-[22px] mr-4 bg-white dark:bg-slate-800 shadow-md shadow-sky-100 dark:shadow-none"
                     contentFit="cover"
                     transition={300}
                   />
                   <View className="flex-1">
                     <View className="flex-row items-center">
-                      <Text className="font-black text-[18px] text-gray-900 tracking-tighter">
+                      <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tighter">
                         {rootPost.author?.name || "Member"}
                       </Text>
                       {rootPost.author?.username === "official" && (
@@ -655,11 +654,11 @@ export default function PostDetailScreen() {
               </View>
 
               {/* Content Body */}
-              <Text className="text-[18px] leading-7 text-gray-900 font-medium mb-5">
+              <Text className="text-[18px] leading-7 text-gray-900 dark:text-white font-medium mb-5">
                 {(() => {
                   if (rootPost.isDeleted)
                     return (
-                      <Text className="italic text-gray-400">
+                      <Text className="italic text-gray-400 dark:text-slate-500">
                         [Post Deleted]
                       </Text>
                     );
@@ -697,7 +696,7 @@ export default function PostDetailScreen() {
                   return (
                     <Image
                       source={{ uri: imgs[0] }}
-                      className="w-full h-80 rounded-[40px] mb-6 border border-gray-50 bg-gray-50 shadow-lg shadow-gray-100"
+                      className="w-full h-80 rounded-[40px] mb-6 border border-gray-50 dark:border-slate-800 bg-gray-50 dark:bg-slate-800 shadow-lg shadow-gray-100 dark:shadow-none"
                       contentFit="cover"
                       transition={400}
                     />
@@ -716,7 +715,7 @@ export default function PostDetailScreen() {
                       <Image
                         key={idx}
                         source={{ uri }}
-                        className="w-72 h-80 rounded-[40px] mr-4 border border-gray-50 bg-gray-50 shadow-md shadow-gray-100"
+                        className="w-72 h-80 rounded-[40px] mr-4 border border-gray-50 dark:border-slate-800 bg-gray-50 dark:bg-slate-800 shadow-md shadow-gray-100 dark:shadow-none"
                         contentFit="cover"
                         transition={400}
                       />
@@ -726,7 +725,7 @@ export default function PostDetailScreen() {
               })()}
 
               {/* Timestamp & Metrics */}
-              <View className="py-4 border-y border-gray-100/80 mb-4 px-1">
+              <View className="py-4 border-y border-gray-100/80 dark:border-slate-800/80 mb-4 px-1">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
                     <Ionicons
@@ -734,7 +733,7 @@ export default function PostDetailScreen() {
                       size={14}
                       color="#94A3B8"
                     />
-                    <Text className="text-gray-400 font-bold uppercase text-[11px] ml-2 tracking-widest">
+                    <Text className="text-gray-400 dark:text-slate-500 font-bold uppercase text-[11px] ml-2 tracking-widest">
                       {new Date(rootPost.createdAt).toLocaleDateString(
                         "en-US",
                         {
@@ -756,13 +755,12 @@ export default function PostDetailScreen() {
                 </View>
               </View>
 
-              {/* Action Bar */}
               <View className="flex-row justify-between items-center px-1">
                 <ActionButton
                   icon="chatbubble-outline"
                   count={rootPost._count?.replies}
                   activeColor="#64748B"
-                  activeBg="bg-gray-100"
+                  activeBg="bg-gray-100 dark:bg-slate-800"
                   onPress={() => inputRef.current?.focus()}
                   size={22}
                 />
@@ -772,7 +770,7 @@ export default function PostDetailScreen() {
                   count={rootPost._count?.reposts}
                   active={hasReposted}
                   activeColor="#10B981"
-                  activeBg="bg-emerald-50"
+                  activeBg="bg-emerald-50 dark:bg-emerald-500/10"
                   onPress={handlePostRepost}
                   size={24}
                 />
@@ -782,7 +780,7 @@ export default function PostDetailScreen() {
                   count={rootPost._count?.likes}
                   active={hasLiked}
                   activeColor="#F43F5E"
-                  activeBg="bg-rose-50"
+                  activeBg="bg-rose-50 dark:bg-rose-500/10"
                   onPress={handlePostLike}
                   size={24}
                 />
@@ -791,14 +789,14 @@ export default function PostDetailScreen() {
                   icon={isBookmarked ? "bookmark" : "bookmark-outline"}
                   active={isBookmarked}
                   activeColor="#0EA5E9"
-                  activeBg="bg-sky-50"
+                  activeBg="bg-sky-50 dark:bg-sky-500/10"
                   onPress={handlePostBookmark}
                   size={22}
                 />
 
                 <TouchableOpacity
                   onPress={handlePostShare}
-                  className="w-12 h-12 items-center justify-center rounded-2xl bg-gray-50/50"
+                  className="w-12 h-12 items-center justify-center rounded-2xl bg-gray-50/50 dark:bg-slate-800/50"
                 >
                   <Ionicons name="share-outline" size={22} color="#64748B" />
                 </TouchableOpacity>
@@ -810,12 +808,12 @@ export default function PostDetailScreen() {
         {/* Floating Reply Input */}
         <BlurView
           intensity={95}
-          tint="light"
+          tint="default"
           style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-          className="px-5 pt-3 border-t border-gray-100/50"
+          className="px-5 pt-3 border-t border-gray-100/50 dark:border-slate-800/50"
         >
           {replyToId && (
-            <View className="flex-row items-center mb-2 bg-sky-50/80 px-3 py-1.5 rounded-xl border border-sky-100">
+            <View className="flex-row items-center mb-2 bg-sky-50/80 dark:bg-sky-500/10 px-3 py-1.5 rounded-xl border border-sky-100 dark:border-sky-500/20">
               <Text className="text-[11px] font-bold text-sky-600 flex-1">
                 Replying to <Text className="font-black">@{replyTargetName}</Text>
               </Text>
@@ -824,10 +822,10 @@ export default function PostDetailScreen() {
               </TouchableOpacity>
             </View>
           )}
-          <View className="flex-row items-center bg-gray-50/80 border border-gray-100 rounded-[28px] px-5 py-2">
+          <View className="flex-row items-center bg-gray-50/80 dark:bg-slate-800/80 border border-gray-100 dark:border-slate-700 rounded-[28px] px-5 py-2">
             <TextInput
               ref={inputRef}
-              className="flex-1 text-[16px] text-gray-900 font-medium py-1"
+              className="flex-1 text-[16px] text-gray-900 dark:text-white font-medium py-1"
               placeholder={replyToId ? `Reply to @${replyTargetName}...` : "Write your reply..."}
               placeholderTextColor="#94A3B8"
               value={replyContent}

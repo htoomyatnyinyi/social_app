@@ -65,12 +65,12 @@ export default function NewChatScreen() {
   }, [searchedUsers, user?.id]);
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Premium Header */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="px-5 pb-5 z-50 border-b border-gray-100/50 shadow-sm shadow-gray-100"
+        tint="default"
+        className="px-5 pb-5 z-50 border-b border-gray-100/50 dark:border-slate-800/50 shadow-sm shadow-gray-100 dark:shadow-none"
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row items-center justify-between mb-5">
@@ -80,15 +80,15 @@ export default function NewChatScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.back();
               }}
-              className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+              className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 items-center justify-center border border-gray-50 dark:border-slate-700 shadow-sm shadow-gray-100 dark:shadow-none mr-4"
             >
               <Ionicons name="close" size={20} color="#64748B" />
             </TouchableOpacity>
             <View>
-              <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">
+              <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-[-1.5px] uppercase">
                 New Message
               </Text>
-              <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+              <Text className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">
                 Start a Chat
               </Text>
             </View>
@@ -96,12 +96,12 @@ export default function NewChatScreen() {
         </View>
 
         {/* Premium Search Bar */}
-        <View className="flex-row items-center bg-white border border-gray-100/80 rounded-[24px] px-4 py-2.5 shadow-sm shadow-gray-50">
+        <View className="flex-row items-center bg-white dark:bg-slate-800 border border-gray-100/80 dark:border-slate-700 rounded-[24px] px-4 py-2.5 shadow-sm shadow-gray-50 dark:shadow-none">
           <Ionicons name="search" size={18} color="#94A3B8" />
           <TextInput
             placeholder="Search users..."
-            placeholderTextColor="#CBD5E1"
-            className="flex-1 ml-3 text-[16px] text-gray-900 font-medium h-10"
+            placeholderTextColor="#94A3B8"
+            className="flex-1 ml-3 text-[16px] text-gray-900 dark:text-white font-medium h-10"
             value={search}
             onChangeText={setSearch}
             autoFocus
@@ -147,16 +147,16 @@ export default function NewChatScreen() {
               <TouchableOpacity
                 onPress={() => handleStartChat(u.id, u.name)}
                 activeOpacity={0.8}
-                className="flex-row items-center px-5 py-4 active:bg-white/60 mb-1"
+                className="flex-row items-center px-5 py-4 active:bg-white/60 dark:active:bg-slate-800/60 mb-1"
               >
-                <View className="relative shadow-md shadow-sky-100">
+                <View className="relative shadow-md shadow-sky-100 dark:shadow-none">
                   <Image
                     source={{
                       uri:
                         u.image ||
                         `https://api.dicebear.com/7.x/avataaars/png?seed=${u.id}`,
                     }}
-                    className="w-[60px] h-[60px] rounded-[24px] bg-white border border-gray-50"
+                    className="w-[60px] h-[60px] rounded-[24px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
                     contentFit="cover"
                     transition={300}
                   />
@@ -166,14 +166,14 @@ export default function NewChatScreen() {
                     </View>
                   )}
                 </View>
-                <View className="ml-5 flex-1 border-b border-gray-100/50 pb-4">
+                <View className="ml-5 flex-1 border-b border-gray-100/50 dark:border-slate-800/50 pb-4">
                   <Text
-                    className="font-black text-[17px] text-gray-900 tracking-tight mb-0.5"
+                    className="font-black text-[17px] text-gray-900 dark:text-white tracking-tight mb-0.5"
                     numberOfLines={1}
                   >
                     {u.name}
                   </Text>
-                  <Text className="text-gray-400 text-[12px] font-bold uppercase tracking-wider">
+                  <Text className="text-gray-400 dark:text-slate-500 text-[12px] font-bold uppercase tracking-wider">
                     @{u.username}
                   </Text>
                 </View>
@@ -186,14 +186,14 @@ export default function NewChatScreen() {
           {!search && (
             <View className="items-center justify-center mt-20 px-14 opacity-20">
               <Animated.View entering={ZoomIn}>
-                <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100">
+                <View className="w-24 h-24 bg-white dark:bg-slate-800 rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100 dark:border-slate-700">
                   <Ionicons name="sparkles" size={48} color="#94A3B8" />
                 </View>
               </Animated.View>
-              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
+              <Text className="text-xl font-black text-center mb-2 text-gray-900 dark:text-white uppercase tracking-widest">
                 Find someone
               </Text>
-              <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+              <Text className="text-gray-400 dark:text-slate-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
                 Search by name or username to start a new conversation.
               </Text>
             </View>
@@ -202,14 +202,14 @@ export default function NewChatScreen() {
           {/* No Results Found */}
           {search.length > 0 && filteredUsers.length === 0 && !isLoading && (
             <View className="items-center justify-center mt-20 px-14 opacity-20">
-              <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100">
+              <View className="w-24 h-24 bg-white dark:bg-slate-800 rounded-[40px] items-center justify-center mb-10 shadow-sm border border-gray-100 dark:border-slate-700">
                 <Ionicons name="search-outline" size={48} color="#94A3B8" />
               </View>
-              <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
+              <Text className="text-xl font-black text-center mb-2 text-gray-900 dark:text-white uppercase tracking-widest">
                 No users found
               </Text>
-              <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-                No users matched "{search}".
+              <Text className="text-gray-400 dark:text-slate-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+                No users matched &quot;{search}&quot;.
               </Text>
             </View>
           )}
@@ -227,10 +227,10 @@ export default function NewChatScreen() {
       {isCreating && (
         <BlurView
           intensity={40}
-          tint="light"
+          tint="default"
           className="absolute inset-0 items-center justify-center z-[100]"
         >
-          <View className="bg-white/80 p-10 rounded-[40px] border border-white shadow-2xl items-center">
+          <View className="bg-white/80 dark:bg-slate-800/80 p-10 rounded-[40px] border border-white dark:border-slate-700 shadow-2xl items-center">
             <ActivityIndicator size="large" color="#0EA5E9" />
             <Text className="mt-6 text-[11px] font-black text-sky-600 uppercase tracking-[2px]">
               Starting chat...
