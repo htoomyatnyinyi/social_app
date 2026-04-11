@@ -6,11 +6,13 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { useGetMutedUsersQuery, useMuteUserMutation } from "../../store/profileApi";
 
 export default function MutedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const { data: mutedUsers, isLoading, refetch } = useGetMutedUsersQuery({});
   const [unmuteUser] = useMuteUserMutation();
 
@@ -25,7 +27,7 @@ export default function MutedScreen() {
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <View className="flex-row items-center px-5 py-4 bg-white border-b border-gray-50 mb-1">
+    <View className={`flex-row items-center px-5 py-4 ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-50"} border-b mb-1`}>
       <TouchableOpacity
         onPress={() => router.push(`/profile/${item.id}`)}
         className="flex-row items-center flex-1"
@@ -52,8 +54,11 @@ export default function MutedScreen() {
   );
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
-      <BlurView intensity={80} tint="light" className="flex-row items-center px-5 py-4 border-b border-gray-100/50" style={{ paddingTop: insets.top }}>
+    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
+      <BlurView
+        intensity={80}
+        tint={isDark ? "dark" : "light"}
+        className={`flex-row items-center px-5 py-4 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`} style={{ paddingTop: insets.top }}>
         <TouchableOpacity
           onPress={() => router.back()}
           className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"

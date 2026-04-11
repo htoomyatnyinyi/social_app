@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
+// import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "@/context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import {
   useGetBookmarksQuery,
@@ -26,6 +28,7 @@ import PostOptionsModal from "@/components/PostOptionsModal";
 export default function BookmarksScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const user = useSelector((state: any) => state.auth.user);
 
   const {
@@ -70,22 +73,31 @@ export default function BookmarksScreen() {
     [bookmarkPost],
   );
 
-  const handleRepostAction = useCallback(async (post: Post) => {
-    try {
-      await repostPost({ id: post.id }).unwrap();
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (err) {
-      console.error("Repost failed", err);
-    }
-  }, [repostPost]);
+  const handleRepostAction = useCallback(
+    async (post: Post) => {
+      try {
+        await repostPost({ id: post.id }).unwrap();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (err) {
+        console.error("Repost failed", err);
+      }
+    },
+    [repostPost],
+  );
 
-  const handlePressPost = useCallback((id: string) => {
-    router.push(`/post/${id}`);
-  }, [router]);
+  const handlePressPost = useCallback(
+    (id: string) => {
+      router.push(`/post/${id}`);
+    },
+    [router],
+  );
 
-  const handlePressProfile = useCallback((id: string) => {
-    router.push(`/profile/${id}`);
-  }, [router]);
+  const handlePressProfile = useCallback(
+    (id: string) => {
+      router.push(`/profile/${id}`);
+    },
+    [router],
+  );
 
   const handlePressOptions = useCallback((p: Post) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -111,8 +123,8 @@ export default function BookmarksScreen() {
       {/* Premium Header */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="px-5 pb-5 z-50 border-b border-gray-100/50"
+        tint={isDark ? "dark" : "light"}
+        className={`px-5 pb-5 z-50 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`}
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row items-center">
@@ -163,7 +175,7 @@ export default function BookmarksScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={Platform.OS === "android"}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center mt-32 px-14 opacity-20">
             <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 border border-gray-100">
@@ -173,7 +185,7 @@ export default function BookmarksScreen() {
               No Bookmarks
             </Text>
             <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-              You haven't saved any posts here yet.
+              You have not saved any posts here yet.
             </Text>
           </View>
         }

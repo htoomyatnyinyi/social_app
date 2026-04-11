@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import {
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferencesMutation,
@@ -21,6 +22,7 @@ import {
 export default function NotificationSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
 
   const { data: preferences, isLoading: isFetching } = useGetNotificationPreferencesQuery({});
   const [updatePreferences, { isLoading: isUpdating }] = useUpdateNotificationPreferencesMutation();
@@ -131,8 +133,8 @@ export default function NotificationSettingsScreen() {
       {/* Premium Header */}
       <BlurView
         intensity={90}
-        tint="light"
-        className="px-5 pb-5 z-50 border-b border-gray-100/50"
+        tint={isDark ? "dark" : "light"}
+        className={`px-5 pb-5 z-50 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`}
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row items-center">

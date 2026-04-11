@@ -26,6 +26,7 @@ import {
 import {
   useSafeAreaInsets
 } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import PostOptionsModal from "../../components/PostOptionsModal";
 import {
@@ -362,6 +363,7 @@ ReplyItem.displayName = "ReplyItem";
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const currentUser = useSelector((state: any) => state.auth.user);
 
   const [replyContent, setReplyContent] = useState("");
@@ -529,7 +531,7 @@ export default function PostDetailScreen() {
       {/* Premium Sticky Header */}
       <BlurView
         intensity={80}
-        tint="default"
+        tint={isDark ? "dark" : "light"}
         className="flex-row items-center px-5 py-4 border-b border-gray-100/50 dark:border-slate-800/50 z-50"
         style={{ paddingTop: insets.top }}
       >
@@ -808,7 +810,7 @@ export default function PostDetailScreen() {
         {/* Floating Reply Input */}
         <BlurView
           intensity={95}
-          tint="default"
+          tint={isDark ? "dark" : "light"}
           style={{ paddingBottom: Math.max(insets.bottom, 20) }}
           className="px-5 pt-3 border-t border-gray-100/50 dark:border-slate-800/50"
         >

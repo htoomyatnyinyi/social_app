@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "ananta",
-    "slug": "ananta",
-    "version": "2.5.0",
+    "name": "arkta",
+    "slug": "arkta",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "ananta",
+    "scheme": "arkta",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.htoomyatnyinyi.ananta",
+      "bundleIdentifier": "com.htoomyatnyinyi.arkta",
       "bitcode": false
     },
     "android": {
@@ -19,8 +19,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      // "googleServicesFile": "./google-services.json",
-      "package": "com.htoomyatnyinyi.ananta",
+      "package": "com.htoomyatnyinyi.arkta",
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
@@ -31,7 +30,9 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WAKE_LOCK",
-        "android.permission.BLUETOOTH"
+        "android.permission.BLUETOOTH",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -76,7 +77,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e819e9d3-f1ab-497d-8b76-e695cf1445e4"
+        "projectId": "b43c6c94-9dda-40ef-b9d8-9d0c8798be81"
       }
     }
   }

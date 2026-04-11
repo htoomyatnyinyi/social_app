@@ -16,6 +16,7 @@ import {
   useGlobalSearchQuery,
   useGetTrendingQuery,
 } from "../../store/searchApi";
+import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -50,6 +51,7 @@ const EXPLORE_CATEGORIES = [
 export default function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const { q } = useLocalSearchParams<{ q?: string }>();
   const [search, setSearch] = useState(q || "");
   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
@@ -219,7 +221,7 @@ export default function ExploreScreen() {
         />
         <BlurView
           intensity={95}
-          tint="light"
+          tint={isDark ? "dark" : "light"}
           className="p-6 bg-white/40 dark:bg-slate-900/60 absolute bottom-0 left-0 right-0"
         >
           <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">
@@ -408,8 +410,7 @@ export default function ExploreScreen() {
       {/* Search Header - Sticky Blur */}
       <BlurView
         intensity={90}
-        // @ts-ignore
-        tint="system"
+        tint={isDark ? "dark" : "light"}
         className="z-50 border-b border-gray-100/50 dark:border-slate-800/50"
         style={{ paddingTop: insets.top + 10 }}
       >

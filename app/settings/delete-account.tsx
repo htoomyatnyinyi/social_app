@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
 import { useDeleteAccountMutation } from "../../store/settingsApi";
@@ -12,6 +13,7 @@ import { useDeleteAccountMutation } from "../../store/settingsApi";
 const DeleteAccount = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.auth.user);
   const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
@@ -51,11 +53,11 @@ const DeleteAccount = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { backgroundColor: "#0F172A" }]}>
       <BlurView
         intensity={90}
-        tint="light"
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
+        tint={isDark ? "dark" : "light"}
+        style={[styles.header, { paddingTop: insets.top + 10 }, isDark && { borderBottomColor: "rgba(30,41,59,0.5)" }]}
       >
         <View style={styles.headerRow}>
           <TouchableOpacity

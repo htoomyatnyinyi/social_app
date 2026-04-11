@@ -23,10 +23,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 
 export default function ComposePostScreen() {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const { replyToId, replyToName, quoteId, quoteContent, quoteAuthor } =
     useLocalSearchParams();
   const user = useSelector((state: any) => state.auth.user);
@@ -165,12 +167,12 @@ export default function ComposePostScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
+    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       {/* Premium Header */}
       <BlurView
         intensity={80}
-        tint="light"
-        className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100/50 z-50"
+        tint={isDark ? "dark" : "light"}
+        className={`flex-row items-center justify-between px-5 py-4 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"} z-50`}
         style={{ paddingTop: insets.top }}
       >
         <TouchableOpacity
@@ -349,7 +351,7 @@ export default function ComposePostScreen() {
         {/* Premium Tool Dock */}
         <BlurView
           intensity={90}
-          tint="light"
+          tint={isDark ? "dark" : "light"}
         // className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 bg-white/50"
         >
           <View className="px-5 py-4 flex-row items-center justify-between">

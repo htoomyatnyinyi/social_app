@@ -235,7 +235,7 @@ export default function FeedScreen() {
           <Text
             className={`text-2xl font-black tracking-[-1.5px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}
           >
-            TWINKLE
+            ARKTA
           </Text>
         </View>
 

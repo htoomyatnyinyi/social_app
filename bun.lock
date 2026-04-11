@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "ananta",
+      "name": "arkta",
       "dependencies": {
         "@config-plugins/react-native-webrtc": "^13.0.0",
         "@expo/vector-icons": "^15.1.1",

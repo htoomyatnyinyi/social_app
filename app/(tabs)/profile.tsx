@@ -277,7 +277,7 @@ export default function ProfileScreen() {
           {profile?.location && (
             <BlurView
               intensity={isDark ? 50 : 30}
-              tint="light"
+              tint={isDark ? "dark" : "light"}
               className={`flex-row items-center mr-4 mb-2 px-3 py-1.5 rounded-xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-white/50 bg-white/20"}`}
             >
               <Ionicons
@@ -750,7 +750,7 @@ export default function ProfileScreen() {
 //         </View>
 
 //         <Text className="mt-4 text-[16px] text-gray-600 font-medium leading-[22px]">
-//           {profile?.bio || "Finding my rhythm in the ananta of mindfulness. "}
+//           {profile?.bio || "Finding my rhythm in the arkta of mindfulness. "}
 //         </Text>
 
 //         <View className="flex-row flex-wrap mt-4">
