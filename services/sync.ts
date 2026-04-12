@@ -109,9 +109,10 @@ export const syncMessages = async (
     );
 
     if (response.ok) {
-      const newMessages = await response.json();
-      // newMessages should be an array
-      if (Array.isArray(newMessages) && newMessages.length > 0) {
+      const data = await response.json();
+      // Handle both new paginated shape and legacy array format
+      const newMessages = Array.isArray(data) ? data : (data.messages || []);
+      if (newMessages.length > 0) {
         let maxCreatedAt = lastSyncedAt;
 
         for (const msg of newMessages) {

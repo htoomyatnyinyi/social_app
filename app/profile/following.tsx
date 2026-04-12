@@ -20,7 +20,7 @@ export default function FollowingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
-  const { data: following, isLoading, refetch } = useGetFollowingQuery(userId);
+  const { data: followingData, isLoading, refetch } = useGetFollowingQuery({ id: userId as string });
   const [followUser] = useFollowUserMutation();
 
   const handleFollow = async (id: string) => {
@@ -87,7 +87,7 @@ export default function FollowingScreen() {
         </View>
       ) : (
         <FlatList
-          data={following || []}
+          data={followingData?.users || followingData || []}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingVertical: 12 }}

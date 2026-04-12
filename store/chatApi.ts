@@ -20,7 +20,25 @@ export const chatApi = api.injectEndpoints({
       invalidatesTags: ["Chat"],
     }),
     getMessages: builder.query({
-      query: (chatId) => `/chat/messages/${chatId}`,
+      query: ({ chatId, cursor }) => {
+        let url = `/chat/messages/${chatId}`;
+        const params: string[] = [];
+        if (cursor) params.push(`cursor=${cursor}`);
+        if (params.length > 0) url += `?${params.join("&")}`;
+        return url;
+      },
+      serializeQueryArgs: ({ queryArgs }) => `getMessages-${queryArgs.chatId}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) return newItems;
+        // Prepend older messages (since they come in ascending order)
+        const existingIds = new Set(currentCache.messages.map((m: any) => m.id));
+        const uniqueNew = newItems.messages.filter((m: any) => !existingIds.has(m.id));
+        currentCache.messages = [...uniqueNew, ...currentCache.messages];
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       providesTags: ["Message"],
     }),
     markMessagesAsRead: builder.mutation({

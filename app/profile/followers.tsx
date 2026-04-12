@@ -21,7 +21,7 @@ export default function FollowersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
-  const { data: followers, isLoading, refetch } = useGetFollowersQuery(userId);
+  const { data: followersData, isLoading, refetch } = useGetFollowersQuery({ id: userId as string });
   const [followUser] = useFollowUserMutation();
 
   const handleFollow = async (id: string) => {
@@ -88,7 +88,7 @@ export default function FollowersScreen() {
         </View>
       ) : (
         <FlatList
-          data={followers || []}
+          data={followersData?.users || followersData || []}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingVertical: 12 }}

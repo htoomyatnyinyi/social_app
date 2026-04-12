@@ -57,20 +57,20 @@ export default function UserProfileScreen() {
   } = useGetProfileQuery(id as string, { skip: !id });
 
   const { data: postData, refetch: refetchPosts } = useGetUserPostsQuery(
-    id as string,
+    { id: id as string },
     {
       skip: !id || activeTab !== "posts",
     },
   );
 
   const { data: likeData, refetch: refetchLikes } = useGetUserLikesQuery(
-    id as string,
+    { id: id as string },
     {
       skip: !id || activeTab !== "likes",
     },
   );
 
-  const { data: replyData, refetch: refetchReplies } = useGetUserRepliesQuery(id as string, {
+  const { data: replyData, refetch: refetchReplies } = useGetUserRepliesQuery({ id: id as string }, {
     skip: !id || activeTab !== "replies",
   });
 

@@ -77,21 +77,73 @@ export const profileApi = api.injectEndpoints({
       }),
     }),
     getFollowers: builder.query({
-      query: (id) => `/profile/${id}/followers`,
+      query: ({ id, cursor }) => {
+        let url = `/profile/${id}/followers`;
+        if (cursor) url += `?cursor=${cursor}`;
+        return url;
+      },
+      serializeQueryArgs: ({ queryArgs }) => `getFollowers-${queryArgs.id}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) return newItems;
+        currentCache.users.push(...newItems.users);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       providesTags: ["User"],
     }),
     getFollowing: builder.query({
-      query: (id) => `/profile/${id}/following`,
+      query: ({ id, cursor }) => {
+        let url = `/profile/${id}/following`;
+        if (cursor) url += `?cursor=${cursor}`;
+        return url;
+      },
+      serializeQueryArgs: ({ queryArgs }) => `getFollowing-${queryArgs.id}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) return newItems;
+        currentCache.users.push(...newItems.users);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       providesTags: ["User"],
     }),
     getUserPosts: builder.query({
-      query: (id) => `/profile/${id}/posts`,
+      query: ({ id, cursor }) => {
+        let url = `/profile/${id}/posts`;
+        if (cursor) url += `?cursor=${cursor}`;
+        return url;
+      },
       transformResponse: transformNormalizedResponse,
+      serializeQueryArgs: ({ queryArgs }) => `getUserPosts-${queryArgs.id}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) return newItems;
+        currentCache.posts.push(...newItems.posts);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       providesTags: ["Post"],
     }),
     getUserLikes: builder.query({
-      query: (id) => `/profile/${id}/likes`,
+      query: ({ id, cursor }) => {
+        let url = `/profile/${id}/likes`;
+        if (cursor) url += `?cursor=${cursor}`;
+        return url;
+      },
       transformResponse: transformNormalizedResponse,
+      serializeQueryArgs: ({ queryArgs }) => `getUserLikes-${queryArgs.id}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) return newItems;
+        currentCache.posts.push(...newItems.posts);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       providesTags: ["Post"],
     }),
     getSuggestions: builder.query({
@@ -99,8 +151,21 @@ export const profileApi = api.injectEndpoints({
       providesTags: ["Profile"],
     }),
     getUserReplies: builder.query({
-      query: (id) => `/profile/${id}/replies`,
+      query: ({ id, cursor }) => {
+        let url = `/profile/${id}/replies`;
+        if (cursor) url += `?cursor=${cursor}`;
+        return url;
+      },
       transformResponse: transformNormalizedResponse,
+      serializeQueryArgs: ({ queryArgs }) => `getUserReplies-${queryArgs.id}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) return newItems;
+        currentCache.posts.push(...newItems.posts);
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       providesTags: ["Post"],
     }),
     getUserReposts: builder.query({

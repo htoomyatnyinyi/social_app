@@ -58,7 +58,7 @@ export default function ProfileScreen() {
     data: postData,
     isLoading: isPostsLoading,
     refetch: refetchPosts,
-  } = useGetUserPostsQuery(user?.id, {
+  } = useGetUserPostsQuery({ id: user?.id }, {
     skip: !user?.id || activeTab !== "posts",
   });
 
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
     data: likeData,
     isLoading: isLikesLoading,
     refetch: refetchLikes,
-  } = useGetUserLikesQuery(user?.id, {
+  } = useGetUserLikesQuery({ id: user?.id }, {
     skip: !user?.id || activeTab !== "likes",
   });
 
@@ -74,7 +74,7 @@ export default function ProfileScreen() {
     data: replyData,
     isLoading: isRepliesLoading,
     refetch: refetchReplies,
-  } = useGetUserRepliesQuery(user?.id, {
+  } = useGetUserRepliesQuery({ id: user?.id }, {
     skip: !user?.id || activeTab !== "replies",
   });
 
