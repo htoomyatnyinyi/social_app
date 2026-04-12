@@ -366,7 +366,7 @@ export default function FeedScreen() {
             <View className="py-20 items-center opacity-20">
               <Ionicons
                 name="infinite"
-                size={24}
+                size={20}
                 color={isDark ? "#475569" : "#94A3B8"}
               />
             </View>
