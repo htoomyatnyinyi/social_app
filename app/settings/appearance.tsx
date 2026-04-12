@@ -82,7 +82,7 @@ export default function AppearanceScreen() {
   ];
 
   return (
-    <View 
+    <View
       className="flex-1"
       style={{ backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}
     >
@@ -161,7 +161,7 @@ export default function AppearanceScreen() {
                 shadowOpacity: 0.5,
                 shadowRadius: 2,
                 elevation: 2,
-              }
+              },
             ]}
           >
             <View className="flex-row items-center mb-4">
@@ -185,12 +185,12 @@ export default function AppearanceScreen() {
                           : 16,
                   }}
                 >
-                  John Doe
+                  Htoo Myat Nyi Nyi
                 </Text>
                 <Text
                   className={`text-xs ${isDark ? "text-slate-400" : "text-gray-400"}`}
                 >
-                  @johndoe • Now
+                  @htoomyatnyinyi • Now
                 </Text>
               </View>
             </View>
@@ -235,15 +235,15 @@ export default function AppearanceScreen() {
                 }`}
                 style={[
                   { width: (width - 60) / 3 },
-                  theme === item.id 
+                  theme === item.id
                     ? {
                         shadowColor: "#000",
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.05,
                         shadowRadius: 6,
                         elevation: 3,
-                      } 
-                    : {}
+                      }
+                    : {},
                 ]}
               >
                 <View
@@ -302,7 +302,7 @@ export default function AppearanceScreen() {
                 shadowOpacity: 0.5,
                 shadowRadius: 2,
                 elevation: 2,
-              }
+              },
             ]}
           >
             <View className="flex-row flex-wrap justify-between">
@@ -355,7 +355,7 @@ export default function AppearanceScreen() {
                 shadowOpacity: 0.5,
                 shadowRadius: 2,
                 elevation: 2,
-              }
+              },
             ]}
           >
             {fontSizes.map((item, i) => (

@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSearchUsersQuery } from "../../store/authApi";
 import { useCreateChatRoomMutation } from "../../store/chatApi";
+import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -24,6 +25,7 @@ import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 export default function NewChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const [search, setSearch] = useState("");
   const user = useSelector((state: any) => state.auth.user);
 
@@ -69,7 +71,7 @@ export default function NewChatScreen() {
       {/* Premium Header */}
       <BlurView
         intensity={90}
-        tint="default"
+        tint={isDark ? "dark" : "light"}
         className="px-5 pb-5 z-50 border-b border-gray-100/50 dark:border-slate-800/50 shadow-sm shadow-gray-100 dark:shadow-none"
         style={{ paddingTop: insets.top + 10 }}
       >
@@ -227,7 +229,7 @@ export default function NewChatScreen() {
       {isCreating && (
         <BlurView
           intensity={40}
-          tint="default"
+          tint={isDark ? "dark" : "light"}
           className="absolute inset-0 items-center justify-center z-[100]"
         >
           <View className="bg-white/80 dark:bg-slate-800/80 p-10 rounded-[40px] border border-white dark:border-slate-700 shadow-2xl items-center">

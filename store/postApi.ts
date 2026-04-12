@@ -155,7 +155,7 @@ export const postApi = api.injectEndpoints({
           patchPost.undo();
         }
       },
-      invalidatesTags: ["Post"],
+      // No invalidatesTags — optimistic update handles it
     }),
 
     bookmarkPost: builder.mutation({
@@ -193,7 +193,7 @@ export const postApi = api.injectEndpoints({
           patchPost.undo();
         }
       },
-      invalidatesTags: ["Post"],
+      // No invalidatesTags — optimistic update handles it
     }),
 
     repostPost: builder.mutation({
@@ -230,7 +230,7 @@ export const postApi = api.injectEndpoints({
           patchFeed.undo();
         }
       },
-      invalidatesTags: ["Post"],
+      // No invalidatesTags — optimistic update handles it
     }),
 
     deleteRepost: builder.mutation({
@@ -261,7 +261,7 @@ export const postApi = api.injectEndpoints({
           patchFeed.undo();
         }
       },
-      invalidatesTags: ["Post"],
+      // No invalidatesTags — optimistic update handles it
     }),
 
     getPost: builder.query({

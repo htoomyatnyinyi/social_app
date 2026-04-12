@@ -8,13 +8,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import Animated, {
-  FadeInDown,
-  FadeInUp
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 
@@ -51,10 +48,12 @@ export default function SigninScreen() {
       if (err.data?.requiresVerification) {
         router.push({
           pathname: "/auth/verify",
-          params: { email }
+          params: { email },
         });
       } else {
-        setError(err.data?.message || "Sign in failed. Check your credentials.");
+        setError(
+          err.data?.message || "Sign in failed. Check your credentials.",
+        );
       }
     }
   };
@@ -75,8 +74,12 @@ export default function SigninScreen() {
           <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
             <Ionicons name="infinite" size={48} color="#0EA5E9" />
           </View>
-          <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">Social</Text>
-          <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-[4px] mt-4 text-center">Connect & Share</Text>
+          <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">
+            Arkta
+          </Text>
+          <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-[4px] mt-4 text-center">
+            Connect & Share
+          </Text>
         </Animated.View>
 
         <View className="px-8 flex-1">
@@ -154,11 +157,12 @@ export default function SigninScreen() {
 
           <View className="flex-row justify-center mt-12 mb-10">
             <Text className="text-gray-400 font-medium text-[13px]">
-              Don't have an account? 
+              Do not have an account?
             </Text>
             <TouchableOpacity onPress={() => router.push("/auth/signup")}>
               <Text className="text-sky-500 font-black text-[13px] uppercase tracking-wider">
-                {" "}Sign Up
+                {" "}
+                Sign Up
               </Text>
             </TouchableOpacity>
           </View>

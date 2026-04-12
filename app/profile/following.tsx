@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useGetFollowingQuery, useFollowUserMutation } from "../../store/profileApi";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
+import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
 
@@ -18,7 +19,8 @@ export default function FollowingScreen() {
   const { userId } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: following, isLoading, refetch } = useGetFollowingQuery(userId);
+  const { isDark } = useTheme();
+  const { data: followingData, isLoading, refetch } = useGetFollowingQuery({ id: userId as string });
   const [followUser] = useFollowUserMutation();
 
   const handleFollow = async (id: string) => {
@@ -66,7 +68,10 @@ export default function FollowingScreen() {
   return (
     <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
       {/* Premium Header Container */}
-      <BlurView intensity={80} tint="default" className="flex-row items-center px-5 py-4 border-b border-gray-100/50 dark:border-slate-800/50" style={{ paddingTop: insets.top }}>
+      <BlurView
+        intensity={80}
+        tint={isDark ? "dark" : "light"}
+        className="flex-row items-center px-5 py-4 border-b border-gray-100/50 dark:border-slate-800/50" style={{ paddingTop: insets.top }}>
         <TouchableOpacity 
            onPress={() => router.back()} 
            className="w-10 h-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none"
@@ -82,7 +87,7 @@ export default function FollowingScreen() {
         </View>
       ) : (
         <FlatList
-          data={following || []}
+          data={followingData?.users || followingData || []}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingVertical: 12 }}

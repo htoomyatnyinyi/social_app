@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
@@ -40,6 +41,7 @@ export default function UserProfileScreen() {
   const { id, tab, title: searchTitle } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const user = useSelector((state: any) => state.auth.user);
 
   const [activeTab, setActiveTab] = useState<"posts" | "replies" | "likes">(
@@ -55,20 +57,20 @@ export default function UserProfileScreen() {
   } = useGetProfileQuery(id as string, { skip: !id });
 
   const { data: postData, refetch: refetchPosts } = useGetUserPostsQuery(
-    id as string,
+    { id: id as string },
     {
       skip: !id || activeTab !== "posts",
     },
   );
 
   const { data: likeData, refetch: refetchLikes } = useGetUserLikesQuery(
-    id as string,
+    { id: id as string },
     {
       skip: !id || activeTab !== "likes",
     },
   );
 
-  const { data: replyData, refetch: refetchReplies } = useGetUserRepliesQuery(id as string, {
+  const { data: replyData, refetch: refetchReplies } = useGetUserRepliesQuery({ id: id as string }, {
     skip: !id || activeTab !== "replies",
   });
 
@@ -260,7 +262,7 @@ export default function UserProfileScreen() {
     <View className="bg-[#F8FAFC] dark:bg-[#0F172A]">
       <BlurView
         intensity={80}
-        tint="default"
+        tint={isDark ? "dark" : "light"}
         className="absolute top-0 left-0 right-0 z-50 flex-row items-center px-5 py-4 border-b border-gray-100/50 dark:border-slate-800/50"
         style={{ paddingTop: insets.top }}
       >

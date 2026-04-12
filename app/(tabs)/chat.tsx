@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -34,6 +35,7 @@ import Animated, {
 export default function ChatListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const user = useSelector((state: any) => state.auth.user);
   const [search, setSearch] = useState("");
 
@@ -51,90 +53,105 @@ export default function ChatListScreen() {
     }, [refetch]),
   );
 
-const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index: number; user: any; onPress: (item: any) => void }) => {
-  const otherUser = item.users.find((u: any) => u.id !== user?.id);
-  const lastMessage = item.messages?.[0];
+  const ChatItem = React.memo(
+    ({
+      item,
+      index,
+      user,
+      onPress,
+    }: {
+      item: any;
+      index: number;
+      user: any;
+      onPress: (item: any) => void;
+    }) => {
+      const otherUser = item.users.find((u: any) => u.id !== user?.id);
+      const lastMessage = item.messages?.[0];
 
-  const formatLastMessageTime = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const formatLastMessageTime = (dateString: string) => {
+        const now = new Date();
+        const date = new Date(dateString);
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffMins < 1) return "now";
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays < 7) return `${diffDays}d`;
-    return date.toLocaleDateString([], { month: "short", day: "numeric" });
-  };
+        if (diffMins < 1) return "now";
+        if (diffMins < 60) return `${diffMins}m`;
+        if (diffHours < 24) return `${diffHours}h`;
+        if (diffDays < 7) return `${diffDays}d`;
+        return date.toLocaleDateString([], { month: "short", day: "numeric" });
+      };
 
-  return (
-    <Animated.View entering={FadeInDown.delay(index * 50)}>
-      <TouchableOpacity
-        onPress={() => onPress(item)}
-        activeOpacity={0.8}
-        className="flex-row px-5 py-4 items-center bg-[#F8FAFC] dark:bg-[#0F172A] border-b border-gray-100/50 dark:border-slate-800/50"
-      >
-        <View className="relative shadow-md shadow-sky-100 dark:shadow-none">
-          <Image
-            source={{
-              uri:
-                otherUser?.image ||
-                `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.id}`,
-            }}
-            className="w-[64px] h-[64px] rounded-[24px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
-            contentFit="cover"
-            transition={300}
-          />
-          <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white dark:border-[#0F172A] rounded-full shadow-sm" />
-        </View>
+      return (
+        <Animated.View entering={FadeInDown.delay(index * 50)}>
+          <TouchableOpacity
+            onPress={() => onPress(item)}
+            activeOpacity={0.8}
+            className="flex-row px-5 py-4 items-center bg-[#F8FAFC] dark:bg-[#0F172A] border-b border-gray-100/50 dark:border-slate-800/50"
+          >
+            <View className="relative shadow-md shadow-sky-100 dark:shadow-none">
+              <Image
+                source={{
+                  uri:
+                    otherUser?.image ||
+                    `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.id}`,
+                }}
+                className="w-[64px] h-[64px] rounded-[24px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
+                contentFit="cover"
+                transition={300}
+              />
+              <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white dark:border-[#0F172A] rounded-full shadow-sm" />
+            </View>
 
-        <View className="flex-1 ml-5 justify-center">
-          <View className="flex-row justify-between items-center mb-1.5">
-            <Text
-              className="font-black text-[17px] text-gray-900 dark:text-white tracking-tight"
-              numberOfLines={1}
-            >
-              {otherUser?.name || "Member"}
-            </Text>
-            {lastMessage && (
-              <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                {formatLastMessageTime(lastMessage.createdAt)}
-              </Text>
-            )}
-          </View>
-
-          <View className="flex-row justify-between items-center">
-            <Text
-              className={`text-[14px] leading-5 flex-1 mr-3 ${item.unreadCount > 0 ? "text-gray-900 dark:text-slate-100 font-bold" : "text-gray-500 dark:text-slate-400 font-medium"}`}
-              numberOfLines={1}
-            >
-              {lastMessage?.senderId === user?.id && (
-                <Text className="text-sky-500 font-black">You </Text>
-              )}
-              {lastMessage?.content || "No messages yet..."}
-            </Text>
-            {item.unreadCount > 0 && (
-              <View className="bg-sky-500 min-w-[22px] h-[22px] rounded-[11px] px-1.5 items-center justify-center shadow-md shadow-sky-200">
-                <Text className="text-white text-[10px] font-black">
-                  {item.unreadCount}
+            <View className="flex-1 ml-5 justify-center">
+              <View className="flex-row justify-between items-center mb-1.5">
+                <Text
+                  className="font-black text-[17px] text-gray-900 dark:text-white tracking-tight"
+                  numberOfLines={1}
+                >
+                  {otherUser?.name || "Member"}
                 </Text>
+                {lastMessage && (
+                  <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                    {formatLastMessageTime(lastMessage.createdAt)}
+                  </Text>
+                )}
               </View>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
 
-  const handleChatItemPress = useCallback((item: any) => {
-    const otherUser = item.users.find((u: any) => u.id !== user?.id);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/chat/${item.id}?title=${otherUser?.name || "Chat"}`);
-  }, [user?.id, router]);
+              <View className="flex-row justify-between items-center">
+                <Text
+                  className={`text-[14px] leading-5 flex-1 mr-3 ${item.unreadCount > 0 ? "text-gray-900 dark:text-slate-100 font-bold" : "text-gray-500 dark:text-slate-400 font-medium"}`}
+                  numberOfLines={1}
+                >
+                  {lastMessage?.senderId === user?.id && (
+                    <Text className="text-sky-500 font-black">You </Text>
+                  )}
+                  {lastMessage?.content || "No messages yet..."}
+                </Text>
+                {item.unreadCount > 0 && (
+                  <View className="bg-sky-500 min-w-[22px] h-[22px] rounded-[11px] px-1.5 items-center justify-center shadow-md shadow-sky-200">
+                    <Text className="text-white text-[10px] font-black">
+                      {item.unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    },
+  );
+
+  const handleChatItemPress = useCallback(
+    (item: any) => {
+      const otherUser = item.users.find((u: any) => u.id !== user?.id);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push(`/chat/${item.id}?title=${otherUser?.name || "Chat"}`);
+    },
+    [user?.id, router],
+  );
 
   const filteredRooms = useMemo(() => {
     if (!search.trim()) return rooms;
@@ -152,7 +169,7 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
       {/* Premium Sticky Header */}
       <BlurView
         intensity={90}
-        tint="default"
+        tint={isDark ? "dark" : "light"}
         className="px-5 pb-5 z-50 border-b border-gray-100/50 dark:border-slate-800/50 shadow-sm shadow-gray-100 dark:shadow-none"
         style={{ paddingTop: insets.top + 10 }}
       >
@@ -195,11 +212,11 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
         data={filteredRooms}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
-          <ChatItem 
-            item={item} 
-            index={index} 
-            user={user} 
-            onPress={handleChatItemPress} 
+          <ChatItem
+            item={item}
+            index={index}
+            user={user}
+            onPress={handleChatItemPress}
           />
         )}
         refreshControl={
@@ -217,7 +234,7 @@ const ChatItem = React.memo(({ item, index, user, onPress }: { item: any; index:
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={Platform.OS === "android"}
         ListHeaderComponent={
           <>
             {publicRoom && !search && (
