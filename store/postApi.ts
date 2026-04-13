@@ -9,11 +9,19 @@ const transformNormalizedResponse = (response: any) => {
       if (post.authorId && response.users[post.authorId]) {
         post.author = response.users[post.authorId];
       } else if (post.isDeleted) {
-        post.author = { id: 'deleted', name: 'Deleted User', username: 'deleted', image: 'https://via.placeholder.com/48' };
+        post.author = {
+          id: "deleted",
+          name: "Deleted User",
+          username: "deleted",
+          image: "https://via.placeholder.com/48",
+        };
       }
       // Map author to quoted/original post
       if (post.originalPost) {
-        if (post.originalPost.authorId && response.users[post.originalPost.authorId]) {
+        if (
+          post.originalPost.authorId &&
+          response.users[post.originalPost.authorId]
+        ) {
           post.originalPost.author = response.users[post.originalPost.authorId];
         }
       }
@@ -65,7 +73,16 @@ export const postApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["Post"],
+      providesTags: (result) =>
+        result?.posts
+          ? [
+              ...result.posts.map(({ id }: any) => ({
+                type: "Post" as const,
+                id,
+              })),
+              { type: "Post", id: "LIST" },
+            ]
+          : [{ type: "Post", id: "LIST" }],
     }),
 
     getFeed: builder.query({
@@ -86,12 +103,30 @@ export const postApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["Post"],
+      providesTags: (result) =>
+        result?.posts
+          ? [
+              ...result.posts.map(({ id }: any) => ({
+                type: "Post" as const,
+                id,
+              })),
+              { type: "Post" as const, id: "FEED" },
+            ]
+          : [{ type: "Post" as const, id: "FEED" }],
     }),
 
     getBookmarks: builder.query({
       query: () => "/posts/bookmarks",
-      providesTags: ["Post"],
+      providesTags: (result) =>
+        result
+          ? [
+              ...(result.posts || result).map(({ id }: any) => ({
+                type: "Post" as const,
+                id,
+              })),
+              { type: "Post", id: "BOOKMARKS" },
+            ]
+          : [{ type: "Post", id: "BOOKMARKS" }],
     }),
 
     createPost: builder.mutation({
@@ -109,53 +144,71 @@ export const postApi = api.injectEndpoints({
         method: "POST",
       }),
       async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
-        // Optimistic: toggle isLiked + _count.likes on all cached lists
-        const updateList = (endpointName: string, args: any) =>
-          dispatch(
-            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
-              if (!draft?.posts) return;
-              const post = draft.posts.find((p: any) => p.id === postId);
-              if (post) {
-                if (post.isLiked) {
-                  post.isLiked = false;
-                  if (post._count) post._count.likes = Math.max(0, (post._count.likes || 0) - 1);
-                } else {
-                  post.isLiked = true;
-                  if (post._count) post._count.likes = (post._count.likes || 0) + 1;
-                }
-              }
-            }),
-          );
+        const updatePostInDraft = (draft: any, targetId: string) => {
+          let post;
+          if (Array.isArray(draft)) {
+            post = draft.find((p: any) => p.id === targetId);
+          } else if (draft?.posts) {
+            post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.id === targetId) {
+            post = draft;
+          }
 
-        const patchPublic = updateList("getPosts", { type: "public" } as any);
-        const patchPrivate = updateList("getPosts", { type: "private" } as any);
-        const patchFeed = updateList("getFeed", { cursor: null } as any);
-
-        // Also update the single post detail view
-        const patchPost = dispatch(
-          postApi.util.updateQueryData("getPost", postId, (draft: any) => {
-            if (draft) {
-              if (draft.isLiked) {
-                draft.isLiked = false;
-                if (draft._count) draft._count.likes = Math.max(0, (draft._count.likes || 0) - 1);
-              } else {
-                draft.isLiked = true;
-                if (draft._count) draft._count.likes = (draft._count.likes || 0) + 1;
-              }
+          if (post) {
+            if (post.isLiked) {
+              post.isLiked = false;
+              if (post._count)
+                post._count.likes = Math.max(0, (post._count.likes || 0) - 1);
+            } else {
+              post.isLiked = true;
+              if (post._count) post._count.likes = (post._count.likes || 0) + 1;
             }
-          }),
-        );
+          }
+        };
+
+        const patches = [
+          dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type: "public" } as any,
+              (draft) => updatePostInDraft(draft, postId),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type: "private" } as any,
+              (draft) => updatePostInDraft(draft, postId),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData(
+              "getFeed",
+              { cursor: null } as any,
+              (draft) => updatePostInDraft(draft, postId),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getPost", postId, (draft) =>
+              updatePostInDraft(draft, postId),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getThread", postId, (draft) =>
+              updatePostInDraft(draft, postId),
+            ),
+          ),
+        ];
 
         try {
           await queryFulfilled;
         } catch {
-          patchPublic.undo();
-          patchPrivate.undo();
-          patchFeed.undo();
-          patchPost.undo();
+          patches.forEach((p) => p.undo());
         }
       },
-      // No invalidatesTags — optimistic update handles it
+      invalidatesTags: (result, error, { postId }) => [
+        { type: "Post", id: postId },
+      ],
     }),
 
     bookmarkPost: builder.mutation({
@@ -164,36 +217,59 @@ export const postApi = api.injectEndpoints({
         method: "POST",
       }),
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
-        const updateList = (endpointName: string, args: any) =>
-          dispatch(
-            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
-              if (!draft?.posts) return;
-              const post = draft.posts.find((p: any) => p.id === id);
-              if (post) {
-                post.isBookmarked = !post.isBookmarked;
-              }
-            }),
-          );
+        const updateBookmarkInDraft = (draft: any, targetId: string) => {
+          let post;
+          if (Array.isArray(draft)) {
+            post = draft.find((p: any) => p.id === targetId);
+          } else if (draft?.posts) {
+            post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.id === targetId) {
+            post = draft;
+          }
+          if (post) post.isBookmarked = !post.isBookmarked;
+        };
 
-        const patchPublic = updateList("getPosts", { type: "public" } as any);
-        const patchPrivate = updateList("getPosts", { type: "private" } as any);
-        const patchFeed = updateList("getFeed", { cursor: null } as any);
-        const patchPost = dispatch(
-          postApi.util.updateQueryData("getPost", id, (draft: any) => {
-            if (draft) draft.isBookmarked = !draft.isBookmarked;
-          }),
-        );
+        const patches = [
+          dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type: "public" } as any,
+              (draft) => updateBookmarkInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type: "private" } as any,
+              (draft) => updateBookmarkInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData(
+              "getFeed",
+              { cursor: null } as any,
+              (draft) => updateBookmarkInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getPost", id, (draft) =>
+              updateBookmarkInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getThread", id, (draft) =>
+              updateBookmarkInDraft(draft, id),
+            ),
+          ),
+        ];
 
         try {
           await queryFulfilled;
         } catch {
-          patchPublic.undo();
-          patchPrivate.undo();
-          patchFeed.undo();
-          patchPost.undo();
+          patches.forEach((p) => p.undo());
         }
       },
-      // No invalidatesTags — optimistic update handles it
+      invalidatesTags: (result, error, id) => [{ type: "Post", id }],
     }),
 
     repostPost: builder.mutation({
@@ -202,35 +278,72 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content, image, images },
       }),
-      async onQueryStarted(
-        { id, content },
-        { dispatch, queryFulfilled },
-      ) {
+      async onQueryStarted({ id, content }, { dispatch, queryFulfilled }) {
         if (content) return; // Don't optimistically update quotes
 
-        const updateList = (endpointName: string, args: any) =>
-          dispatch(
-            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
-              if (!draft?.posts) return;
-              const post = draft.posts.find((p: any) => p.id === id);
-              if (post) {
-                post.repostedByMe = true;
-                post.repostsCount = (post.repostsCount || 0) + 1;
-              }
-            }),
-          );
+        const updateRepostInDraft = (
+          draft: any,
+          targetId: string,
+          isDelete = false,
+        ) => {
+          let post;
+          if (Array.isArray(draft)) {
+            post = draft.find((p: any) => p.id === targetId);
+          } else if (draft?.posts) {
+            post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.id === targetId) {
+            post = draft;
+          }
 
-        const patchPosts = updateList("getPosts", { type: "public", cursor: null } as any);
-        const patchFeed = updateList("getFeed", { cursor: null } as any);
+          if (post) {
+            post.repostedByMe = !isDelete;
+            post.repostsCount = Math.max(
+              0,
+              (post.repostsCount || 0) + (isDelete ? -1 : 1),
+            );
+            // Sync _count if exists
+            if (post._count) post._count.reposts = post.repostsCount;
+          }
+        };
+
+        const patches = [
+          dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type: "public", cursor: null } as any,
+              (draft) => updateRepostInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData(
+              "getFeed",
+              { cursor: null } as any,
+              (draft) => updateRepostInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getPost", id, (draft) =>
+              updateRepostInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getThread", id, (draft) =>
+              updateRepostInDraft(draft, id),
+            ),
+          ),
+        ];
 
         try {
           await queryFulfilled;
         } catch {
-          patchPosts.undo();
-          patchFeed.undo();
+          patches.forEach((p) => p.undo());
         }
       },
-      // No invalidatesTags — optimistic update handles it
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Post", id },
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
 
     deleteRepost: builder.mutation({
@@ -239,40 +352,85 @@ export const postApi = api.injectEndpoints({
         method: "DELETE",
       }),
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
-        const updateList = (endpointName: string, args: any) =>
-          dispatch(
-            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
-              if (!draft?.posts) return;
-              const post = draft.posts.find((p: any) => p.id === id);
-              if (post) {
-                post.repostedByMe = false;
-                post.repostsCount = Math.max(0, (post.repostsCount || 0) - 1);
-              }
-            }),
-          );
+        const updateRepostInDraft = (
+          draft: any,
+          targetId: string,
+          isDelete = true,
+        ) => {
+          let post;
+          if (Array.isArray(draft)) {
+            post = draft.find((p: any) => p.id === targetId);
+          } else if (draft?.posts) {
+            post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.id === targetId) {
+            post = draft;
+          }
 
-        const patchPosts = updateList("getPosts", { type: "public", cursor: null } as any);
-        const patchFeed = updateList("getFeed", { cursor: null } as any);
+          if (post) {
+            post.repostedByMe = !isDelete;
+            post.repostsCount = Math.max(
+              0,
+              (post.repostsCount || 0) + (isDelete ? -1 : 1),
+            );
+            if (post._count) post._count.reposts = post.repostsCount;
+          }
+        };
+
+        const patches = [
+          dispatch(
+            postApi.util.updateQueryData(
+              "getPosts",
+              { type: "public", cursor: null } as any,
+              (draft) => updateRepostInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData(
+              "getFeed",
+              { cursor: null } as any,
+              (draft) => updateRepostInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getPost", id, (draft) =>
+              updateRepostInDraft(draft, id),
+            ),
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getThread", id, (draft) =>
+              updateRepostInDraft(draft, id),
+            ),
+          ),
+        ];
 
         try {
           await queryFulfilled;
         } catch {
-          patchPosts.undo();
-          patchFeed.undo();
+          patches.forEach((p) => p.undo());
         }
       },
-      // No invalidatesTags — optimistic update handles it
+      invalidatesTags: (result, error, id) => [
+        { type: "Post", id },
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
 
     getPost: builder.query({
       query: (id) => `/posts/${id}`,
-      providesTags: ["Post"],
+      providesTags: (result, error, id) => [{ type: "Post", id }],
     }),
 
     getThread: builder.query({
       query: (id) => `/posts/${id}/thread`,
       transformResponse: (res: any) => transformNormalizedResponse(res).posts,
-      providesTags: ["Post"],
+      providesTags: (result, error, id) =>
+        result
+          ? [
+              ...result.map((p: any) => ({ type: "Post" as const, id: p.id })),
+              { type: "Post", id: `THREAD-${id}` },
+            ]
+          : [{ type: "Post", id: `THREAD-${id}` }],
     }),
 
     getReplies: builder.query({
@@ -291,7 +449,16 @@ export const postApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["Post"],
+      providesTags: (result, error, { id }) =>
+        result?.posts
+          ? [
+              ...result.posts.map((p: any) => ({
+                type: "Post" as const,
+                id: p.id,
+              })),
+              { type: "Post", id: `REPLIES-${id}` },
+            ]
+          : [{ type: "Post", id: `REPLIES-${id}` }],
     }),
 
     replyPost: builder.mutation({
@@ -311,11 +478,15 @@ export const postApi = api.injectEndpoints({
       async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
         const updateList = (endpointName: string, args: any) =>
           dispatch(
-            postApi.util.updateQueryData(endpointName as any, args, (draft: any) => {
-              if (!draft?.posts) return;
-              const post = draft.posts.find((p: any) => p.id === postId);
-              if (post) post.viewCount = (post.viewCount || 0) + 1;
-            }),
+            postApi.util.updateQueryData(
+              endpointName as any,
+              args,
+              (draft: any) => {
+                if (!draft?.posts) return;
+                const post = draft.posts.find((p: any) => p.id === postId);
+                if (post) post.viewCount = (post.viewCount || 0) + 1;
+              },
+            ),
           );
 
         updateList("getPosts", { type: "public" } as any);
@@ -341,22 +512,32 @@ export const postApi = api.injectEndpoints({
       }),
       async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
         const patchPublic = dispatch(
-          postApi.util.updateQueryData("getPosts", { type: "public", cursor: null } as any, (draft) => {
-            if (draft?.posts) {
-              draft.posts = draft.posts.filter((p: any) => p.id !== id && p.originalPost?.id !== id);
-            }
-          }),
+          postApi.util.updateQueryData(
+            "getPosts",
+            { type: "public", cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter(
+                  (p: any) => p.id !== id && p.originalPost?.id !== id,
+                );
+              }
+            },
+          ),
         );
         const patchFeed = dispatch(
-          postApi.util.updateQueryData("getFeed", { cursor: null } as any, (draft) => {
-            if (draft?.posts) {
-              draft.posts = draft.posts.filter((p: any) => {
-                if (p.isRepost && p.originalPost?.id === id) return false;
-                if (p.id === id) return false;
-                return true;
-              });
-            }
-          }),
+          postApi.util.updateQueryData(
+            "getFeed",
+            { cursor: null } as any,
+            (draft) => {
+              if (draft?.posts) {
+                draft.posts = draft.posts.filter((p: any) => {
+                  if (p.isRepost && p.originalPost?.id === id) return false;
+                  if (p.id === id) return false;
+                  return true;
+                });
+              }
+            },
+          ),
         );
 
         try {

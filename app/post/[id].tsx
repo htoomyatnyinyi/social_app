@@ -23,9 +23,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  useSafeAreaInsets
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import PostOptionsModal from "../../components/PostOptionsModal";
@@ -97,42 +95,44 @@ function buildThreadTree(posts: any[], rootId: string) {
 // ────────────────────────────────────────────────
 // Action Button Helper
 // ────────────────────────────────────────────────
-const ActionButton = memo(({
-  icon,
-  count,
-  active,
-  activeColor,
-  onPress,
-  activeBg,
-  size = 18,
-}: {
-  icon: string;
-  count?: number;
-  active?: boolean;
-  activeColor: string;
-  onPress: () => void;
-  activeBg: string;
-  size?: number;
-}) => (
-  <TouchableOpacity
-    className={`flex-row items-center px-3 py-2 rounded-2xl ${active ? activeBg : "bg-gray-100/50 dark:bg-slate-800/50"}`}
-    onPress={onPress}
-  >
-    <Ionicons
-      name={icon as any}
-      size={size}
-      color={active ? activeColor : "#64748B"}
-    />
-    {count !== undefined && (
-      <Text
-        className={`text-[12px] font-black ml-1.5 ${active ? "" : "text-gray-500 dark:text-slate-500"}`}
-        style={active ? { color: activeColor } : {}}
-      >
-        {count}
-      </Text>
-    )}
-  </TouchableOpacity>
-));
+const ActionButton = memo(
+  ({
+    icon,
+    count,
+    active,
+    activeColor,
+    onPress,
+    activeBg,
+    size = 18,
+  }: {
+    icon: string;
+    count?: number;
+    active?: boolean;
+    activeColor: string;
+    onPress: () => void;
+    activeBg: string;
+    size?: number;
+  }) => (
+    <TouchableOpacity
+      className={`flex-row items-center px-3 py-2 rounded-2xl ${active ? activeBg : "bg-gray-100/50 dark:bg-slate-800/50"}`}
+      onPress={onPress}
+    >
+      <Ionicons
+        name={icon as any}
+        size={size}
+        color={active ? activeColor : "#64748B"}
+      />
+      {count !== undefined && (
+        <Text
+          className={`text-[12px] font-black ml-1.5 ${active ? "" : "text-gray-500 dark:text-slate-500"}`}
+          style={active ? { color: activeColor } : {}}
+        >
+          {count}
+        </Text>
+      )}
+    </TouchableOpacity>
+  ),
+);
 
 ActionButton.displayName = "ActionButton";
 
@@ -399,7 +399,7 @@ export default function PostDetailScreen() {
 
   useEffect(() => {
     if (id) {
-      incrementViewCount({ postId: id }).catch(() => { });
+      incrementViewCount({ postId: id }).catch(() => {});
     }
   }, [id, incrementViewCount]);
 
@@ -485,7 +485,7 @@ export default function PostDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       if (!rootPost) return;
-      const urlToShare = `https://social-app.com/post/${rootPost.id}`;
+      const urlToShare = `https://server.myanmarsocial.ccwu.cc/posts/${rootPost.id}`;
       await Share.share({
         message: `Check out this post by @${rootPost.author?.username || "official"}\n${urlToShare}`,
       });
@@ -566,7 +566,7 @@ export default function PostDetailScreen() {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
+          removeClippedSubviews={Platform.OS === "android"}
           ListHeaderComponent={
             <View className="p-5 bg-white dark:bg-[#0F172A] border-b border-gray-100 dark:border-slate-800 rounded-b-[48px] shadow-sm shadow-gray-100">
               {/* Context Link */}
@@ -623,10 +623,11 @@ export default function PostDetailScreen() {
                 <View className="flex-row items-center space-x-2">
                   {rootPost.author?.id !== currentUser?.id && (
                     <TouchableOpacity
-                      className={`px-6 py-2.5 rounded-2xl shadow-sm ${rootPost.isFollowing
-                        ? "bg-white border border-gray-100"
-                        : "bg-sky-500 shadow-sky-200"
-                        }`}
+                      className={`px-6 py-2.5 rounded-2xl shadow-sm ${
+                        rootPost.isFollowing
+                          ? "bg-white border border-gray-100"
+                          : "bg-sky-500 shadow-sky-200"
+                      }`}
                       onPress={handleFollow}
                       disabled={isFollowingMutation}
                     >
@@ -796,12 +797,12 @@ export default function PostDetailScreen() {
                   size={22}
                 />
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   onPress={handlePostShare}
                   className="w-12 h-12 items-center justify-center rounded-2xl bg-gray-50/50 dark:bg-slate-800/50"
                 >
                   <Ionicons name="share-outline" size={22} color="#64748B" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
           }
@@ -817,9 +818,15 @@ export default function PostDetailScreen() {
           {replyToId && (
             <View className="flex-row items-center mb-2 bg-sky-50/80 dark:bg-sky-500/10 px-3 py-1.5 rounded-xl border border-sky-100 dark:border-sky-500/20">
               <Text className="text-[11px] font-bold text-sky-600 flex-1">
-                Replying to <Text className="font-black">@{replyTargetName}</Text>
+                Replying to{" "}
+                <Text className="font-black">@{replyTargetName}</Text>
               </Text>
-              <TouchableOpacity onPress={() => { setReplyToId(null); setReplyTargetName(null); }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setReplyToId(null);
+                  setReplyTargetName(null);
+                }}
+              >
                 <Ionicons name="close-circle" size={16} color="#0EA5E9" />
               </TouchableOpacity>
             </View>
@@ -828,7 +835,11 @@ export default function PostDetailScreen() {
             <TextInput
               ref={inputRef}
               className="flex-1 text-[16px] text-gray-900 dark:text-white font-medium py-1"
-              placeholder={replyToId ? `Reply to @${replyTargetName}...` : "Write your reply..."}
+              placeholder={
+                replyToId
+                  ? `Reply to @${replyTargetName}...`
+                  : "Write your reply..."
+              }
               placeholderTextColor="#94A3B8"
               value={replyContent}
               onChangeText={setReplyContent}
@@ -839,7 +850,9 @@ export default function PostDetailScreen() {
               onPress={handleSendReply}
               disabled={!replyContent.trim()}
               className="w-10 h-10 rounded-2xl items-center justify-center"
-              style={{ backgroundColor: replyContent.trim() ? "#0ea5e9" : "#e5e7eb" }}
+              style={{
+                backgroundColor: replyContent.trim() ? "#0ea5e9" : "#e5e7eb",
+              }}
             >
               <Ionicons name="arrow-up" size={20} color="white" />
             </TouchableOpacity>
