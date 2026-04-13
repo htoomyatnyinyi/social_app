@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useCallback } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
-import { useGetUnreadCountQuery } from "../../store/notificationApi";
+import { AppDispatch } from "../../store/store";
+import { notificationApi, useGetUnreadCountQuery } from "../../store/notificationApi";
 import { useUpdatePushTokenMutation } from "../../store/profileApi";
 import { API_URL, api } from "../../store/api";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
@@ -15,7 +16,7 @@ import { useWebRTCContext } from "../../context/WebRTCContext";
 export default function TabLayout() {
   const { accentColor, isDark } = useTheme();
   const token = useSelector((state: any) => state.auth.token);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { processGlobalSignaling, setGlobalSendSignal } = useWebRTCContext();
 
   // Notifications logic
@@ -83,7 +84,37 @@ export default function TabLayout() {
             processGlobalSignaling(data);
             return;
           }
-          if (data.type === "refresh") {
+
+          if (data.type === "new_notification") {
+            const notif = data.data;
+
+            // 1. Update unread count manually
+            dispatch(
+              notificationApi.util.updateQueryData("getUnreadCount", undefined, (draft: any) => {
+                if (draft) {
+                  draft.count = (draft.count || 0) + 1;
+                }
+              })
+            );
+
+            // 2. Optimistically append to notifications list cache
+            // The query arg in notifications.tsx is {}
+            dispatch(
+              notificationApi.util.updateQueryData("getNotifications", {}, (draft: any) => {
+                if (draft && draft.notifications) {
+                  // Prepend to the top if not already exists
+                  if (!draft.notifications.find((n: any) => n.id === notif.id)) {
+                    draft.notifications.unshift(notif);
+                  }
+                }
+              })
+            );
+
+            // 3. If it's a message notification, we need to update the Chat list
+            if (notif.type === "MESSAGE") {
+              dispatch(api.util.invalidateTags(["Chat"]));
+            }
+          } else if (data.type === "refresh") {
             refetchRef.current();
             dispatch(api.util.invalidateTags(["Notification", "Chat"]));
           }

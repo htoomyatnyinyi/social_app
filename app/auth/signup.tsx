@@ -8,16 +8,14 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import Animated, {
-  FadeInDown,
-  FadeInUp
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSignupMutation } from "../../store/authApi";
+import { Image } from "expo-image";
 
 export default function SignupScreen() {
   const [email, setEmail] = useState("");
@@ -46,7 +44,7 @@ export default function SignupScreen() {
       // Immediately navigate to OTP verification instead of relying on state in a single screen
       router.push({
         pathname: "/auth/verify",
-        params: { email }
+        params: { email },
       });
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -67,11 +65,21 @@ export default function SignupScreen() {
           entering={FadeInDown.duration(1000)}
           className="items-center px-10 pt-20 pb-10"
         >
-          <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
-            <Ionicons name="person-add" size={48} color="#0EA5E9" />
+          <View className="w-24 h-24 bg-black rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
+            {/* <Ionicons name="person-add" size={48} color="#0EA5E9" />
+             */}
+            <Image
+              source={require("@/assets/svg/copy.png")}
+              alt="fkjkfkk"
+              style={{ width: 48, height: 48 }}
+            />
           </View>
-          <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">Social</Text>
-          <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-[4px] mt-4 text-center">Join Our Community</Text>
+          <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">
+            Social
+          </Text>
+          <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-[4px] mt-4 text-center">
+            Join Our Community
+          </Text>
         </Animated.View>
 
         <View className="px-8 flex-1">
@@ -163,11 +171,12 @@ export default function SignupScreen() {
 
           <View className="flex-row justify-center mt-12 mb-10">
             <Text className="text-gray-400 font-medium text-[13px]">
-              Already have an account? 
+              Already have an account?
             </Text>
             <TouchableOpacity onPress={() => router.back()}>
               <Text className="text-sky-500 font-black text-[13px] uppercase tracking-wider">
-                {" "}Sign In
+                {" "}
+                Sign In
               </Text>
             </TouchableOpacity>
           </View>

@@ -17,6 +17,7 @@ import { useDispatch } from "react-redux";
 
 import { useSigninMutation } from "../../store/authApi";
 import { setCredentials } from "../../store/authSlice";
+import { Image } from "expo-image";
 
 export default function SigninScreen() {
   const [email, setEmail] = useState("");
@@ -71,8 +72,13 @@ export default function SigninScreen() {
           entering={FadeInDown.duration(1000)}
           className="items-center px-10 pt-20 pb-10"
         >
-          <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
-            <Ionicons name="infinite" size={48} color="#0EA5E9" />
+          <View className="w-24 h-24 bg-black rounded-[40px] items-center justify-center shadow-2xl shadow-sky-200 border border-sky-50 mb-8">
+            {/* <Ionicons name="infinite" size={48} color="#0EA5E9" /> */}
+            <Image
+              source={require("@/assets/svg/copy.png")}
+              alt="fkjkfkk"
+              style={{ width: 48, height: 48 }}
+            />
           </View>
           <Text className="text-4xl font-black text-gray-900 tracking-[-2px] uppercase text-center">
             Arkta

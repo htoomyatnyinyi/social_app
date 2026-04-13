@@ -230,7 +230,7 @@ const ReplyItem = memo(
                 <Text className="font-black text-[14px] text-gray-900 dark:text-white tracking-tight">
                   {item.author?.name || "Member"}
                 </Text>
-                <Text className="text-sky-500 font-bold text-[11px] ml-2 uppercase tracking-widest">
+                <Text className="text-sky-500 font-bold text-[11px] ml-2 tracking-widest">
                   @{item.author?.username}
                 </Text>
               </View>
