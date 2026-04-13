@@ -11,6 +11,7 @@ import {
   Alert,
   Keyboard,
   Dimensions,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, router } from "expo-router";
@@ -40,6 +41,10 @@ export default function ComposePostScreen() {
   const [locationTag, setLocationTag] = useState<string | null>(null);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  // update
+  const [selectedFullImage, setSelectedFullImage] = useState<string | null>(
+    null,
+  );
 
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
   const [repostPost, { isLoading: isReposting }] = useRepostPostMutation();
@@ -90,8 +95,89 @@ export default function ComposePostScreen() {
         }).unwrap();
       }
       router.back();
-    } catch (e) {
-      Alert.alert("Error", "Failed to post.");
+    } catch (e: any) {
+      Alert.alert("Error", "Failed to post.", e);
+    }
+  };
+
+  const handlePickImage = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission denied", "Media library access is required.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 4,
+      quality: 0.6,
+      base64: true,
+    });
+
+    if (!result.canceled) {
+      const newImages = result.assets
+        .filter((a) => a.base64)
+        .map((a) => ({
+          uri: a.uri,
+          base64: `data:image/jpeg;base64,${a.base64}`,
+        }));
+      setImages((prev) => [...prev, ...newImages].slice(0, 4));
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission denied", "Camera access is required.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.6,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setImages((prev) =>
+        [
+          ...prev,
+          {
+            uri: result.assets[0].uri,
+            base64: `data:image/jpeg;base64,${result.assets[0].base64}`,
+          },
+        ].slice(0, 4),
+      );
+    }
+  };
+
+  const handleFetchLocation = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsFetchingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission denied", "Location permission is required.");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const [geocode] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (geocode) {
+        const city = geocode.city || geocode.region;
+        setLocationTag(`${city}, ${geocode.country}`);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", "Could not fetch location.", error);
+    } finally {
+      setIsFetchingLocation(false);
     }
   };
 
@@ -166,15 +252,51 @@ export default function ComposePostScreen() {
                 {images.length > 0 && (
                   <View className="flex-row flex-wrap mt-4">
                     {images.map((img, i) => (
-                      <Image
+                      <TouchableOpacity
                         key={i}
-                        source={{ uri: img.uri }}
-                        className="w-20 h-20 rounded-lg m-1"
-                      />
+                        onPress={() => setSelectedFullImage(img.uri)}
+                      >
+                        <Image
+                          source={{ uri: img.uri }}
+                          className="w-20 h-20 rounded-lg m-1"
+                        />
+                      </TouchableOpacity>
                     ))}
                   </View>
                 )}
               </View>
+              {/* Full Screen Image Preview Modal */}
+              <Modal
+                visible={!!selectedFullImage}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedFullImage(null)}
+              >
+                <View style={{ flex: 1, backgroundColor: "black" }}>
+                  {/* Close Button */}
+                  <TouchableOpacity
+                    onPress={() => setSelectedFullImage(null)}
+                    style={{
+                      position: "absolute",
+                      top: insets.top + 10,
+                      right: 20,
+                      zIndex: 10,
+                      padding: 10,
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      borderRadius: 20,
+                    }}
+                  >
+                    <Ionicons name="close" size={28} color="white" />
+                  </TouchableOpacity>
+
+                  {/* Full Size Image */}
+                  <Image
+                    source={{ uri: selectedFullImage as any }}
+                    style={{ flex: 1 }}
+                    contentFit="contain"
+                  />
+                </View>
+              </Modal>
             </View>
           </ScrollView>
 
@@ -186,16 +308,32 @@ export default function ComposePostScreen() {
           >
             <View className="px-5 py-3 flex-row items-center justify-between">
               <View className="flex-row items-center">
-                <TouchableOpacity className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50/10 mr-2">
+                <TouchableOpacity
+                  onPress={handlePickImage}
+                  className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50/10 mr-2"
+                >
                   <Ionicons name="image-outline" size={20} color="#64748B" />
                 </TouchableOpacity>
-                <TouchableOpacity className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50/10 mr-2">
+
+                <TouchableOpacity
+                  onPress={handleTakePhoto}
+                  className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50/10 mr-2"
+                >
                   <Ionicons name="camera-outline" size={20} color="#64748B" />
                 </TouchableOpacity>
-                <TouchableOpacity className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50/10">
-                  <Ionicons name="location-outline" size={20} color="#64748B" />
+
+                <TouchableOpacity
+                  onPress={handleFetchLocation}
+                  className="w-10 h-10 items-center justify-center rounded-xl bg-gray-50/10"
+                >
+                  <Ionicons
+                    name={locationTag ? "location" : "location-outline"}
+                    size={20}
+                    color={locationTag ? "#10B981" : "#64748B"}
+                  />
                 </TouchableOpacity>
               </View>
+
               <View className="bg-gray-100/10 px-3 py-2 rounded-lg">
                 <Text className="text-gray-400 font-bold text-[10px]">
                   PUBLIC
@@ -213,6 +351,8 @@ export default function ComposePostScreen() {
     </View>
   );
 }
+
+// old working one.. do not delete it.
 // import React, { useState, useCallback } from "react";
 // import {
 //   View,
