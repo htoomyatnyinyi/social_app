@@ -146,7 +146,7 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${postId}/like`,
         method: "POST",
       }),
-      async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ postId, threadId }: { postId: string; threadId?: string }, { dispatch, queryFulfilled }) {
         const updatePostInDraft = (draft: any, targetId: string) => {
           let post;
           if (Array.isArray(draft)) {
@@ -201,6 +201,10 @@ export const postApi = api.injectEndpoints({
               updatePostInDraft(draft, postId),
             ),
           ),
+          ...(threadId ? [
+            dispatch(postApi.util.updateQueryData("getThread", threadId, (draft) => updatePostInDraft(draft, postId))),
+            dispatch(postApi.util.updateQueryData("getReplies", { id: threadId } as any, (draft) => updatePostInDraft(draft, postId))),
+          ] : []),
         ];
 
         try {
@@ -219,7 +223,10 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${id}/bookmark`,
         method: "POST",
       }),
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg: string | { id: string; threadId?: string }, { dispatch, queryFulfilled }) {
+        const id = typeof arg === "string" ? arg : arg.id;
+        const threadId = typeof arg === "string" ? undefined : arg.threadId;
+
         const updateBookmarkInDraft = (draft: any, targetId: string) => {
           let post;
           if (Array.isArray(draft)) {
@@ -264,6 +271,10 @@ export const postApi = api.injectEndpoints({
               updateBookmarkInDraft(draft, id),
             ),
           ),
+          ...(threadId ? [
+            dispatch(postApi.util.updateQueryData("getThread", threadId, (draft) => updateBookmarkInDraft(draft, id))),
+            dispatch(postApi.util.updateQueryData("getReplies", { id: threadId } as any, (draft) => updateBookmarkInDraft(draft, id))),
+          ] : []),
         ];
 
         try {
@@ -281,7 +292,7 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content, image, images },
       }),
-      async onQueryStarted({ id, content }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ id, content, threadId }: { id: string; content?: string; threadId?: string; image?: any; images?: any }, { dispatch, queryFulfilled }) {
         if (content) return; // Don't optimistically update quotes
 
         const updateRepostInDraft = (
@@ -334,6 +345,10 @@ export const postApi = api.injectEndpoints({
               updateRepostInDraft(draft, id),
             ),
           ),
+          ...(threadId ? [
+            dispatch(postApi.util.updateQueryData("getThread", threadId, (draft) => updateRepostInDraft(draft, id))),
+            dispatch(postApi.util.updateQueryData("getReplies", { id: threadId } as any, (draft) => updateRepostInDraft(draft, id))),
+          ] : []),
         ];
 
         try {
@@ -354,7 +369,10 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${id}/repost`,
         method: "DELETE",
       }),
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg: string | { id: string; threadId?: string }, { dispatch, queryFulfilled }) {
+        const id = typeof arg === "string" ? arg : arg.id;
+        const threadId = typeof arg === "string" ? undefined : arg.threadId;
+
         const updateRepostInDraft = (
           draft: any,
           targetId: string,
@@ -404,6 +422,10 @@ export const postApi = api.injectEndpoints({
               updateRepostInDraft(draft, id),
             ),
           ),
+          ...(threadId ? [
+            dispatch(postApi.util.updateQueryData("getThread", threadId, (draft) => updateRepostInDraft(draft, id))),
+            dispatch(postApi.util.updateQueryData("getReplies", { id: threadId } as any, (draft) => updateRepostInDraft(draft, id))),
+          ] : []),
         ];
 
         try {

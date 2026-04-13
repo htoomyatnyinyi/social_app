@@ -144,10 +144,12 @@ const ReplyItem = memo(
     item,
     onReply,
     onOptions,
+    threadId,
   }: {
     item: any;
     onReply: (postId: string, username: string) => void;
     onOptions: (item: any) => void;
+    threadId?: string;
   }) => {
     const replyDepth = item.depth || 0;
     const isDeepReply = replyDepth > 0;
@@ -159,20 +161,20 @@ const ReplyItem = memo(
     const handleLike = useCallback(async () => {
       if (!item.isLiked) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       try {
-        await likePost({ postId: item.id }).unwrap();
+        await likePost({ postId: item.id, threadId }).unwrap();
       } catch (err) {
         console.error("Failed to like reply:", err);
       }
-    }, [likePost, item.id, item.isLiked]);
+    }, [likePost, item.id, item.isLiked, threadId]);
 
     const handleRepost = useCallback(async () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       try {
-        await repostPost({ id: item.id }).unwrap();
+        await repostPost({ id: item.id, threadId }).unwrap();
       } catch (err) {
         console.error("Failed to repost reply:", err);
       }
-    }, [repostPost, item.id]);
+    }, [repostPost, item.id, threadId]);
 
     const handleShare = useCallback(async () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -455,31 +457,31 @@ export default function PostDetailScreen() {
   const handlePostLike = useCallback(async () => {
     if (!hasLiked) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      await likePost({ postId: rootPost.id }).unwrap();
+      await likePost({ postId: rootPost.id, threadId: id }).unwrap();
     } catch (err) {
       console.error("Like failed", err);
     }
-  }, [likePost, rootPost?.id, hasLiked]);
+  }, [likePost, rootPost?.id, hasLiked, id]);
 
   const handlePostRepost = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!rootPost) return;
     try {
-      await repostPost({ id: rootPost.id }).unwrap();
+      await repostPost({ id: rootPost.id, threadId: id }).unwrap();
     } catch (err) {
       console.error("Repost failed", err);
     }
-  }, [rootPost, repostPost]);
+  }, [rootPost, repostPost, id]);
 
   const handlePostBookmark = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!rootPost) return;
+    if (!rootPost || !id) return;
     try {
-      await bookmarkPost(rootPost.id).unwrap();
+      await bookmarkPost({ id: rootPost.id, threadId: id }).unwrap();
     } catch (err) {
       console.error("Bookmark failed", err);
     }
-  }, [rootPost, bookmarkPost]);
+  }, [rootPost, bookmarkPost, id]);
 
   const handlePostShare = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -559,6 +561,7 @@ export default function PostDetailScreen() {
               item={item}
               onReply={handleReplyIntent}
               onOptions={handleOptions}
+              threadId={id}
             />
           )}
           contentContainerStyle={{ paddingBottom: 100 }}
