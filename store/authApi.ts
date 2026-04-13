@@ -50,12 +50,12 @@ export const authApi = api.injectEndpoints({
   }),
 });
 
-export const { 
-  useSigninMutation, 
-  useSignupMutation, 
-  useGoogleAuthMutation, 
-  useVerifyCodeMutation, 
+export const {
+  useSigninMutation,
+  useSignupMutation,
+  useGoogleAuthMutation,
+  useVerifyCodeMutation,
   useSearchUsersQuery,
   useRequestPasswordResetMutation,
-  useResetPasswordMutation
+  useResetPasswordMutation,
 } = authApi;

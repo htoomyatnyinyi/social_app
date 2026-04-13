@@ -32,7 +32,9 @@
         "android.permission.WAKE_LOCK",
         "android.permission.BLUETOOTH",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -68,7 +70,8 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio calls."
         }
       ],
-      "expo-audio"
+      "expo-audio", // i think this one need to remove.
+      "expo-av"
     ],
     "experiments": {
       "typedRoutes": true,

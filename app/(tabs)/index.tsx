@@ -231,7 +231,7 @@ export default function FeedScreen() {
           />
         </TouchableOpacity>
 
-        <View className="items-center">
+        <View className="items-center flex">
           <Text
             className={`text-2xl font-black tracking-[-1.5px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}
           >
@@ -278,7 +278,7 @@ export default function FeedScreen() {
                       top: 4,
                       bottom: 4,
                       left: 4,
-                      width: "48%",
+                      width: "50%",
                       backgroundColor: isDark ? "#1E293B" : "white",
                       borderRadius: 20,
                       shadowColor: accentColor,

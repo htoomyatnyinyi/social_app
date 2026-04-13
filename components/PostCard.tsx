@@ -243,7 +243,7 @@ const PostCard = React.memo(
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => onPressPost(displayId)}
-        className={`${isDark ? "bg-slate-900 border-slate-800 shadow-black/20" : "bg-white border-gray-100 shadow-gray-200/50"} border rounded-[32px] p-5 shadow-sm mb-3`}
+        className={`${isDark ? "bg-slate-900 border-slate-800 shadow-black/20" : "bg-white border-gray-100 shadow-gray-200/50"} border rounded-3xl p-2 shadow-sm mb-1`}
       >
         {/* Repost Indicator */}
         {isRepostAction && item.author && (
@@ -329,7 +329,7 @@ const PostCard = React.memo(
             </View>
 
             {/* Body */}
-            <View className="mb-4">
+            <View className="mb-1">
               {displayPost.parentPost && !isRepostAction && (
                 <View
                   className={`${isDark ? "bg-slate-800 border-slate-700" : "bg-sky-50/50 border-sky-100/50"} mb-2 px-2.5 py-1.5 rounded-xl self-start border`}

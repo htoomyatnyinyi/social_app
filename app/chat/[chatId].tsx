@@ -30,10 +30,11 @@ import { useChatMessages } from "@/hooks/useChatMessages";
 import { useChatWebSocket } from "@/hooks/useChatWebSocket";
 import { Audio } from "expo-av";
 import * as Location from "expo-location";
-import * as FileSystem from "expo-file-system";
+// import * as FileSystem from "expo-file-system";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { useWebRTCContext } from "@/context/WebRTCContext";
+import * as FileSystem from "expo-file-system/legacy";
 
 type ReplyContext = {
   id: string;
@@ -41,7 +42,15 @@ type ReplyContext = {
   content: string;
 };
 
-const AudioPlayer = ({ uri, isMe, isDark }: { uri: string; isMe: boolean; isDark: boolean }) => {
+const AudioPlayer = ({
+  uri,
+  isMe,
+  isDark,
+}: {
+  uri: string;
+  isMe: boolean;
+  isDark: boolean;
+}) => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -53,6 +62,30 @@ const AudioPlayer = ({ uri, isMe, isDark }: { uri: string; isMe: boolean; isDark
       : undefined;
   }, [sound]);
 
+  // const toggleSound = async () => {
+  //   if (sound) {
+  //     if (isPlaying) {
+  //       await sound.pauseAsync();
+  //       setIsPlaying(false);
+  //     } else {
+  //       await sound.playAsync();
+  //       setIsPlaying(true);
+  //     }
+  //   } else {
+  //     const { sound: newSound } = await Audio.Sound.createAsync(
+  //       { uri },
+  //       { shouldPlay: true },
+  //     );
+  //     setSound(newSound);
+  //     setIsPlaying(true);
+  //     newSound.setOnPlaybackStatusUpdate((status: any) => {
+  //       if (status.isLoaded && status.didJustFinish) {
+  //         setIsPlaying(false);
+  //       }
+  //     });
+  //   }
+  // };
+
   const toggleSound = async () => {
     if (sound) {
       if (isPlaying) {
@@ -63,17 +96,25 @@ const AudioPlayer = ({ uri, isMe, isDark }: { uri: string; isMe: boolean; isDark
         setIsPlaying(true);
       }
     } else {
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true },
-      );
-      setSound(newSound);
-      setIsPlaying(true);
-      newSound.setOnPlaybackStatusUpdate((status: any) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setIsPlaying(false);
-        }
-      });
+      try {
+        const source = uri.startsWith("data:") ? { uri } : { uri }; // local file uri works best
+
+        const { sound: newSound } = await Audio.Sound.createAsync(source, {
+          shouldPlay: true,
+        });
+
+        setSound(newSound);
+        setIsPlaying(true);
+
+        newSound.setOnPlaybackStatusUpdate((status: any) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setIsPlaying(false);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to play audio", err);
+        Alert.alert("Playback Error", "Could not play this voice message.");
+      }
     }
   };
 
@@ -83,7 +124,11 @@ const AudioPlayer = ({ uri, isMe, isDark }: { uri: string; isMe: boolean; isDark
       style={{
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: isMe ? "rgba(255,255,255,0.2)" : isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+        backgroundColor: isMe
+          ? "rgba(255,255,255,0.2)"
+          : isDark
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.05)",
         padding: 8,
         borderRadius: 20,
         minWidth: 120,
@@ -190,7 +235,11 @@ const MessageBubble = memo(function MessageBubble({
               borderRadius: 8,
               borderLeftWidth: 3,
               borderLeftColor: isMe ? "rgba(255,255,255,0.4)" : "#0EA5E9",
-              backgroundColor: isMe ? "rgba(0,0,0,0.05)" : isDark ? "rgba(14,165,233,0.1)" : "#F8FAFC",
+              backgroundColor: isMe
+                ? "rgba(0,0,0,0.05)"
+                : isDark
+                  ? "rgba(14,165,233,0.1)"
+                  : "#F8FAFC",
             }}
           >
             <Text
@@ -209,7 +258,11 @@ const MessageBubble = memo(function MessageBubble({
               style={{
                 fontSize: 11,
                 lineHeight: 14,
-                color: isMe ? "rgba(255, 255, 255, 0.8)" : isDark ? "#94A3B8" : "#64748B",
+                color: isMe
+                  ? "rgba(255, 255, 255, 0.8)"
+                  : isDark
+                    ? "#94A3B8"
+                    : "#64748B",
               }}
               numberOfLines={2}
             >
@@ -472,51 +525,210 @@ export default function ChatScreen() {
     setReplyContext(null);
   }, [inputText, selectedImage, sendMessage, replyContext]);
 
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  // const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
 
+  // Add this near your other state declarations
+  const recordingRef = useRef<Audio.Recording | null>(null); // ← Use ref instead of state for the recording object
+
+  // Updated startRecording
   const startRecording = async () => {
     try {
+      // Clean up any previous recording first (important!)
+      await cleanupRecording();
+
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
+
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
-      setRecording(recording);
+
+      recordingRef.current = recording;
       setIsRecording(true);
+
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to start recording", err);
+      Alert.alert(
+        "Recording Error",
+        "Could not start audio recording. Please try again.",
+      );
+      await cleanupRecording(); // ensure cleanup on failure
     }
   };
 
+  // // Updated stopRecording
+  // const stopRecording = async () => {
+  //   if (!recordingRef.current) {
+  //     setIsRecording(false);
+  //     return;
+  //   }
+
+  //   setIsRecording(false);
+
+  //   try {
+  //     const currentRecording = recordingRef.current;
+  //     recordingRef.current = null; // clear ref immediately
+
+  //     await currentRecording.stopAndUnloadAsync();
+  //     const uri = currentRecording.getURI();
+
+  //     if (uri) {
+  //       const base64 = await FileSystem.readAsStringAsync(uri, {
+  //         encoding: "base64",
+  //       });
+
+  //       sendMessage(
+  //         "",
+  //         `data:audio/m4a;base64,${base64}`,
+  //         replyContext || undefined,
+  //         "audio",
+  //       );
+
+  //       setReplyContext(null);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to stop recording", error);
+  //     Alert.alert("Recording Error", "Failed to process the recording.");
+  //   } finally {
+  //     // Always try to clean up the file
+  //     await cleanupRecording();
+  //   }
+  // };
+
+  // Add this helper near the top of the component
+  const getTempAudioUri = () => {
+    return `${FileSystem.cacheDirectory}temp_recording_${Date.now()}.m4a`;
+  };
+
+  // Updated stopRecording
   const stopRecording = async () => {
-    setRecording(null);
+    if (!recordingRef.current) {
+      setIsRecording(false);
+      return;
+    }
+
     setIsRecording(false);
+
+    let tempUri: string | null = null;
+
     try {
-      if (recording) {
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
-        if (uri) {
-          const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: "base64",
-          });
-          sendMessage(
-            "",
-            `data:audio/m4a;base64,${base64}`,
-            replyContext || undefined,
-            "audio",
-          );
-          setReplyContext(null);
-        }
-      }
-    } catch (error) {
+      const currentRecording = recordingRef.current;
+      recordingRef.current = null;
+
+      await currentRecording.stopAndUnloadAsync();
+      const originalUri = currentRecording.getURI();
+
+      if (!originalUri) throw new Error("No recording URI");
+
+      // Create a temp file path
+      tempUri = getTempAudioUri();
+
+      // Copy the recorded file to our temp location (more reliable than base64)
+      await FileSystem.copyAsync({
+        from: originalUri,
+        to: tempUri,
+      });
+
+      // Now send the LOCAL FILE URI instead of base64
+      sendMessage(
+        "",
+        tempUri, // ← Send file URI directly
+        replyContext || undefined,
+        "audio",
+      );
+
+      setReplyContext(null);
+    } catch (error: any) {
       console.error("Failed to stop recording", error);
+      Alert.alert("Recording Error", "Failed to save the voice message.");
+    } finally {
+      await cleanupRecording();
+
+      // Optional: delete temp file after a delay (to allow upload if sendMessage is async)
+      if (tempUri) {
+        setTimeout(async () => {
+          try {
+            await FileSystem.deleteAsync(tempUri, { idempotent: true });
+          } catch {}
+        }, 5000);
+      }
     }
   };
+  // Helper to safely clean up any existing recording + temp file
+  const cleanupRecording = async () => {
+    try {
+      if (recordingRef.current) {
+        const rec = recordingRef.current;
+        recordingRef.current = null;
+
+        if (!rec._isDoneRecording) {
+          // private but commonly used check
+          await rec.stopAndUnloadAsync().catch(() => {});
+        }
+      }
+
+      // Optional: delete any leftover temp files if you want (expo-av usually handles this)
+      // const tempDir = FileSystem.cacheDirectory + 'Audio/';
+      // ...
+    } catch (e) {
+      console.warn("Cleanup recording error:", e);
+    }
+  };
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      cleanupRecording();
+    };
+  }, []);
+
+  // const startRecording = async () => {
+  //   try {
+  //     await Audio.requestPermissionsAsync();
+  //     await Audio.setAudioModeAsync({
+  //       allowsRecordingIOS: true,
+  //       playsInSilentModeIOS: true,
+  //     });
+  //     const { recording } = await Audio.Recording.createAsync(
+  //       Audio.RecordingOptionsPresets.HIGH_QUALITY,
+  //     );
+  //     setRecording(recording);
+  //     setIsRecording(true);
+  //     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  //   } catch (err) {
+  //     console.error("Failed to start recording", err);
+  //   }
+  // };
+
+  // const stopRecording = async () => {
+  //   setRecording(null);
+  //   setIsRecording(false);
+  //   try {
+  //     if (recording) {
+  //       await recording.stopAndUnloadAsync();
+  //       const uri = recording.getURI();
+  //       if (uri) {
+  //         const base64 = await FileSystem.readAsStringAsync(uri, {
+  //           encoding: "base64",
+  //         });
+  //         sendMessage(
+  //           "",
+  //           `data:audio/m4a;base64,${base64}`,
+  //           replyContext || undefined,
+  //           "audio",
+  //         );
+  //         setReplyContext(null);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to stop recording", error);
+  //   }
+  // };
 
   const shareLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
@@ -542,11 +754,11 @@ export default function ChatScreen() {
   };
 
   const startVideoCall = () => {
-    startGlobalCall(resolvedChatId, "video", title as string);
+    startGlobalCall(resolvedChatId, "video", user?.name || "User");
   };
 
   const startVoiceCall = () => {
-    startGlobalCall(resolvedChatId, "voice", title as string);
+    startGlobalCall(resolvedChatId, "voice", user?.name || "User");
   };
 
   const handleLongPress = useCallback(
@@ -637,7 +849,11 @@ export default function ChatScreen() {
               marginRight: 16,
             }}
           >
-            <Ionicons name="chevron-back" size={20} color={isDark ? "white" : "#334155"} />
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={isDark ? "white" : "#334155"}
+            />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text
@@ -710,7 +926,8 @@ export default function ChatScreen() {
         </View>
       </View>
     ),
-    [insets.top, isTyping, title, router],
+    [insets.top, isTyping, title, router, isDark, startVideoCall, startVoiceCall],
+    // [insets.top, isTyping, title, router],
   );
 
   return (
@@ -750,8 +967,8 @@ export default function ChatScreen() {
                 ? keyboardHeight -
                   (Platform.OS === "ios" ? insets.bottom : 0) +
                   8
-                : Math.max(insets.bottom, 12) + 8,
-            paddingTop: 10,
+                : Math.max(insets.bottom, 12) + 5,
+            paddingTop: 5,
           }}
         >
           {replyContext && (
@@ -886,23 +1103,67 @@ export default function ChatScreen() {
               <Ionicons name="location" size={24} color="#64748B" />
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPressIn={startRecording}
               onPressOut={stopRecording}
               style={{
                 width: 44,
                 height: 44,
                 borderRadius: 18,
-                backgroundColor: isRecording ? (isDark ? "#7F1D1D" : "#FEE2E2") : (isDark ? "#1E293B" : "#F8FAFC"),
+                backgroundColor: isRecording
+                  ? isDark
+                    ? "#7F1D1D"
+                    : "#FEE2E2"
+                  : isDark
+                    ? "#1E293B"
+                    : "#F8FAFC",
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 1,
-                borderColor: isRecording ? (isDark ? "#991B1B" : "#FECACA") : (isDark ? "#334155" : "#F1F5F9"),
+                borderColor: isRecording
+                  ? isDark
+                    ? "#991B1B"
+                    : "#FECACA"
+                  : isDark
+                    ? "#334155"
+                    : "#F1F5F9",
                 marginRight: 8,
               }}
             >
               <Ionicons
                 name="mic"
+                size={24}
+                color={isRecording ? "#EF4444" : "#64748B"}
+              />
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              onPress={isRecording ? stopRecording : startRecording}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 18,
+                backgroundColor: isRecording
+                  ? isDark
+                    ? "#7F1D1D"
+                    : "#FEE2E2"
+                  : isDark
+                    ? "#1E293B"
+                    : "#F8FAFC",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: isRecording
+                  ? isDark
+                    ? "#991B1B"
+                    : "#FECACA"
+                  : isDark
+                    ? "#334155"
+                    : "#F1F5F9",
+                marginRight: 8,
+              }}
+            >
+              <Ionicons
+                name={isRecording ? "stop-circle" : "mic"}
                 size={24}
                 color={isRecording ? "#EF4444" : "#64748B"}
               />
@@ -939,7 +1200,7 @@ export default function ChatScreen() {
               }}
             >
               <TextInput
-                placeholder="Type a message..."
+                placeholder="Message..."
                 placeholderTextColor="#94A3B8"
                 value={inputText}
                 onChangeText={handleTextChange}
@@ -963,11 +1224,20 @@ export default function ChatScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor:
-                    inputText.trim() || selectedImage ? "#0EA5E9" : (isDark ? "#475569" : "#E2E8F0"),
+                    inputText.trim() || selectedImage
+                      ? "#0EA5E9"
+                      : isDark
+                        ? "#475569"
+                        : "#E2E8F0",
                   opacity: pressed ? 0.7 : 1,
                 })}
               >
-                <Ionicons name="arrow-up" size={18} color="white" />
+                <Ionicons
+                  name="arrow-up"
+                  size={20}
+                  color="black"
+                  className="p-2 m-1 bg-red-100 rounded-full"
+                />
               </Pressable>
             </View>
           </View>
