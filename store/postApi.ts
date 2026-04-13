@@ -135,7 +135,10 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: newPost,
       }),
-      invalidatesTags: ["Post"],
+      invalidatesTags: [
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
 
     likePost: builder.mutation({
@@ -467,7 +470,41 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { content },
       }),
-      invalidatesTags: ["Post"],
+      async onQueryStarted({ postId, content }, { dispatch, queryFulfilled, getState }) {
+        const currentUser = (getState() as any).auth?.user;
+        const tempId = `temp-${Date.now()}`;
+        
+        // Optimistically insert into global thread if this is the thread we are looking at
+        // Note: We don't know the rootId easily here, but we can try to update 
+        // the thread for the parent postId itself if it's a direct reply.
+        const patchThread = dispatch(
+          postApi.util.updateQueryData("getThread" as any, postId, (draft: any) => {
+            if (Array.isArray(draft)) {
+              draft.push({
+                id: tempId,
+                content,
+                createdAt: new Date().toISOString(),
+                author: currentUser || { name: "You", username: "me" },
+                replyToId: postId,
+                _count: { likes: 0, replies: 0, reposts: 0 },
+                isLiked: false,
+              });
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchThread.undo();
+        }
+      },
+      invalidatesTags: (result, error, { postId }) => [
+        { type: "Post", id: postId }, // Refetch parent to update reply count
+        { type: "Post", id: `THREAD-${postId}` }, // Refetch current thread if it was parent
+        { type: "Post", id: `REPLIES-${postId}` }, // Refetch replies list
+        { type: "Post", id: "FEED" }, // Possible update in feed
+      ],
     }),
 
     incrementViewCount: builder.mutation({
@@ -547,7 +584,11 @@ export const postApi = api.injectEndpoints({
           patchFeed.undo();
         }
       },
-      invalidatesTags: ["Post"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Post", id },
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
 
     getPostsByType: builder.query({
@@ -560,7 +601,7 @@ export const postApi = api.injectEndpoints({
         method: "POST",
         body: { reason },
       }),
-      invalidatesTags: ["Post"],
+      invalidatesTags: (result, error, { id }) => [{ type: "Post", id }],
     }),
 
     blockPost: builder.mutation({
@@ -568,7 +609,7 @@ export const postApi = api.injectEndpoints({
         url: `/posts/${id}/block`,
         method: "POST",
       }),
-      invalidatesTags: ["Post"],
+      invalidatesTags: (result, error, { id }) => [{ type: "Post", id }],
     }),
 
     blockUser: builder.mutation({
@@ -576,7 +617,10 @@ export const postApi = api.injectEndpoints({
         url: `/profile/${id}/block`,
         method: "POST",
       }),
-      invalidatesTags: ["Post"],
+      invalidatesTags: [
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
   }),
 });
