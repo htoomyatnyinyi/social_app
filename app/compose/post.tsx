@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter as _useRouter, useLocalSearchParams, router } from "expo-router";
+import { useRouter, useLocalSearchParams, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useSelector } from "react-redux";
@@ -159,10 +159,7 @@ export default function ComposePostScreen() {
       router.back();
     } catch (e) {
       console.log(e);
-      Alert.alert(
-        "Error",
-        "Failed to post. Please try again.",
-      );
+      Alert.alert("Error", "Failed to post. Please try again.");
     }
   };
 
@@ -200,10 +197,11 @@ export default function ComposePostScreen() {
           <TouchableOpacity
             onPress={handlePost}
             disabled={(!content.trim() && images.length === 0) || isLoading}
-            className={`px-8 py-2.5 rounded-2xl shadow-lg ${(!content.trim() && images.length === 0) || isLoading
+            className={`px-8 py-2.5 rounded-2xl shadow-lg ${
+              (!content.trim() && images.length === 0) || isLoading
                 ? "bg-gray-100 shadow-none"
                 : "bg-sky-500 shadow-sky-200"
-              }`}
+            }`}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="white" />
@@ -352,7 +350,7 @@ export default function ComposePostScreen() {
         <BlurView
           intensity={90}
           tint={isDark ? "dark" : "light"}
-        // className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 bg-white/50"
+          // className="absolute bottom-0 left-0 right-0 border-t border-gray-100/50 bg-white/50"
         >
           <View className="px-5 py-4 flex-row items-center justify-between">
             <View className="flex-row items-center">

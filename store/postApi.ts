@@ -219,10 +219,13 @@ export const postApi = api.injectEndpoints({
     }),
 
     bookmarkPost: builder.mutation({
-      query: (id) => ({
-        url: `/posts/${id}/bookmark`,
-        method: "POST",
-      }),
+      query: (arg) => {
+        const id = typeof arg === "string" ? arg : arg.id;
+        return {
+          url: `/posts/${id}/bookmark`,
+          method: "POST",
+        };
+      },
       async onQueryStarted(arg: string | { id: string; threadId?: string }, { dispatch, queryFulfilled }) {
         const id = typeof arg === "string" ? arg : arg.id;
         const threadId = typeof arg === "string" ? undefined : arg.threadId;
@@ -365,10 +368,13 @@ export const postApi = api.injectEndpoints({
     }),
 
     deleteRepost: builder.mutation({
-      query: (id) => ({
-        url: `/posts/${id}/repost`,
-        method: "DELETE",
-      }),
+      query: (arg) => {
+        const id = typeof arg === "string" ? arg : arg.id;
+        return {
+          url: `/posts/${id}/repost`,
+          method: "DELETE",
+        };
+      },
       async onQueryStarted(arg: string | { id: string; threadId?: string }, { dispatch, queryFulfilled }) {
         const id = typeof arg === "string" ? arg : arg.id;
         const threadId = typeof arg === "string" ? undefined : arg.threadId;

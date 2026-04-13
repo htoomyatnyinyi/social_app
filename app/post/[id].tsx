@@ -17,7 +17,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Share,
+  // Share,
   Text,
   TextInput,
   TouchableOpacity,
@@ -157,6 +157,17 @@ const ReplyItem = memo(
 
     const [likePost] = useLikePostMutation();
     const [repostPost] = useRepostPostMutation();
+    const [bookmarkPost] = useBookmarkPostMutation();
+    const isBookmarked = item.isBookmarked ?? false;
+
+    const handlePostBookmark = useCallback(async () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await bookmarkPost({ id: item.id, threadId }).unwrap();
+      } catch (err) {
+        console.error("Bookmark failed", err);
+      }
+    }, [item, bookmarkPost, threadId]);
 
     const handleLike = useCallback(async () => {
       if (!item.isLiked) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -176,17 +187,17 @@ const ReplyItem = memo(
       }
     }, [repostPost, item.id, threadId]);
 
-    const handleShare = useCallback(async () => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      try {
-        const urlToShare = `https://social-app.com/post/${item.id}`;
-        await Share.share({
-          message: `Check out this post by @${item.author?.username || "official"}\n${urlToShare}`,
-        });
-      } catch (error) {
-        console.error("Error sharing reply:", error);
-      }
-    }, [item]);
+    // const handleShare = useCallback(async () => {
+    //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    //   try {
+    //     const urlToShare = `https://social-app.com/post/${item.id}`;
+    //     await Share.share({
+    //       message: `Check out this post by @${item.author?.username || "official"}\n${urlToShare}`,
+    //     });
+    //   } catch (error) {
+    //     console.error("Error sharing reply:", error);
+    //   }
+    // }, [item]);
 
     const hasLiked = item.isLiked ?? false;
     const hasReposted = item.repostedByMe ?? false;
@@ -343,12 +354,21 @@ const ReplyItem = memo(
                 onPress={handleLike}
                 size={16}
               />
-              <TouchableOpacity
+
+              <ActionButton
+                icon={isBookmarked ? "bookmark" : "bookmark-outline"}
+                active={isBookmarked}
+                activeColor="#0EA5E9"
+                activeBg="bg-sky-50 dark:bg-sky-500/10"
+                onPress={handlePostBookmark}
+                size={22}
+              />
+              {/* <TouchableOpacity
                 onPress={handleShare}
                 className="w-8 h-8 items-center justify-center rounded-xl bg-gray-50/50 dark:bg-slate-800/50"
               >
                 <Ionicons name="share-outline" size={16} color="#64748B" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
         </TouchableOpacity>
@@ -483,18 +503,18 @@ export default function PostDetailScreen() {
     }
   }, [rootPost, bookmarkPost, id]);
 
-  const handlePostShare = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      if (!rootPost) return;
-      const urlToShare = `https://server.myanmarsocial.ccwu.cc/posts/${rootPost.id}`;
-      await Share.share({
-        message: `Check out this post by @${rootPost.author?.username || "official"}\n${urlToShare}`,
-      });
-    } catch (error) {
-      console.error("Error sharing post:", error);
-    }
-  }, [rootPost]);
+  // const handlePostShare = useCallback(async () => {
+  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  //   try {
+  //     if (!rootPost) return;
+  //     const urlToShare = `https://server.myanmarsocial.ccwu.cc/posts/${rootPost.id}`;
+  //     await Share.share({
+  //       message: `Check out this post by @${rootPost.author?.username || "official"}\n${urlToShare}`,
+  //     });
+  //   } catch (error) {
+  //     console.error("Error sharing post:", error);
+  //   }
+  // }, [rootPost]);
 
   if (threadLoading) {
     return (
