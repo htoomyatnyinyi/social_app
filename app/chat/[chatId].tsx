@@ -472,8 +472,7 @@ export default function ChatScreen() {
   const [replyContext, setReplyContext] = useState<ReplyContext | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { startGlobalCall, processGlobalSignaling, setGlobalSendSignal } =
-    useWebRTCContext();
+  const { startGlobalCall } = useWebRTCContext();
 
   const { sendTyping, deleteMessage, sendReaction, sendSignal } =
     useChatWebSocket({
@@ -489,14 +488,7 @@ export default function ChatScreen() {
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
       },
-      onSignalingMessage: (data) => {
-        processGlobalSignaling(data);
-      },
     });
-
-  useEffect(() => {
-    setGlobalSendSignal(sendSignal);
-  }, [sendSignal, setGlobalSendSignal]);
 
   const handleTextChange = (text: string) => {
     setInputText(text);
@@ -762,11 +754,11 @@ export default function ChatScreen() {
   };
 
   const startVideoCall = () => {
-    startGlobalCall(resolvedChatId, "video", title as string);
+    startGlobalCall(resolvedChatId, "video", user?.name || "User");
   };
 
   const startVoiceCall = () => {
-    startGlobalCall(resolvedChatId, "voice", title as string);
+    startGlobalCall(resolvedChatId, "voice", user?.name || "User");
   };
 
   const handleLongPress = useCallback(
@@ -934,7 +926,7 @@ export default function ChatScreen() {
         </View>
       </View>
     ),
-    [insets.top, isTyping, title, router, isDark],
+    [insets.top, isTyping, title, router, isDark, startVideoCall, startVoiceCall],
     // [insets.top, isTyping, title, router],
   );
 

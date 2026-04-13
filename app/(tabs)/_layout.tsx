@@ -42,6 +42,17 @@ export default function TabLayout() {
     refetchRef.current = refetchUnread;
   }, [refetchUnread]);
 
+  // Use refs for signaling functions so they NEVER trigger WebSocket reconnection
+  const processSignalingRef = useRef(processGlobalSignaling);
+  useEffect(() => {
+    processSignalingRef.current = processGlobalSignaling;
+  }, [processGlobalSignaling]);
+
+  const setGlobalSendSignalRef = useRef(setGlobalSendSignal);
+  useEffect(() => {
+    setGlobalSendSignalRef.current = setGlobalSendSignal;
+  }, [setGlobalSendSignal]);
+
   useEffect(() => {
     if (!token) return;
 
@@ -60,9 +71,13 @@ export default function TabLayout() {
       socketRef = socket;
 
       socket.onopen = () => {
-        setGlobalSendSignal((payload: any) => {
+        console.log("✅ Notification WS: Opened (stable)");
+        setGlobalSendSignalRef.current((payload: any) => {
           if (socket.readyState === WebSocket.OPEN) {
+            console.log("➡️ Sending:", payload.type);
             socket.send(JSON.stringify(payload));
+          } else {
+            console.warn("⚠️ Socket not OPEN, readyState:", socket.readyState);
           }
         });
       };
@@ -81,7 +96,8 @@ export default function TabLayout() {
           ];
 
           if (signalingTypes.includes(data.type)) {
-            processGlobalSignaling(data);
+            console.log("⬅️ Received:", data.type);
+            processSignalingRef.current(data);
             return;
           }
 
@@ -124,6 +140,7 @@ export default function TabLayout() {
       };
 
       socket.onclose = () => {
+        console.log("🔌 Notification WS closed, reconnecting in 5s...");
         if (!isCleanedUp) reconnectTimer = setTimeout(connect, 5000);
       };
     };
@@ -135,7 +152,7 @@ export default function TabLayout() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       socketRef?.close();
     };
-  }, [token, dispatch, processGlobalSignaling, setGlobalSendSignal]);
+  }, [token, dispatch]); // ONLY token and dispatch — WebSocket stays alive during calls
 
   // Modern Icon Component using className
   const TabIcon = useCallback(
