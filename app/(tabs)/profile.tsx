@@ -360,7 +360,8 @@ export default function ProfileScreen() {
         </View>
 
         <View
-          className={`flex-row mt-6 border rounded-[32px] p-4 items-center justify-between shadow-sm ${isDark ? "bg-slate-800/80 border-slate-700 shadow-none" : "bg-white/50 border-white/50"}`}
+          className="flex-row"
+          // className={`flex-row mt-6 border rounded-[32px] p-4 items-center justify-between shadow-sm ${isDark ? "bg-slate-800/80 border-slate-700 shadow-none" : "bg-white/50 border-white/50"}`}
         >
           <TouchableOpacity
             className="items-center flex-1"

@@ -164,7 +164,7 @@ export default function UserProfileScreen() {
         quoteAuthor: displayPost.author?.name || "Member",
       },
     });
-  }, [postForRepost]);
+  }, [postForRepost, router]);
 
   const handlePressPost = useCallback(
     (id: string) => {

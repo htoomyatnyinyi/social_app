@@ -189,7 +189,8 @@ const ReplyItem = memo(
 
     const onDirectRepost = useCallback(async () => {
       const isRepostItem = !!item.isRepost || !!item.repostedByMe;
-      const realPostId = isRepostItem && item.originalPost ? item.originalPost.id : item.id;
+      const realPostId =
+        isRepostItem && item.originalPost ? item.originalPost.id : item.id;
 
       try {
         if (item.repostedByMe) {
@@ -481,7 +482,7 @@ export default function PostDetailScreen() {
     } catch (err) {
       console.error("Reply failed", err);
     }
-  }, [replyContent, id, replyToId, replyPost, refetchThread]);
+  }, [replyContent, id, replyToId, replyPost]);
 
   const handleReplyIntent = useCallback((postId: string, username: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -527,7 +528,10 @@ export default function PostDetailScreen() {
   const onRootDirectRepost = useCallback(async () => {
     if (!rootPost) return;
     const isRepostItem = !!rootPost.isRepost || !!rootPost.repostedByMe;
-    const realPostId = isRepostItem && rootPost.originalPost ? rootPost.originalPost.id : rootPost.id;
+    const realPostId =
+      isRepostItem && rootPost.originalPost
+        ? rootPost.originalPost.id
+        : rootPost.id;
 
     try {
       if (rootPost.repostedByMe) {
@@ -861,13 +865,13 @@ export default function PostDetailScreen() {
                   onPress={handlePostRepost}
                   size={22}
                 />
-                
-                <RepostModal 
-                    isVisible={repostModalVisible}
-                    onClose={() => setRepostModalVisible(false)}
-                    onRepost={onRootDirectRepost}
-                    onQuote={onRootQuote}
-                    hasReposted={hasReposted}
+
+                <RepostModal
+                  isVisible={repostModalVisible}
+                  onClose={() => setRepostModalVisible(false)}
+                  onRepost={onRootDirectRepost}
+                  onQuote={onRootQuote}
+                  hasReposted={hasReposted}
                 />
 
                 <ActionButton

@@ -254,9 +254,9 @@ export default function ExploreScreen() {
   }, [postForRepost, router]);
 
   const onLike = useCallback(
-    async (post: any) => {
+    async (postId: string) => {
       try {
-        await likePost({ id: post.id }).unwrap();
+        await likePost({ postId }).unwrap();
       } catch (error) {
         console.error("Like failed:", error);
       }
@@ -265,9 +265,9 @@ export default function ExploreScreen() {
   );
 
   const onBookmark = useCallback(
-    async (post: any) => {
+    async (postId: string) => {
       try {
-        await bookmarkPost({ id: post.id }).unwrap();
+        await bookmarkPost({ postId }).unwrap();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch (error) {
         console.error("Bookmark failed:", error);

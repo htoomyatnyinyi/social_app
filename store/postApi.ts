@@ -223,7 +223,6 @@ export const postApi = api.injectEndpoints({
               ]
             : []),
         ];
-
         if (userId) {
           patches.push(
             dispatch(
@@ -249,6 +248,15 @@ export const postApi = api.injectEndpoints({
             ),
           );
         }
+
+        // Patch Trending (Explore)
+        patches.push(
+          dispatch(
+            postApi.util.updateQueryData("getTrending" as any, undefined, (draft) =>
+              updatePostInDraft(draft, postId),
+            ),
+          ),
+        );
 
         try {
           await queryFulfilled;
@@ -373,13 +381,25 @@ export const postApi = api.injectEndpoints({
             : []),
         ];
 
+        // Patch Trending (Explore)
+        patches.push(
+          dispatch(
+            postApi.util.updateQueryData("getTrending" as any, undefined, (draft) =>
+              updateBookmarkInDraft(draft, id),
+            ),
+          ),
+        );
+
         try {
           await queryFulfilled;
         } catch {
           patches.forEach((p) => p.undo());
         }
       },
-      invalidatesTags: (result, error, id) => [{ type: "Post", id }],
+      invalidatesTags: (result, error, arg) => {
+        const id = typeof arg === "string" ? arg : arg.id;
+        return [{ type: "Post", id }];
+      },
     }),
 
     repostPost: builder.mutation({
@@ -507,17 +527,29 @@ export const postApi = api.injectEndpoints({
             : []),
         ];
 
+        // Patch Trending (Explore)
+        patches.push(
+          dispatch(
+            postApi.util.updateQueryData("getTrending" as any, undefined, (draft) =>
+              updateRepostInDraft(draft, id),
+            ),
+          ),
+        );
+
         try {
           await queryFulfilled;
         } catch {
           patches.forEach((p) => p.undo());
         }
       },
-      invalidatesTags: (result, error, { id }) => [
-        { type: "Post", id },
-        { type: "Post", id: "LIST" },
-        { type: "Post", id: "FEED" },
-      ],
+      invalidatesTags: (result, error, arg) => {
+        const id = typeof arg === "string" ? arg : arg.id;
+        return [
+          { type: "Post", id },
+          { type: "Post", id: "LIST" },
+          { type: "Post", id: "FEED" },
+        ];
+      },
     }),
 
     deleteRepost: builder.mutation({
@@ -637,17 +669,29 @@ export const postApi = api.injectEndpoints({
             : []),
         ];
 
+        // Patch Trending (Explore)
+        patches.push(
+          dispatch(
+            postApi.util.updateQueryData("getTrending" as any, undefined, (draft) =>
+              updateRepostInDraft(draft, id),
+            ),
+          ),
+        );
+
         try {
           await queryFulfilled;
         } catch {
           patches.forEach((p) => p.undo());
         }
       },
-      invalidatesTags: (result, error, id) => [
-        { type: "Post", id },
-        { type: "Post", id: "LIST" },
-        { type: "Post", id: "FEED" },
-      ],
+      invalidatesTags: (result, error, arg) => {
+        const id = typeof arg === "string" ? arg : arg.id;
+        return [
+          { type: "Post", id },
+          { type: "Post", id: "LIST" },
+          { type: "Post", id: "FEED" },
+        ];
+      },
     }),
 
     getPost: builder.query({
