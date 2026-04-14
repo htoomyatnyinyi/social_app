@@ -20,12 +20,14 @@ import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
+import RepostModal from "../../components/RepostModal";
 import { useCreateChatRoomMutation } from "../../store/chatApi";
 import {
   useBookmarkPostMutation,
   useDeletePostMutation,
   useLikePostMutation,
   useRepostPostMutation,
+  useDeleteRepostMutation,
 } from "../../store/postApi";
 import {
   useBlockUserMutation,
@@ -36,6 +38,7 @@ import {
   useGetUserRepliesQuery,
   useMuteUserMutation,
 } from "../../store/profileApi";
+import { Animated } from "react-native";
 
 export default function UserProfileScreen() {
   const { id, tab, title: searchTitle } = useLocalSearchParams();
@@ -47,8 +50,15 @@ export default function UserProfileScreen() {
   const [activeTab, setActiveTab] = useState<"posts" | "replies" | "likes">(
     (tab as any) || "posts",
   );
+  const [tabProgress] = useState(
+    new Animated.Value(
+      activeTab === "posts" ? 0 : activeTab === "replies" ? 1 : 2,
+    ),
+  ); // Not used in this snippet but for context
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [repostModalVisible, setRepostModalVisible] = useState(false);
   const [postForOptions, setPostForOptions] = useState<Post | null>(null);
+  const [postForRepost, setPostForRepost] = useState<Post | null>(null);
 
   const {
     data: profile,
@@ -70,9 +80,12 @@ export default function UserProfileScreen() {
     },
   );
 
-  const { data: replyData, refetch: refetchReplies } = useGetUserRepliesQuery({ id: id as string }, {
-    skip: !id || activeTab !== "replies",
-  });
+  const { data: replyData, refetch: refetchReplies } = useGetUserRepliesQuery(
+    { id: id as string },
+    {
+      skip: !id || activeTab !== "replies",
+    },
+  );
 
   const [followUser] = useFollowUserMutation();
   const [muteUser] = useMuteUserMutation();
@@ -80,6 +93,7 @@ export default function UserProfileScreen() {
   const [createChatRoom] = useCreateChatRoomMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
 
@@ -106,24 +120,67 @@ export default function UserProfileScreen() {
     [bookmarkPost],
   );
 
-  const handleRepostAction = useCallback(async (post: Post) => {
+  const handleRepostAction = useCallback((post: Post) => {
+    setPostForRepost(post);
+    setRepostModalVisible(true);
+  }, []);
+
+  const onDirectRepost = useCallback(async () => {
+    if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const realPostId =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost.id
+        : postForRepost.id;
+
     try {
-      await repostPost({ id: post.id }).unwrap();
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (err) {
-      console.error("Repost failed", err);
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (err: any) {
+      console.error("Repost action failed", err);
     }
-  }, [repostPost]);
+  }, [postForRepost, repostPost, deleteRepost]);
 
-  const handlePressPost = useCallback((id: string) => {
-    router.push(`/post/${id}`);
-  }, [router]);
+  const onQuote = useCallback(() => {
+    if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const displayPost =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost
+        : postForRepost;
 
-  const handlePressProfile = useCallback((authorId: string) => {
-    if (authorId !== profile?.id) {
-      router.push(`/profile/${authorId}`);
-    }
-  }, [router, profile?.id]);
+    router.push({
+      pathname: "/compose/post",
+      params: {
+        quoteId: displayPost.id,
+        quoteContent: displayPost.content,
+        quoteAuthor: displayPost.author?.name || "Member",
+      },
+    });
+  }, [postForRepost, router]);
+
+  const handlePressPost = useCallback(
+    (id: string) => {
+      router.push(`/post/${id}`);
+    },
+    [router],
+  );
+
+  const handlePressProfile = useCallback(
+    (authorId: string) => {
+      if (authorId !== profile?.id) {
+        router.push(`/profile/${authorId}`);
+      }
+    },
+    [router, profile?.id],
+  );
 
   const handlePressOptions = useCallback((p: Post) => {
     setPostForOptions(p);
@@ -146,10 +203,7 @@ export default function UserProfileScreen() {
       router.push(`/chat/${room.id}?title=${profile.name}`);
     } catch (e) {
       console.error(e);
-      Alert.alert(
-        "Chat",
-        "Follow each other to start a conversation.",
-      );
+      Alert.alert("Chat", "Follow each other to start a conversation.");
     }
   };
 
@@ -315,7 +369,7 @@ export default function UserProfileScreen() {
                 uri:
                   profile.image ||
                   "https://api.dicebear.com/7.x/avataaars/png?seed=" +
-                  profile.username,
+                    profile.username,
               }}
               className="w-32 h-32 rounded-[44px] border-4 border-white dark:border-[#0F172A] bg-white dark:bg-slate-800"
               contentFit="cover"
@@ -500,7 +554,7 @@ export default function UserProfileScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={Platform.OS === "android"}
         ListEmptyComponent={
           <View className="items-center py-20 px-10">
             <View className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-3xl items-center justify-center mb-4">

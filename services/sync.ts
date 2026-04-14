@@ -1,11 +1,8 @@
 import { db } from "../db/client";
 import { messages, chats } from "../db/schema";
-import { eq, gt, or, and, desc } from "drizzle-orm";
-// We need API access. Since we can't easily use RTK hooks outside React components,
-// we might need a direct API client or pass the `baseQuery` function.
-// Or we can rely on `fetch` with the token.
-// For simplicity in this service, we'll assume we pass the `token` to the sync function.
+import { eq, and } from "drizzle-orm";
 import { API_URL } from "../store/api";
+import { metrics } from "../lib/metrics";
 
 type SyncResult = {
   pushed: number;
@@ -21,78 +18,102 @@ export const syncMessages = async (
   const result: SyncResult = { pushed: 0, pulled: 0 };
 
   try {
-    // 1. PUSH: Send pending messages to server
     const pendingMessages = await db
       .select()
       .from(messages)
       .where(and(eq(messages.chatId, chatId), eq(messages.status, "pending")));
+    const pushBatchSize = 10;
+    for (let i = 0; i < pendingMessages.length; i += pushBatchSize) {
+      const batch = pendingMessages.slice(i, i + pushBatchSize);
 
-    for (const msg of pendingMessages) {
-      try {
-        const response = await fetch(`${API_URL}/chat/message`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            chatId,
-            content: msg.content,
-            image: msg.mediaUrl || undefined,
-            replyToId: msg.replyToId || undefined,
-            messageType: msg.type !== "text" && msg.type !== "image" ? msg.type : undefined,
-          }),
-        });
+      await Promise.all(
+        batch.map(async (msg) => {
+          const maxAttempts = 3;
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              const response = await fetch(`${API_URL}/chat/message`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  chatId,
+                  content: msg.content,
+                  image: msg.mediaUrl || undefined,
+                  replyToId: msg.replyToId || undefined,
+                  messageType:
+                    msg.type !== "text" && msg.type !== "image"
+                      ? msg.type
+                      : undefined,
+                }),
+              });
 
-        if (response.ok) {
-          const serverMsg = await response.json();
-          const parsedMetadata = serverMsg.metadata ? (typeof serverMsg.metadata === 'string' ? JSON.parse(serverMsg.metadata) : serverMsg.metadata) : null;
-          const messageType = parsedMetadata?.messageType || (serverMsg.image ? "image" : "text");
+              if (!response.ok) throw new Error(`Push failed: ${response.status}`);
 
-          // Insert/update server message first to ensure it's in DB
-          await db
-            .insert(messages)
-            .values({
-              id: serverMsg.id,
-              chatId: serverMsg.chatId,
-              senderId: serverMsg.senderId,
-              content: serverMsg.content,
-              type: messageType,
-              mediaUrl: serverMsg.image || null,
-              read: serverMsg.read ? 1 : 0,
-              createdAt: new Date(serverMsg.createdAt).getTime(),
-              status: "synced",
-              replyToId: serverMsg.replyToId || null,
-              replyToName: serverMsg.replyTo?.sender?.name || null,
-              replyToContent: serverMsg.replyTo?.content || null,
-              metadata: serverMsg.metadata ? JSON.stringify(serverMsg.metadata) : null,
-            })
-            .onConflictDoUpdate({
-              target: messages.id,
-              set: {
-                status: "synced",
-                content: serverMsg.content,
-                read: serverMsg.read ? 1 : 0,
-                createdAt: new Date(serverMsg.createdAt).getTime(),
-                metadata: serverMsg.metadata ? JSON.stringify(serverMsg.metadata) : null,
-              },
-            });
+              const serverMsg = await response.json();
+              const parsedMetadata = serverMsg.metadata
+                ? typeof serverMsg.metadata === "string"
+                  ? JSON.parse(serverMsg.metadata)
+                  : serverMsg.metadata
+                : null;
+              const messageType =
+                parsedMetadata?.messageType || (serverMsg.image ? "image" : "text");
 
-          // Only delete temp message if it has a different ID
-          if (msg.id !== serverMsg.id) {
-            await db.delete(messages).where(eq(messages.id, msg.id));
+              await db
+                .insert(messages)
+                .values({
+                  id: serverMsg.id,
+                  chatId: serverMsg.chatId,
+                  senderId: serverMsg.senderId,
+                  content: serverMsg.content,
+                  type: messageType,
+                  mediaUrl: serverMsg.image || null,
+                  read: serverMsg.read ? 1 : 0,
+                  createdAt: new Date(serverMsg.createdAt).getTime(),
+                  status: "synced",
+                  replyToId: serverMsg.replyToId || null,
+                  replyToName: serverMsg.replyTo?.sender?.name || null,
+                  replyToContent: serverMsg.replyTo?.content || null,
+                  metadata: serverMsg.metadata
+                    ? JSON.stringify(serverMsg.metadata)
+                    : null,
+                })
+                .onConflictDoUpdate({
+                  target: messages.id,
+                  set: {
+                    status: "synced",
+                    content: serverMsg.content,
+                    read: serverMsg.read ? 1 : 0,
+                    createdAt: new Date(serverMsg.createdAt).getTime(),
+                    metadata: serverMsg.metadata
+                      ? JSON.stringify(serverMsg.metadata)
+                      : null,
+                  },
+                });
+
+              if (msg.id !== serverMsg.id) {
+                await db.delete(messages).where(eq(messages.id, msg.id));
+              }
+
+              result.pushed++;
+              metrics.increment("sync_push_success_total", { chatId });
+              return;
+            } catch (e) {
+              if (attempt === maxAttempts) {
+                metrics.increment("sync_push_fail_total", { chatId });
+                console.error("Failed to push message", msg.id, e);
+                return;
+              }
+
+              const backoffMs = 250 * Math.pow(2, attempt - 1);
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            }
           }
-
-          result.pushed++;
-        }
-      } catch (e) {
-        console.error("Failed to push message", msg.id, e);
-      }
+        }),
+      );
     }
 
-    // 2. PULL: Fetch new messages from server
-    // Get last synced message time for this chat
-    // We can store `lastSyncedAt` in `chats` table.
     const chatRecord = await db
       .select()
       .from(chats)
@@ -110,52 +131,53 @@ export const syncMessages = async (
 
     if (response.ok) {
       const data = await response.json();
-      // Handle both new paginated shape and legacy array format
       const newMessages = Array.isArray(data) ? data : (data.messages || []);
       if (newMessages.length > 0) {
         let maxCreatedAt = lastSyncedAt;
+        const pullBatchSize = 20;
 
-        for (const msg of newMessages) {
+        for (let i = 0; i < newMessages.length; i += pullBatchSize) {
+          const batch = newMessages.slice(i, i + pullBatchSize);
+          await Promise.all(
+            batch.map(async (msg: any) => {
           const parsedMetadata = msg.metadata ? (typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata) : null;
           const messageType = parsedMetadata?.messageType || (msg.image ? "image" : "text");
 
-          // Ensure we don't overwrite pending messages if they clash (unlikely if we use UUIDs)
-          // UPSERT strategy
-          await db
-            .insert(messages)
-            .values({
-              id: msg.id,
-              chatId: msg.chatId,
-              senderId: msg.senderId,
-              content: msg.content,
-              type: messageType,
-              mediaUrl: msg.image || null,
-              read: msg.read ? 1 : 0,
-              createdAt: new Date(msg.createdAt).getTime(),
-              status: "synced",
-              replyToId: msg.replyToId || null,
-              replyToName: msg.replyTo?.sender?.name || null,
-              replyToContent: msg.replyTo?.content || null,
-              metadata: msg.metadata ? JSON.stringify(msg.metadata) : null,
-            })
-            .onConflictDoUpdate({
-              target: messages.id,
-              set: {
-                status: "synced",
-                content: msg.content,
-                read: msg.read ? 1 : 0,
-                mediaUrl: msg.image || null,
-                metadata: msg.metadata ? JSON.stringify(msg.metadata) : null,
-              },
-            });
+              await db
+                .insert(messages)
+                .values({
+                  id: msg.id,
+                  chatId: msg.chatId,
+                  senderId: msg.senderId,
+                  content: msg.content,
+                  type: messageType,
+                  mediaUrl: msg.image || null,
+                  read: msg.read ? 1 : 0,
+                  createdAt: new Date(msg.createdAt).getTime(),
+                  status: "synced",
+                  replyToId: msg.replyToId || null,
+                  replyToName: msg.replyTo?.sender?.name || null,
+                  replyToContent: msg.replyTo?.content || null,
+                  metadata: msg.metadata ? JSON.stringify(msg.metadata) : null,
+                })
+                .onConflictDoUpdate({
+                  target: messages.id,
+                  set: {
+                    status: "synced",
+                    content: msg.content,
+                    read: msg.read ? 1 : 0,
+                    mediaUrl: msg.image || null,
+                    metadata: msg.metadata ? JSON.stringify(msg.metadata) : null,
+                  },
+                });
 
-          const msgTime = new Date(msg.createdAt).getTime();
-          if (msgTime > maxCreatedAt) maxCreatedAt = msgTime;
-          result.pulled++;
+              const msgTime = new Date(msg.createdAt).getTime();
+              if (msgTime > maxCreatedAt) maxCreatedAt = msgTime;
+              result.pulled++;
+            }),
+          );
         }
 
-        // Update chat sync status
-        // Insert chat if not exists
         await db
           .insert(chats)
           .values({
@@ -170,8 +192,12 @@ export const syncMessages = async (
       }
     }
   } catch (e) {
+    metrics.increment("sync_run_fail_total", { chatId });
     console.error("Sync error:", e);
   }
+
+  metrics.observe("sync_pulled_messages", result.pulled, { chatId });
+  metrics.observe("sync_pushed_messages", result.pushed, { chatId });
 
   return result;
 };

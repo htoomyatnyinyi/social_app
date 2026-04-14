@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
-import { useFocusEffect } from "@react-navigation/native"; // Re-enabled
 import {
   useGetChatRoomsQuery,
   useGetPublicChatQuery,
@@ -139,17 +138,11 @@ export default function ChatListScreen() {
     {},
     {
       refetchOnFocus: true, // Auto refetch when app returns from background
+      refetchOnReconnect: true,
     },
   );
 
   const { data: publicRoom } = useGetPublicChatQuery({});
-
-  // OPTIMIZATION: "Focus Mode" Background Refetch
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch]),
-  );
 
   const handleChatItemPress = useCallback(
     (item: any) => {
@@ -179,7 +172,7 @@ export default function ChatListScreen() {
         className="px-5 pb-5 z-50 border-b border-gray-100/50 dark:border-slate-800/50 shadow-sm"
         style={{ paddingTop: insets.top + 10 }}
       >
-        <View className="flex-row justify-between items-center mb-5">
+        <View className="flex-row justify-between items-center mb-0">
           <View>
             <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-[-1px] uppercase">
               Messages
@@ -243,25 +236,26 @@ export default function ChatListScreen() {
                     router.push(`/chat/${publicRoom?.id}?title=Public Lounge`);
                   }}
                   activeOpacity={0.9}
-                  className="mx-5 my-6 rounded-[40px] overflow-hidden border border-white dark:border-slate-800"
+                  className="mx-2 my-2 rounded-[40px] overflow-hidden border border-slate-800 dark:border-white shadow-2xl"
                 >
                   <Image
-                    source={{
-                      uri: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1000",
-                    }}
-                    className="w-full h-32 absolute"
+                    // source={{
+                    //   uri: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1000",
+                    // }}
+                    source={require("../../assets/svg/icon.png")}
+                    className="w-full h-32 absolute bg-black"
                   />
                   <BlurView
                     intensity={70}
                     tint="dark"
                     className="p-6 flex-row items-center h-24 bg-black/30"
                   >
-                    <View className="w-14 h-14 rounded-[22px] bg-white/20 items-center justify-center border border-white/40">
+                    {/* <View className="w-14 h-14 rounded-[22px] bg-white/20 items-center justify-center border border-white/40">
                       <Ionicons name="infinite" size={32} color="white" />
-                    </View>
+                    </View> */}
                     <View className="ml-5 flex-1">
                       <Text className="font-black text-[20px] text-white tracking-tight uppercase">
-                        Public Lounge
+                        Public
                       </Text>
                       <Text className="text-white/80 text-[12px] font-bold uppercase tracking-widest mt-1">
                         Community Chat

@@ -4,6 +4,7 @@ import { db } from "../db/client";
 import { messages as messagesTable } from "../db/schema";
 import { eq } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
+import { metrics } from "../lib/metrics";
 
 interface UseChatWebSocketProps {
   chatId: string | null;
@@ -51,6 +52,7 @@ export const useChatWebSocket = ({
 
       socket.onopen = () => {
         console.log(`✅ Chat WS Connected: ${chatId}`);
+        metrics.increment("chat_ws_open_total", { chatId });
       };
 
       socket.onmessage = async (event) => {
@@ -64,6 +66,9 @@ export const useChatWebSocket = ({
           }
 
           if (data.type === "new_message") {
+            const stopTimer = metrics.startTimer("chat_ws_message_process_ms", {
+              chatId,
+            });
             const parsedMetadata = data.metadata ? (typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata) : null;
             const messageType = parsedMetadata?.messageType || (data.image ? "image" : "text");
 
@@ -87,6 +92,7 @@ export const useChatWebSocket = ({
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
             onMessageReceivedRef.current?.();
+            stopTimer();
           } 
           else if (data.type === "message_deleted") {
             await db.delete(messagesTable).where(eq(messagesTable.id, data.messageId));
@@ -109,10 +115,12 @@ export const useChatWebSocket = ({
 
       socket.onerror = (e) => {
         console.error("❌ Chat WS Error:", e);
+        metrics.increment("chat_ws_error_total", { chatId });
       };
 
       socket.onclose = (e) => {
         console.log(`🔌 Chat WS Closed. Code: ${e.code}, Reason: ${e.reason}`);
+        metrics.increment("chat_ws_close_total", { chatId, code: e.code });
         socketRef.current = null;
 
         if (!isCleanedUp) {

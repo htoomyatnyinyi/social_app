@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -24,11 +25,13 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import PostCard from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
+import RepostModal from "../../components/RepostModal";
 import {
   useLikePostMutation,
   useRepostPostMutation,
   useBookmarkPostMutation,
   useDeletePostMutation,
+  useDeleteRepostMutation,
 } from "../../store/postApi";
 import Animated, {
   FadeInDown,
@@ -38,13 +41,13 @@ import Animated, {
   interpolate,
 } from "react-native-reanimated";
 
-const EXPLORE_CATEGORIES = [
-  { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
-  { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
-  { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
-  { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
-  { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
-];
+// const EXPLORE_CATEGORIES = [
+//   { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
+//   { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
+//   { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
+//   { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
+//   { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
+// ];
 
 /* Memoized List Items */
 const TrendingHashtagItem = React.memo(function TrendingHashtagItem({
@@ -117,9 +120,11 @@ export default function ExploreScreen() {
   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
     "users",
   );
-  const [selectedCategory, setSelectedCategory] = useState("1");
+  // const [selectedCategory, setSelectedCategory] = useState("1");
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [repostModalVisible, setRepostModalVisible] = useState(false);
   const [postForOptions, setPostForOptions] = useState<any>(null);
+  const [postForRepost, setPostForRepost] = useState<any>(null);
 
   const currentUser = useSelector((state: any) => state.auth.user);
   const tabProgress = useSharedValue(0);
@@ -147,6 +152,7 @@ export default function ExploreScreen() {
   // Mutations
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [deletePost] = useDeletePostMutation();
 
@@ -201,22 +207,56 @@ export default function ExploreScreen() {
     [router],
   );
 
-  const onPressRepost = useCallback(
-    async (post: any) => {
-      try {
-        await repostPost({ id: post.id }).unwrap();
+  const onPressRepost = useCallback((post: any) => {
+    setPostForRepost(post);
+    setRepostModalVisible(true);
+  }, []);
+
+  const onDirectRepost = useCallback(async () => {
+    if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const realPostId =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost.id
+        : postForRepost.id;
+
+    try {
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch (error) {
-        console.error("Repost failed:", error);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-    },
-    [repostPost],
-  );
+    } catch (error: any) {
+      console.error("Repost action failed", error);
+    }
+  }, [postForRepost, repostPost, deleteRepost]);
+
+  const onQuote = useCallback(() => {
+    if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const displayPost =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost
+        : postForRepost;
+
+    router.push({
+      pathname: "/compose/post",
+      params: {
+        quoteId: displayPost.id,
+        quoteContent: displayPost.content,
+        quoteAuthor: displayPost.author?.name || "Member",
+      },
+    });
+  }, [postForRepost, router]);
 
   const onLike = useCallback(
-    async (post: any) => {
+    async (postId: string) => {
       try {
-        await likePost({ id: post.id }).unwrap();
+        await likePost({ postId }).unwrap();
       } catch (error) {
         console.error("Like failed:", error);
       }
@@ -225,9 +265,9 @@ export default function ExploreScreen() {
   );
 
   const onBookmark = useCallback(
-    async (post: any) => {
+    async (postId: string) => {
       try {
-        await bookmarkPost({ id: post.id }).unwrap();
+        await bookmarkPost({ postId }).unwrap();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch (error) {
         console.error("Bookmark failed:", error);
@@ -439,11 +479,11 @@ export default function ExploreScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 16,
+                    paddingHorizontal: 10,
+                    paddingVertical: 10,
                   }}
                 >
-                  {EXPLORE_CATEGORIES.map((cat) => (
+                  {/* {EXPLORE_CATEGORIES.map((cat) => (
                     <TouchableOpacity
                       key={cat.id}
                       onPress={() => setSelectedCategory(cat.id)}
@@ -466,7 +506,7 @@ export default function ExploreScreen() {
                         {cat.name}
                       </Text>
                     </TouchableOpacity>
-                  ))}
+                  ))} */}
                 </ScrollView>
                 {renderHeroTrending()}
                 <View className="px-6 pb-4">
@@ -502,6 +542,14 @@ export default function ExploreScreen() {
           }
           setOptionsModalVisible(false);
         }}
+      />
+
+      <RepostModal
+        isVisible={repostModalVisible}
+        onClose={() => setRepostModalVisible(false)}
+        onRepost={onDirectRepost}
+        onQuote={onQuote}
+        hasReposted={!!postForRepost?.repostedByMe}
       />
     </View>
   );

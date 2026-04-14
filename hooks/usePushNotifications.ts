@@ -61,6 +61,22 @@ export function usePushNotifications() {
   return { expoPushToken };
 }
 
+export async function scheduleLocalNotificationAsync(title: string, body: string, data?: any) {
+  if (!Notifications) return;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
+      },
+      trigger: null,
+    });
+  } catch (err) {
+    console.log('Failed to schedule local notification:', err);
+  }
+}
+
 async function registerForPushNotificationsAsync() {
   if (shouldSkipPush || !Notifications) return undefined;
 
@@ -79,7 +95,8 @@ async function registerForPushNotificationsAsync() {
     }
   }
 
-  if (Device.isDevice) {
+  // Android Emulators support push notifications, whereas iOS Simulators technically do in recent versions but we allow it gracefully to fail if not.
+  if (Device.isDevice || Platform.OS === 'android') {
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;

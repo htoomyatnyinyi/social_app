@@ -234,10 +234,24 @@ export default function ComposePostScreen() {
                 />
               </View>
               <View className="flex-1">
+                {replyToName && (
+                  <View className="bg-sky-50 dark:bg-sky-900/30 self-start px-3 py-1 rounded-xl mb-3 border border-sky-100/50 dark:border-sky-800/30">
+                    <Text className="text-sky-600 dark:text-sky-400 font-bold text-[11px] uppercase tracking-wider">
+                      Replying to @{replyToName}
+                    </Text>
+                  </View>
+                )}
+
                 <TextInput
                   autoFocus
                   multiline
-                  placeholder="What's happening?"
+                  placeholder={
+                    replyToName
+                      ? "What are your thoughts?"
+                      : quoteId
+                        ? "Add your perspective..."
+                        : "What's happening?"
+                  }
                   placeholderTextColor="#94A3B8"
                   style={{
                     fontSize: 18,
@@ -249,17 +263,63 @@ export default function ComposePostScreen() {
                   textAlignVertical="top"
                 />
 
+                {/* Quote Post Preview */}
+                {quoteId && (
+                  <View className="border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 rounded-3xl p-5 mt-2 mb-4 shadow-sm">
+                    <View className="flex-row items-center mb-2">
+                      <Text className="font-black text-[14px] text-gray-900 dark:text-white tracking-tight">
+                        {quoteAuthor}
+                      </Text>
+                      <Text className="text-sky-500 font-bold text-[10px] ml-2 uppercase tracking-widest">
+                        Quote
+                      </Text>
+                    </View>
+                    <Text
+                      className="text-gray-500 dark:text-gray-400 font-medium text-[14px] leading-5"
+                      numberOfLines={4}
+                    >
+                      {quoteContent}
+                    </Text>
+                  </View>
+                )}
+
+                {locationTag && (
+                  <View className="flex-row items-center mt-2 mb-4 self-start bg-emerald-50 dark:bg-emerald-900/30 rounded-xl px-3 py-1.5 border border-emerald-100/50 dark:border-emerald-800/30">
+                    <Ionicons name="location" size={14} color="#10B981" />
+                    <Text className="text-emerald-600 dark:text-emerald-400 text-[12px] ml-1.5 font-black uppercase tracking-wider">
+                      {locationTag}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setLocationTag(null)}
+                      className="ml-3 w-5 h-5 items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-sm"
+                    >
+                      <Ionicons name="close" size={12} color="#10B981" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
                 {images.length > 0 && (
                   <View className="flex-row flex-wrap mt-4">
                     {images.map((img, i) => (
                       <TouchableOpacity
                         key={i}
                         onPress={() => setSelectedFullImage(img.uri)}
+                        className="relative"
                       >
                         <Image
                           source={{ uri: img.uri }}
                           className="w-20 h-20 rounded-lg m-1"
                         />
+                        <TouchableOpacity
+                          onPress={() =>
+                            setImages((prev) =>
+                              prev.filter((_, idx) => idx !== i),
+                            )
+                          }
+                          className="absolute top-2 right-2 bg-black/50 p-1 rounded-full"
+                        >
+                          <Ionicons name="close" size={12} color="white" />
+                        </TouchableOpacity>
                       </TouchableOpacity>
                     ))}
                   </View>

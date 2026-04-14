@@ -38,7 +38,7 @@ export const profileApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getProfile: builder.query({
       query: (id) => `/profile/${id}`,
-      providesTags: ["User"],
+      providesTags: (result, error, id) => [{ type: "User", id }],
     }),
     updateProfile: builder.mutation({
       query: (data) => ({
@@ -46,28 +46,68 @@ export const profileApi = api.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["User", "Post"],
+      invalidatesTags: (result, error) => [
+        { type: "User", id: result?.id },
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
     followUser: builder.mutation({
       query: (id) => ({
         url: `/profile/${id}/follow`,
         method: "POST",
       }),
-      invalidatesTags: ["User", "Post"],
+      async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
+        const currentUser = (getState() as any).auth?.user;
+        const patchResult = dispatch(
+          profileApi.util.updateQueryData("getProfile", id, (draft: any) => {
+            if (draft) {
+              const isFollowing = draft.isFollowing;
+              draft.isFollowing = !isFollowing;
+              if (draft._count) {
+                draft._count.followers += isFollowing ? -1 : 1;
+              }
+            }
+          })
+        );
+        // Also update current user's following count if profile is current user
+        const patchMe = currentUser ? dispatch(
+          profileApi.util.updateQueryData("getProfile", currentUser.id, (draft: any) => {
+            if (draft && draft.id === currentUser.id) {
+              if (draft._count) {
+                draft._count.following += (patchResult as any).inversePatches?.[0]?.value === true ? -1 : 1;
+                // Note: Simplified logic for follow direction
+              }
+            }
+          })
+        ) : null;
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+          patchMe?.undo();
+        }
+      },
+      invalidatesTags: (result, error, id) => [{ type: "User", id }],
     }),
     muteUser: builder.mutation({
       query: (id) => ({
         url: `/profile/${id}/mute`,
         method: "POST",
       }),
-      invalidatesTags: ["User", "Post"],
+      invalidatesTags: (result, error, id) => [{ type: "User", id }],
     }),
     blockUser: builder.mutation({
       query: (id) => ({
         url: `/profile/${id}/block`,
         method: "POST",
       }),
-      invalidatesTags: ["User", "Post"],
+      invalidatesTags: (result, error, id) => [
+        { type: "User", id },
+        { type: "Post", id: "LIST" },
+        { type: "Post", id: "FEED" },
+      ],
     }),
     updatePushToken: builder.mutation({
       query: (data) => ({
@@ -91,7 +131,10 @@ export const profileApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["User"],
+      providesTags: (result, error, { id }) => [
+        { type: "User", id: `FOLLOWERS-${id}` },
+        ...(result?.users?.map((u: any) => ({ type: "User" as const, id: u.id })) || []),
+      ],
     }),
     getFollowing: builder.query({
       query: ({ id, cursor }) => {
@@ -108,7 +151,10 @@ export const profileApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["User"],
+      providesTags: (result, error, { id }) => [
+        { type: "User", id: `FOLLOWING-${id}` },
+        ...(result?.users?.map((u: any) => ({ type: "User" as const, id: u.id })) || []),
+      ],
     }),
     getUserPosts: builder.query({
       query: ({ id, cursor }) => {
@@ -126,7 +172,10 @@ export const profileApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["Post"],
+      providesTags: (result, error, { id }) => [
+        { type: "Post", id: `USER-POSTS-${id}` },
+        ...(result?.posts?.map((p: any) => ({ type: "Post" as const, id: p.id })) || []),
+      ],
     }),
     getUserLikes: builder.query({
       query: ({ id, cursor }) => {
@@ -144,7 +193,10 @@ export const profileApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["Post"],
+      providesTags: (result, error, { id }) => [
+        { type: "Post", id: `USER-LIKES-${id}` },
+        ...(result?.posts?.map((p: any) => ({ type: "Post" as const, id: p.id })) || []),
+      ],
     }),
     getSuggestions: builder.query({
       query: () => "/profile/suggestions",
@@ -166,7 +218,10 @@ export const profileApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      providesTags: ["Post"],
+      providesTags: (result, error, { id }) => [
+        { type: "Post", id: `USER-REPLIES-${id}` },
+        ...(result?.posts?.map((p: any) => ({ type: "Post" as const, id: p.id })) || []),
+      ],
     }),
     getUserReposts: builder.query({
       query: (id) => `/profile/${id}/reposts`,

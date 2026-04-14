@@ -3,7 +3,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
+import RepostModal from "../../components/RepostModal";
 import {
   useBlockUserMutation,
   useBookmarkPostMutation,
@@ -35,16 +36,20 @@ import {
   useReportPostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
+import { metrics } from "../../lib/metrics";
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"public" | "private">("public");
   const [cursor, setCursor] = useState<string | null>(null);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [repostModalVisible, setRepostModalVisible] = useState(false);
   const [postForOptions, setPostForOptions] = useState<Post | null>(null);
+  const [postForRepost, setPostForRepost] = useState<Post | null>(null);
 
   const user = useSelector((state: any) => state.auth.user);
   const tabProgress = useSharedValue(0);
+  const feedLoadTimerRef = useRef<null | (() => number)>(null);
 
   const { data, isLoading, isFetching, refetch } = useGetPostsQuery(
     { type: activeTab, cursor },
@@ -52,12 +57,29 @@ export default function FeedScreen() {
   );
 
   const posts = data?.posts ?? [];
+  useEffect(() => {
+    if (isLoading && !feedLoadTimerRef.current) {
+      feedLoadTimerRef.current = metrics.startTimer("feed_first_render_ms", {
+        tab: activeTab,
+      });
+    }
+  }, [isLoading, activeTab]);
+
+  useEffect(() => {
+    if (feedLoadTimerRef.current && posts.length > 0) {
+      feedLoadTimerRef.current();
+      feedLoadTimerRef.current = null;
+    }
+  }, [posts.length]);
+
   const nextCursor = data?.nextCursor;
 
   const [likePost] = useLikePostMutation();
-  const [bookmarkPost] = useBookmarkPostMutation();
   const [repostPost] = useRepostPostMutation();
   const [deleteRepost] = useDeleteRepostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
+  // const [repostPost] = useRepostPostMutation();
+  // const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
   const [blockUser] = useBlockUserMutation();
   const [reportPost] = useReportPostMutation();
@@ -107,66 +129,51 @@ export default function FeedScreen() {
     [bookmarkPost],
   );
 
-  const handleRepostAction = useCallback(
-    (post: Post) => {
-      const isRepostItem = !!post.isRepost || !!post.repostedByMe;
-      const realPostId =
-        isRepostItem && post.originalPost ? post.originalPost.id : post.id;
-      const alreadyReposted = post.repostedByMe ?? false;
+  const handleRepostAction = useCallback((post: Post) => {
+    setPostForRepost(post);
+    setRepostModalVisible(true);
+  }, []);
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const onDirectRepost = useCallback(async () => {
+    if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const realPostId =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost.id
+        : postForRepost.id;
 
-      if (alreadyReposted) {
-        Alert.alert("Undo Repost", "Remove this post from your timeline?", [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Remove",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                await deleteRepost(realPostId).unwrap();
-              } catch (err) {
-                console.error("Delete repost failed", err);
-              }
-            },
-          },
-        ]);
+    try {
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        Alert.alert("Share Post", "How would you like to share this post?", [
-          {
-            text: "Repost Directly",
-            onPress: async () => {
-              try {
-                await repostPost({ id: realPostId }).unwrap();
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success,
-                );
-              } catch (err: any) {
-                if (err?.status === 400) {
-                  Alert.alert(
-                    "Already Reposted",
-                    "You have already shared this post.",
-                  );
-                }
-              }
-            },
-          },
-          {
-            text: "Quote Post",
-            onPress: () => {
-              router.push({
-                pathname: "/compose/post",
-                params: { quoteId: realPostId },
-              });
-            },
-          },
-          { text: "Cancel", style: "cancel" },
-        ]);
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-    },
-    [repostPost, deleteRepost],
-    // [router, repostPost, deletePost]
-  );
+    } catch (err: any) {
+      console.error("Repost action failed:", err);
+    }
+  }, [postForRepost, repostPost, deleteRepost]);
+
+  const onQuote = useCallback(() => {
+    if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const displayPost =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost
+        : postForRepost;
+
+    router.push({
+      pathname: "/compose/post",
+      params: {
+        quoteId: displayPost.id,
+        quoteContent: displayPost.content,
+        quoteAuthor: displayPost.author?.name || "Member",
+      },
+    });
+  }, [postForRepost]);
 
   const handlePressPost = useCallback(
     (id: string) => {
@@ -398,16 +405,16 @@ export default function FeedScreen() {
       <PostOptionsModal
         isVisible={optionsModalVisible}
         onClose={() => setOptionsModalVisible(false)}
-        isOwner={postForOptions?.author?.id === user?.id}
         onDelete={async () => {
           if (!postForOptions?.id) return;
           try {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await deletePost({ id: postForOptions.id }).unwrap();
-            setOptionsModalVisible(false);
-          } catch (err) {
-            console.error("Delete failed", err);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch (error: any) {
+            console.error("Error deleting post:", error);
           }
+          setOptionsModalVisible(false);
+          refetch();
         }}
         onReport={async () => {
           if (!postForOptions?.id) return;
@@ -417,22 +424,83 @@ export default function FeedScreen() {
               reason: "SPAM",
             }).unwrap();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setOptionsModalVisible(false);
           } catch (error: any) {
             console.error("Error reporting post:", error);
           }
+          setOptionsModalVisible(false);
+          refetch();
         }}
         onBlock={async () => {
           if (!postForOptions?.author?.id) return;
           try {
             await blockUser({ id: postForOptions.author.id }).unwrap();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setOptionsModalVisible(false);
-            refetch();
           } catch (error: any) {
             console.error("Error blocking user:", error);
           }
+          setOptionsModalVisible(false);
+          refetch();
         }}
+        isOwner={postForOptions?.author?.id === user?.id}
+        // onUnfollow={async () => {
+        //   if (!postForOptions?.author?.id) return;
+        //   try {
+        //     await unfollowUser({ id: postForOptions.author.id }).unwrap();
+        //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        //   } catch (error: any) {
+        //     console.error("Error unfollowing user:", error);
+        //   }
+        //   setOptionsModalVisible(false);
+        //   refetch();
+        // }}
+        // onFollow={async () => {
+        //   if (!postForOptions?.author?.id) return;
+        //   try {
+        //     await followUser({ id: postForOptions.author.id }).unwrap();
+        //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        //   } catch (error: any) {
+        //     console.error("Error following user:", error);
+        //   }
+        //   setOptionsModalVisible(false);
+        //   refetch();
+        // }}
+
+        // // error occur
+        // onReport={handleReportPost}
+        // onBlock={handleBlockUser}
+        // isOwner={postForOptions?.author?.id === user?.id}
+        // onReport={async () => {
+        //   if (!postForOptions?.id) return;
+        //   try {
+        //     await reportPost({
+        //       id: postForOptions.id,
+        //       reason: "SPAM",
+        //     }).unwrap();
+        //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        //     setOptionsModalVisible(false);
+        //   } catch (error: any) {
+        //     console.error("Error reporting post:", error);
+        //   }
+        // }}
+
+        // onBlock={async () => {
+        //   if (!postForOptions?.author?.id) return;
+        //   try {
+        //     await blockUser({ id: postForOptions.author.id }).unwrap();
+        //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        //     setOptionsModalVisible(false);
+        //     refetch();
+        //   } catch (error: any) {
+        //     console.error("Error blocking user:", error);
+        //   }
+        // }}
+      />
+      <RepostModal
+        isVisible={repostModalVisible}
+        onClose={() => setRepostModalVisible(false)}
+        onRepost={onDirectRepost}
+        onQuote={onQuote}
+        hasReposted={!!postForRepost?.repostedByMe}
       />
     </View>
   );
