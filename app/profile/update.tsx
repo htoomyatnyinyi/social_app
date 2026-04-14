@@ -47,7 +47,9 @@ export default function UpdateProfileScreen() {
   const [location, setLocation] = useState(user?.location || "");
   const [website, setWebsite] = useState(user?.website || "");
 
-  const [dob, setDob] = useState<Date>(user?.dob ? new Date(user.dob) : new Date(2000, 0, 1));
+  const [dob, setDob] = useState<Date>(
+    user?.dob ? new Date(user.dob) : new Date(2000, 0, 1),
+  );
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [profileImage, setProfileImage] = useState(user?.image || null);
@@ -84,7 +86,7 @@ export default function UpdateProfileScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: isCover ? [16, 9] : [1, 1],
       quality: 0.5,
@@ -108,7 +110,10 @@ export default function UpdateProfileScreen() {
 
   const handleUpdate = async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Your name is part of your identity. Please provide it.");
+      Alert.alert(
+        "Error",
+        "Your name is part of your identity. Please provide it.",
+      );
       return;
     }
     if (!username.trim()) {
@@ -124,7 +129,7 @@ export default function UpdateProfileScreen() {
         bio,
         location,
         website,
-        dob: dob.toISOString().split('T')[0],
+        dob: dob.toISOString().split("T")[0],
         image: profileBase64 || undefined,
         coverImage: coverBase64 || undefined,
       }).unwrap();
@@ -142,13 +147,14 @@ export default function UpdateProfileScreen() {
       console.error("Update failed", error);
       Alert.alert(
         "Update Failed",
-        error?.data?.message || "The universe encountered a temporary glitch. Please try again.",
+        error?.data?.message ||
+          "The universe encountered a temporary glitch. Please try again.",
       );
     }
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (Platform.OS === "android") setShowDatePicker(false);
     if (selectedDate) {
       setDob(selectedDate);
     }
@@ -178,7 +184,9 @@ export default function UpdateProfileScreen() {
           {isLoading ? (
             <ActivityIndicator size="small" color="#0EA5E9" />
           ) : (
-            <Text className="text-white font-black text-[13px] uppercase tracking-wider">Save</Text>
+            <Text className="text-white font-black text-[13px] uppercase tracking-wider">
+              Save
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -217,7 +225,11 @@ export default function UpdateProfileScreen() {
           <View className="px-5 -mt-14 mb-8">
             <View className="relative w-28 h-28 shadow-2xl shadow-sky-300 dark:shadow-none">
               <Image
-                source={{ uri: profileImage || "https://api.dicebear.com/7.x/avataaars/png?seed=user1" }}
+                source={{
+                  uri:
+                    profileImage ||
+                    "https://api.dicebear.com/7.x/avataaars/png?seed=user1",
+                }}
                 className="w-28 h-28 rounded-[40px] border-4 border-white dark:border-[#0F172A] bg-white dark:bg-[#0F172A]"
                 contentFit="cover"
                 transition={300}
@@ -233,8 +245,10 @@ export default function UpdateProfileScreen() {
 
           {/* Form Fields */}
           <View className="px-5 space-y-6">
-            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
-              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Full Identity</Text>
+            <View className="bg-white mb-1 dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">
+                Full Identity
+              </Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
@@ -244,8 +258,10 @@ export default function UpdateProfileScreen() {
               />
             </View>
 
-            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
-              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Unique Handle</Text>
+            <View className="bg-white mb-1 dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">
+                Unique Handle
+              </Text>
               <TextInput
                 value={username}
                 onChangeText={setUsername}
@@ -256,8 +272,10 @@ export default function UpdateProfileScreen() {
               />
             </View>
 
-            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
-              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Your Story (Bio)</Text>
+            <View className="bg-white mb-1 dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">
+                Your Story (Bio)
+              </Text>
               <TextInput
                 value={bio}
                 onChangeText={setBio}
@@ -270,8 +288,10 @@ export default function UpdateProfileScreen() {
             </View>
 
             <View className="flex-row space-x-4">
-              <View className="flex-1 bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
-                <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Presence (Location)</Text>
+              <View className="flex-1 bg-white mb-1 dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
+                <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">
+                  Presence (Location)
+                </Text>
                 <TextInput
                   value={location}
                   onChangeText={setLocation}
@@ -282,8 +302,10 @@ export default function UpdateProfileScreen() {
               </View>
             </View>
 
-            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
-              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Digital Garden (Website)</Text>
+            <View className="bg-white mb-1 dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">
+                Digital Garden (Website)
+              </Text>
               <TextInput
                 value={website}
                 onChangeText={setWebsite}
@@ -295,8 +317,10 @@ export default function UpdateProfileScreen() {
               />
             </View>
 
-            <View className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
-              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">Inception (Birth Date)</Text>
+            <View className="bg-white mb-1 dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
+              <Text className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1.5 px-1">
+                Inception (Birth Date)
+              </Text>
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -305,7 +329,11 @@ export default function UpdateProfileScreen() {
                 className="w-full px-1 py-1 flex-row items-center justify-between"
               >
                 <Text className="text-[16px] text-gray-900 dark:text-white font-bold">
-                  {dob.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {dob.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
@@ -315,16 +343,18 @@ export default function UpdateProfileScreen() {
                   <DateTimePicker
                     value={dob}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
                     onChange={onDateChange}
                     maximumDate={new Date()}
                   />
-                  {Platform.OS === 'ios' && (
+                  {Platform.OS === "ios" && (
                     <TouchableOpacity
                       onPress={() => setShowDatePicker(false)}
                       className="items-center py-2"
                     >
-                      <Text className="text-sky-500 font-black uppercase text-xs tracking-widest">Done</Text>
+                      <Text className="text-sky-500 font-black uppercase text-xs tracking-widest">
+                        Done
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -332,7 +362,7 @@ export default function UpdateProfileScreen() {
             </View>
           </View>
 
-          <View className="h-32" />
+          <View className="h-64" />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

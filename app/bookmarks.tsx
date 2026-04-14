@@ -24,6 +24,7 @@ import {
 import { useSelector } from "react-redux";
 import PostCard, { Post } from "@/components/PostCard";
 import PostOptionsModal from "@/components/PostOptionsModal";
+import RepostModal from "@/components/RepostModal";
 
 export default function BookmarksScreen() {
   const router = useRouter();
@@ -43,7 +44,9 @@ export default function BookmarksScreen() {
   const [repostPost] = useRepostPostMutation();
 
   const [optionsModalVisible, setOptionsModalVisible] = React.useState(false);
+  const [repostModalVisible, setRepostModalVisible] = React.useState(false);
   const [postForOptions, setPostForOptions] = React.useState<Post | null>(null);
+  const [postForRepost, setPostForRepost] = React.useState<Post | null>(null);
 
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -74,16 +77,42 @@ export default function BookmarksScreen() {
   );
 
   const handleRepostAction = useCallback(
-    async (post: Post) => {
-      try {
-        await repostPost({ id: post.id }).unwrap();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.error("Repost failed", err);
-      }
+    (post: Post) => {
+      setPostForRepost(post);
+      setRepostModalVisible(true);
     },
-    [repostPost],
+    [],
   );
+
+  const onDirectRepost = useCallback(async () => {
+    if (!postForRepost) return;
+    const isRepostItem = !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const realPostId = isRepostItem && postForRepost.originalPost ? postForRepost.originalPost.id : postForRepost.id;
+
+    try {
+      await repostPost({ id: realPostId }).unwrap();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      if (err?.status === 400) {
+        // Alert.alert("Already Reposted", "You have already shared this post.");
+      }
+    }
+  }, [postForRepost, repostPost]);
+
+  const onQuote = useCallback(() => {
+    if (!postForRepost) return;
+    const isRepostItem = !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const displayPost = isRepostItem && postForRepost.originalPost ? postForRepost.originalPost : postForRepost;
+
+    router.push({
+      pathname: "/compose/post",
+      params: {
+        quoteId: displayPost.id,
+        quoteContent: displayPost.content,
+        quoteAuthor: displayPost.author?.name || "Member",
+      },
+    });
+  }, [postForRepost]);
 
   const handlePressPost = useCallback(
     (id: string) => {
@@ -199,6 +228,14 @@ export default function BookmarksScreen() {
           setOptionsModalVisible(false);
           refetch();
         }}
+      />
+
+      <RepostModal
+        isVisible={repostModalVisible}
+        onClose={() => setRepostModalVisible(false)}
+        onRepost={onDirectRepost}
+        onQuote={onQuote}
+        hasReposted={!!postForRepost?.repostedByMe}
       />
     </View>
   );

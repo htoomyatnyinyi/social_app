@@ -37,6 +37,7 @@ import {
   useRepostPostMutation,
 } from "../../store/postApi";
 import * as Haptics from "expo-haptics";
+import RepostModal from "../../components/RepostModal";
 
 // ────────────────────────────────────────────────
 // Tree Builder helper
@@ -158,6 +159,7 @@ const ReplyItem = memo(
     const [likePost] = useLikePostMutation();
     const [repostPost] = useRepostPostMutation();
     const [bookmarkPost] = useBookmarkPostMutation();
+    const [repostModalVisible, setRepostModalVisible] = useState(false);
     const isBookmarked = item.isBookmarked ?? false;
 
     const handlePostBookmark = useCallback(async () => {
@@ -178,14 +180,29 @@ const ReplyItem = memo(
       }
     }, [likePost, item.id, item.isLiked, threadId]);
 
-    const handleRepost = useCallback(async () => {
+    const handleRepost = useCallback(() => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setRepostModalVisible(true);
+    }, []);
+
+    const onDirectRepost = useCallback(async () => {
       try {
         await repostPost({ id: item.id, threadId }).unwrap();
       } catch (err) {
         console.error("Failed to repost reply:", err);
       }
     }, [repostPost, item.id, threadId]);
+
+    const onQuote = useCallback(() => {
+      router.push({
+        pathname: "/compose/post",
+        params: {
+          quoteId: item.id,
+          quoteContent: item.content,
+          quoteAuthor: item.author?.name || "Member",
+        },
+      });
+    }, [item]);
 
     // const handleShare = useCallback(async () => {
     //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -370,6 +387,13 @@ const ReplyItem = memo(
                 <Ionicons name="share-outline" size={16} color="#64748B" />
               </TouchableOpacity> */}
             </View>
+            <RepostModal
+              isVisible={repostModalVisible}
+              onClose={() => setRepostModalVisible(false)}
+              onRepost={onDirectRepost}
+              onQuote={onQuote}
+              hasReposted={hasReposted}
+            />
           </View>
         </TouchableOpacity>
       </View>
@@ -392,6 +416,7 @@ export default function PostDetailScreen() {
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyTargetName, setReplyTargetName] = useState<string | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [repostModalVisible, setRepostModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   const inputRef = useRef<TextInput>(null);
@@ -441,7 +466,6 @@ export default function PostDetailScreen() {
         postId: targetPostId,
         content,
       }).unwrap();
-      refetchThread();
     } catch (err) {
       console.error("Reply failed", err);
     }
@@ -483,8 +507,12 @@ export default function PostDetailScreen() {
     }
   }, [likePost, rootPost?.id, hasLiked, id]);
 
-  const handlePostRepost = useCallback(async () => {
+  const handlePostRepost = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setRepostModalVisible(true);
+  }, []);
+
+  const onRootDirectRepost = useCallback(async () => {
     if (!rootPost) return;
     try {
       await repostPost({ id: rootPost.id, threadId: id }).unwrap();
@@ -492,6 +520,18 @@ export default function PostDetailScreen() {
       console.error("Repost failed", err);
     }
   }, [rootPost, repostPost, id]);
+
+  const onRootQuote = useCallback(() => {
+    if (!rootPost) return;
+    router.push({
+      pathname: "/compose/post",
+      params: {
+        quoteId: rootPost.id,
+        quoteContent: rootPost.content,
+        quoteAuthor: rootPost.author?.name || "Member",
+      },
+    });
+  }, [rootPost]);
 
   const handlePostBookmark = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -798,7 +838,15 @@ export default function PostDetailScreen() {
                   activeColor="#10B981"
                   activeBg="bg-emerald-50 dark:bg-emerald-500/10"
                   onPress={handlePostRepost}
-                  size={24}
+                  size={22}
+                />
+                
+                <RepostModal 
+                    isVisible={repostModalVisible}
+                    onClose={() => setRepostModalVisible(false)}
+                    onRepost={onRootDirectRepost}
+                    onQuote={onRootQuote}
+                    hasReposted={hasReposted}
                 />
 
                 <ActionButton
