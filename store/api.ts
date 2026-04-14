@@ -7,10 +7,10 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // 2. For iOS Simulator / Android Emulator
 // const DEV_URL = "http://localhost:8080";
-// const DEV_URL = "http://192.168.1.241:8080";
+const DEV_URL = "http://192.168.1.13:8080";
 
 // 3. For Production
-const DEV_URL = "https://server.myanmarsocial.ccwu.cc";
+// const DEV_URL = "https://server.myanmarsocial.ccwu.cc";
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || DEV_URL;
 // ---------------------

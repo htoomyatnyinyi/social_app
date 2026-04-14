@@ -6,7 +6,7 @@ import { AppDispatch } from "../../store/store";
 import { notificationApi, useGetUnreadCountQuery } from "../../store/notificationApi";
 import { useUpdatePushTokenMutation } from "../../store/profileApi";
 import { API_URL, api } from "../../store/api";
-import { usePushNotifications } from "../../hooks/usePushNotifications";
+import { usePushNotifications, scheduleLocalNotificationAsync } from "../../hooks/usePushNotifications";
 import { Platform, View } from "react-native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
@@ -112,6 +112,13 @@ export default function TabLayout() {
                 }
               })
             );
+
+            // Show a local notification for better UX in foreground/when WS resolves
+            if (notif.message || notif.type) {
+              const title = notif.type === "MESSAGE" ? "New Message" : "New Notification";
+              const body = notif.message || "You have a new notification";
+              scheduleLocalNotificationAsync(title, body, { id: notif.id, type: notif.type });
+            }
 
             // 2. Optimistically append to notifications list cache
             // The query arg in notifications.tsx is {}

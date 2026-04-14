@@ -34,7 +34,9 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
       ]
     },
     "web": {
@@ -70,8 +72,9 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio calls."
         }
       ],
-      "expo-audio", // i think this one need to remove.
-      "expo-av"
+      "expo-audio",
+      "expo-av",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
