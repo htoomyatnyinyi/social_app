@@ -273,6 +273,17 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              onPress={() => router.push("/analytics")}
+              className={`w-11 h-11 border mr-2 items-center justify-center rounded-2xl shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-none" : "bg-white border-gray-100"}`}
+            >
+              <Ionicons
+                name="bar-chart"
+                size={20}
+                color={accentColor}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
               onPress={() => router.push("/profile/update")}
               className={`px-5 py-2.5 rounded-2xl border mr-2 shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-none" : "bg-white border-gray-100"}`}
             >
