@@ -31,6 +31,7 @@ import {
   useRepostPostMutation,
   useBookmarkPostMutation,
   useDeletePostMutation,
+  useDeleteRepostMutation,
 } from "../../store/postApi";
 import Animated, {
   FadeInDown,
@@ -151,6 +152,7 @@ export default function ExploreScreen() {
   // Mutations
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [deletePost] = useDeletePostMutation();
 
@@ -220,14 +222,17 @@ export default function ExploreScreen() {
         : postForRepost.id;
 
     try {
-      await repostPost({ id: realPostId }).unwrap();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error: any) {
-      if (error?.status === 400) {
-        Alert.alert("Already Reposted", "You have already shared this post.");
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+    } catch (error: any) {
+      console.error("Repost action failed", error);
     }
-  }, [postForRepost, repostPost]);
+  }, [postForRepost, repostPost, deleteRepost]);
 
   const onQuote = useCallback(() => {
     if (!postForRepost) return;

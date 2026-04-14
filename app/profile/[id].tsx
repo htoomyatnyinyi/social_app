@@ -27,6 +27,7 @@ import {
   useDeletePostMutation,
   useLikePostMutation,
   useRepostPostMutation,
+  useDeleteRepostMutation,
 } from "../../store/postApi";
 import {
   useBlockUserMutation,
@@ -92,6 +93,7 @@ export default function UserProfileScreen() {
   const [createChatRoom] = useCreateChatRoomMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
 
@@ -133,14 +135,17 @@ export default function UserProfileScreen() {
         : postForRepost.id;
 
     try {
-      await repostPost({ id: realPostId }).unwrap();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err: any) {
-      if (err?.status === 400) {
-        Alert.alert("Already Reposted", "You have already shared this post.");
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+    } catch (err: any) {
+      console.error("Repost action failed", err);
     }
-  }, [postForRepost, repostPost]);
+  }, [postForRepost, repostPost, deleteRepost]);
 
   const onQuote = useCallback(() => {
     if (!postForRepost) return;

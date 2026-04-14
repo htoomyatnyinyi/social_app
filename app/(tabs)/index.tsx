@@ -58,9 +58,11 @@ export default function FeedScreen() {
   const nextCursor = data?.nextCursor;
 
   const [likePost] = useLikePostMutation();
-  const [bookmarkPost] = useBookmarkPostMutation();
   const [repostPost] = useRepostPostMutation();
   const [deleteRepost] = useDeleteRepostMutation();
+  const [bookmarkPost] = useBookmarkPostMutation();
+  // const [repostPost] = useRepostPostMutation();
+  // const [deleteRepost] = useDeleteRepostMutation();
   const [deletePost] = useDeletePostMutation();
   const [blockUser] = useBlockUserMutation();
   const [reportPost] = useReportPostMutation();
@@ -125,14 +127,17 @@ export default function FeedScreen() {
         : postForRepost.id;
 
     try {
-      await repostPost({ id: realPostId }).unwrap();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err: any) {
-      if (err?.status === 400) {
-        Alert.alert("Already Reposted", "You have already shared this post.");
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+    } catch (err: any) {
+      console.error("Repost action failed:", err);
     }
-  }, [postForRepost, repostPost]);
+  }, [postForRepost, repostPost, deleteRepost]);
 
   const onQuote = useCallback(() => {
     if (!postForRepost) return;
@@ -472,6 +477,13 @@ export default function FeedScreen() {
         //     console.error("Error blocking user:", error);
         //   }
         // }}
+      />
+      <RepostModal
+        isVisible={repostModalVisible}
+        onClose={() => setRepostModalVisible(false)}
+        onRepost={onDirectRepost}
+        onQuote={onQuote}
+        hasReposted={!!postForRepost?.repostedByMe}
       />
     </View>
   );

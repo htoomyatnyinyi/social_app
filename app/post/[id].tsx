@@ -35,6 +35,7 @@ import {
   useLikePostMutation,
   useReplyPostMutation,
   useRepostPostMutation,
+  useDeleteRepostMutation,
 } from "../../store/postApi";
 import * as Haptics from "expo-haptics";
 import RepostModal from "../../components/RepostModal";
@@ -158,6 +159,7 @@ const ReplyItem = memo(
 
     const [likePost] = useLikePostMutation();
     const [repostPost] = useRepostPostMutation();
+    const [deleteRepost] = useDeleteRepostMutation();
     const [bookmarkPost] = useBookmarkPostMutation();
     const [repostModalVisible, setRepostModalVisible] = useState(false);
     const isBookmarked = item.isBookmarked ?? false;
@@ -186,12 +188,21 @@ const ReplyItem = memo(
     }, []);
 
     const onDirectRepost = useCallback(async () => {
+      const isRepostItem = !!item.isRepost || !!item.repostedByMe;
+      const realPostId = isRepostItem && item.originalPost ? item.originalPost.id : item.id;
+
       try {
-        await repostPost({ id: item.id, threadId }).unwrap();
+        if (item.repostedByMe) {
+          await deleteRepost({ id: realPostId }).unwrap();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          await repostPost({ id: realPostId, threadId }).unwrap();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
       } catch (err) {
         console.error("Failed to repost reply:", err);
       }
-    }, [repostPost, item.id, threadId]);
+    }, [repostPost, deleteRepost, item, threadId]);
 
     const onQuote = useCallback(() => {
       router.push({
@@ -432,6 +443,7 @@ export default function PostDetailScreen() {
   const [replyPost] = useReplyPostMutation();
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [deletePost] = useDeletePostMutation();
   const [incrementViewCount] = useIncrementViewCountMutation();
@@ -514,12 +526,21 @@ export default function PostDetailScreen() {
 
   const onRootDirectRepost = useCallback(async () => {
     if (!rootPost) return;
+    const isRepostItem = !!rootPost.isRepost || !!rootPost.repostedByMe;
+    const realPostId = isRepostItem && rootPost.originalPost ? rootPost.originalPost.id : rootPost.id;
+
     try {
-      await repostPost({ id: rootPost.id, threadId: id }).unwrap();
+      if (rootPost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId, threadId: id }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     } catch (err) {
       console.error("Repost failed", err);
     }
-  }, [rootPost, repostPost, id]);
+  }, [rootPost, repostPost, deleteRepost, id]);
 
   const onRootQuote = useCallback(() => {
     if (!rootPost) return;

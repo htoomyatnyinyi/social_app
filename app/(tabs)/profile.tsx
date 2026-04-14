@@ -24,6 +24,7 @@ import {
   useDeletePostMutation,
   useLikePostMutation,
   useRepostPostMutation,
+  useDeleteRepostMutation,
 } from "../../store/postApi";
 import {
   useGetProfileQuery,
@@ -54,6 +55,7 @@ export default function ProfileScreen() {
 
   const [likePost] = useLikePostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [deletePost] = useDeletePostMutation();
 
@@ -183,13 +185,25 @@ export default function ProfileScreen() {
 
   const onDirectRepost = useCallback(async () => {
     if (!postForRepost) return;
+    const isRepostItem =
+      !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+    const realPostId =
+      isRepostItem && postForRepost.originalPost
+        ? postForRepost.originalPost.id
+        : postForRepost.id;
+
     try {
-      await repostPost({ id: postForRepost.id }).unwrap();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err) {
-      console.error("Repost failed", err);
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (err: any) {
+      console.error("Repost action failed", err);
     }
-  }, [postForRepost, repostPost]);
+  }, [postForRepost, repostPost, deleteRepost]);
 
   const onQuote = useCallback(() => {
     if (!postForRepost) return;
@@ -544,6 +558,13 @@ export default function ProfileScreen() {
             console.error("Delete failed", err);
           }
         }}
+      />
+      <RepostModal
+        isVisible={repostModalVisible}
+        onClose={() => setRepostModalVisible(false)}
+        onRepost={onDirectRepost}
+        onQuote={onQuote}
+        hasReposted={!!postForRepost?.repostedByMe}
       />
     </View>
   );

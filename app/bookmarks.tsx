@@ -20,6 +20,7 @@ import {
   useLikePostMutation,
   useBookmarkPostMutation,
   useRepostPostMutation,
+  useDeleteRepostMutation,
 } from "@/store/postApi";
 import { useSelector } from "react-redux";
 import PostCard, { Post } from "@/components/PostCard";
@@ -42,6 +43,7 @@ export default function BookmarksScreen() {
   const [likePost] = useLikePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
   const [repostPost] = useRepostPostMutation();
+  const [deleteRepost] = useDeleteRepostMutation();
 
   const [optionsModalVisible, setOptionsModalVisible] = React.useState(false);
   const [repostModalVisible, setRepostModalVisible] = React.useState(false);
@@ -90,14 +92,17 @@ export default function BookmarksScreen() {
     const realPostId = isRepostItem && postForRepost.originalPost ? postForRepost.originalPost.id : postForRepost.id;
 
     try {
-      await repostPost({ id: realPostId }).unwrap();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err: any) {
-      if (err?.status === 400) {
-        // Alert.alert("Already Reposted", "You have already shared this post.");
+      if (postForRepost.repostedByMe) {
+        await deleteRepost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        await repostPost({ id: realPostId }).unwrap();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+    } catch (err: any) {
+      console.error("Repost action failed", err);
     }
-  }, [postForRepost, repostPost]);
+  }, [postForRepost, repostPost, deleteRepost]);
 
   const onQuote = useCallback(() => {
     if (!postForRepost) return;
