@@ -46,7 +46,7 @@ export default function NotificationSettingsScreen() {
   const toggleSwitch = async (key: keyof typeof settings) => {
     const newValue = !settings[key];
     const newSettings = { ...settings, [key]: newValue };
-    
+
     // Optimistic update
     setSettings(newSettings);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -167,7 +167,7 @@ export default function NotificationSettingsScreen() {
                   style={{ opacity: !settings.pushEnabled && item.id !== 'pushEnabled' ? 0.5 : 1 }}
                   className={`flex-row items-center px-6 py-5 ${i !== section.items.length - 1 ? "border-b border-gray-100/30" : ""}`}
                 >
-                  <View 
+                  <View
                     style={{ backgroundColor: `${item.color}10` }}
                     className="w-10 h-10 rounded-2xl items-center justify-center mr-4"
                   >
