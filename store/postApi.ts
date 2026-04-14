@@ -73,6 +73,8 @@ export const postApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
+      keepUnusedDataFor: 120,
+      refetchOnReconnect: true,
       providesTags: (result) =>
         result?.posts
           ? [
@@ -103,6 +105,8 @@ export const postApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
+      keepUnusedDataFor: 120,
+      refetchOnReconnect: true,
       providesTags: (result) =>
         result?.posts
           ? [
@@ -117,6 +121,8 @@ export const postApi = api.injectEndpoints({
 
     getBookmarks: builder.query({
       query: () => "/posts/bookmarks",
+      keepUnusedDataFor: 180,
+      refetchOnReconnect: true,
       providesTags: (result) =>
         result
           ? [
@@ -702,6 +708,8 @@ export const postApi = api.injectEndpoints({
     getThread: builder.query({
       query: (id) => `/posts/${id}/thread`,
       transformResponse: (res: any) => transformNormalizedResponse(res).posts,
+      keepUnusedDataFor: 90,
+      refetchOnReconnect: true,
       providesTags: (result, error, id) =>
         result
           ? [
@@ -727,6 +735,8 @@ export const postApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
+      keepUnusedDataFor: 90,
+      refetchOnReconnect: true,
       providesTags: (result, error, { id }) =>
         result?.posts
           ? [

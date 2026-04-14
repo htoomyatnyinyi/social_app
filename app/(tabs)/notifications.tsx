@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -227,19 +226,13 @@ export default function NotificationsScreen() {
     {},
     {
       refetchOnFocus: true, // Optional enhancement: refetch if app comes back from background
+      refetchOnReconnect: true,
     },
   );
 
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [markAsRead] = useMarkAsReadMutation();
   const [createChatRoom] = useCreateChatRoomMutation();
-
-  // Trigger silent background refetch when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch]),
-  );
 
   const handleNotificationPress = useCallback(
     async (notification: any) => {

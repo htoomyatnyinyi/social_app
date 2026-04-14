@@ -4,10 +4,14 @@ export const chatApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getChatRooms: builder.query({
       query: () => "/chat/rooms",
+      keepUnusedDataFor: 60,
+      refetchOnReconnect: true,
       providesTags: ["Chat"],
     }),
     getPublicChat: builder.query({
       query: () => "/chat/public",
+      keepUnusedDataFor: 300,
+      refetchOnReconnect: true,
       providesTags: ["Chat"],
     }),
 
@@ -39,6 +43,8 @@ export const chatApi = api.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
+      keepUnusedDataFor: 45,
+      refetchOnReconnect: true,
       providesTags: ["Message"],
     }),
     markMessagesAsRead: builder.mutation({

@@ -3,7 +3,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -36,6 +36,7 @@ import {
   useReportPostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
+import { metrics } from "../../lib/metrics";
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -48,6 +49,7 @@ export default function FeedScreen() {
 
   const user = useSelector((state: any) => state.auth.user);
   const tabProgress = useSharedValue(0);
+  const feedLoadTimerRef = useRef<null | (() => number)>(null);
 
   const { data, isLoading, isFetching, refetch } = useGetPostsQuery(
     { type: activeTab, cursor },
@@ -55,6 +57,21 @@ export default function FeedScreen() {
   );
 
   const posts = data?.posts ?? [];
+  useEffect(() => {
+    if (isLoading && !feedLoadTimerRef.current) {
+      feedLoadTimerRef.current = metrics.startTimer("feed_first_render_ms", {
+        tab: activeTab,
+      });
+    }
+  }, [isLoading, activeTab]);
+
+  useEffect(() => {
+    if (feedLoadTimerRef.current && posts.length > 0) {
+      feedLoadTimerRef.current();
+      feedLoadTimerRef.current = null;
+    }
+  }, [posts.length]);
+
   const nextCursor = data?.nextCursor;
 
   const [likePost] = useLikePostMutation();

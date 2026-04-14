@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
-import { useFocusEffect } from "@react-navigation/native"; // Re-enabled
 import {
   useGetChatRoomsQuery,
   useGetPublicChatQuery,
@@ -139,17 +138,11 @@ export default function ChatListScreen() {
     {},
     {
       refetchOnFocus: true, // Auto refetch when app returns from background
+      refetchOnReconnect: true,
     },
   );
 
   const { data: publicRoom } = useGetPublicChatQuery({});
-
-  // OPTIMIZATION: "Focus Mode" Background Refetch
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch]),
-  );
 
   const handleChatItemPress = useCallback(
     (item: any) => {

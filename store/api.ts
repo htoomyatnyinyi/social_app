@@ -1,36 +1,43 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { metrics } from "../lib/metrics";
 
-// --- CONFIGURATION ---
-// Toggle these by commenting/uncommenting the one you need:
-// 1. For Physical Device (Replace with your computer's local IP)
-// const DEV_URL = "http://192.168.1.144:8080";
+const DEFAULT_DEV_API_URL = "http://localhost:8080";
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_DEV_API_URL;
 
-// 2. For iOS Simulator / Android Emulator
-// const DEV_URL = "http://localhost:8080";
-const DEV_URL = "http://192.168.1.13:8080";
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_URL,
+  prepareHeaders: (headers, { getState }) => {
+    const state = getState() as any;
+    const token = state.auth?.token;
 
-// 3. For Production
-// const DEV_URL = "https://server.myanmarsocial.ccwu.cc";
-
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || DEV_URL;
-// ---------------------
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
 
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_URL,
-    prepareHeaders: (headers, { getState }) => {
-      // Pull token from the auth slice
-      // Note: 'as any' is a quick fix; ideally, use your RootState type here
-      const state = getState() as any;
-      const token = state.auth?.token;
+  baseQuery: async (args, apiCtx, extraOptions) => {
+    const endpoint =
+      typeof args === "string" ? args : `${args.method || "GET"} ${args.url}`;
+    const stopTimer = metrics.startTimer("api_request_latency_ms", {
+      endpoint,
+    });
 
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
+    const result = await rawBaseQuery(args, apiCtx, extraOptions);
+    const elapsedMs = stopTimer();
+
+    if ("error" in result) {
+      metrics.increment("api_request_error_total", { endpoint });
+      if (__DEV__) {
+        console.warn(`[api] failed ${endpoint} in ${elapsedMs}ms`);
       }
-      return headers;
-    },
-  }),
+    }
+
+    return result;
+  },
   tagTypes: [
     "Post",
     "User",

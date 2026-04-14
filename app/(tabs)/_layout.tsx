@@ -22,7 +22,9 @@ export default function TabLayout() {
   // Notifications logic
   const { data: notificationData, refetch: refetchUnread } =
     useGetUnreadCountQuery(undefined, {
-      pollingInterval: 30000,
+      pollingInterval: 60000,
+      refetchOnFocus: false,
+      refetchOnReconnect: true,
       skip: !token,
     });
 
