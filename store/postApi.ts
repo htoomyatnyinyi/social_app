@@ -165,8 +165,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -299,8 +301,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -443,8 +447,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -586,8 +592,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -816,8 +824,12 @@ export const postApi = api.injectEndpoints({
               endpointName as any,
               args,
               (draft: any) => {
-                if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === postId);
+                let post;
+                if (draft?.posts && Array.isArray(draft.posts)) {
+                  post = draft.posts.find((p: any) => p.id === postId);
+                } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+                  post = draft.posts.posts.find((p: any) => p.id === postId);
+                }
                 if (post) post.viewCount = (post.viewCount || 0) + 1;
               },
             ),
