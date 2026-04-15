@@ -172,7 +172,7 @@ const PostCard = React.memo(
     const [showSeeMore, setShowSeeMore] = useState(false);
 
     // Logic: Determine if we are showing the original post or a repost
-    const isRepostAction = !!item.isRepost || !!item.repostedByMe;
+    const isRepostAction = !!item.isRepost;
     const displayPost =
       isRepostAction && item.originalPost ? item.originalPost : item;
     const { author: displayAuthor, id: displayId } = displayPost;
@@ -368,8 +368,46 @@ const PostCard = React.memo(
               }
             />
 
+            {/* Quote Post Preview */}
+            {displayPost.originalPost && !isRepostAction && (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => onPressPost(displayPost.originalPost!.id)}
+                className={`mt-2 p-3 rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-gray-200 bg-gray-50/50"}`}
+              >
+                <View className="flex-row items-center mb-2">
+                  <Image
+                    source={{
+                      uri: displayPost.originalPost.author?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayPost.originalPost.author?.id}`
+                    }}
+                    className={`w-5 h-5 rounded-full mr-2 ${isDark ? "bg-slate-700" : "bg-gray-200"}`}
+                  />
+                  <Text className={`font-bold text-[13px] mr-1 ${isDark ? "text-slate-200" : "text-gray-800"}`} numberOfLines={1}>
+                    {displayPost.originalPost.author?.name}
+                  </Text>
+                  <Text className={`text-[11px] ${isDark ? "text-slate-500" : "text-gray-500"}`} numberOfLines={1}>
+                    @{displayPost.originalPost.author?.username} · {formatRelativeTime(displayPost.originalPost.createdAt)}
+                  </Text>
+                </View>
+                {displayPost.originalPost.content ? (
+                  <Text className={`text-[13px] leading-5 ${isDark ? "text-slate-300" : "text-gray-700"}`} numberOfLines={3}>
+                    {displayPost.originalPost.content}
+                  </Text>
+                ) : null}
+                {(displayPost.originalPost.image || (displayPost.originalPost.images && displayPost.originalPost.images.length > 0)) && (
+                  <View className="mt-3">
+                    <Image
+                      source={{ uri: displayPost.originalPost.images?.[0] || displayPost.originalPost.image }}
+                      className="w-full h-32 rounded-xl bg-gray-200"
+                      contentFit="cover"
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+
             {/* Action Bar */}
-            <View className="flex-row justify-between items-center mt-2 pr-2">
+            <View className="flex-row justify-between items-center mt-3 pr-2">
               <ActionButton
                 icon="chatbubble-outline"
                 count={displayPost._count?.replies}

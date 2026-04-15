@@ -40,7 +40,27 @@ import {
 import * as Haptics from "expo-haptics";
 import RepostModal from "../../components/RepostModal";
 
+// import RepostModal from "../../components/RepostModal";
+
 // ────────────────────────────────────────────────
+// Helper Utilities
+// ────────────────────────────────────────────────
+const formatRelativeTime = (dateString: string): string => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+
+  if (mins < 60) return `${Math.max(1, mins)}m`;
+  if (hrs < 24) return `${hrs}h`;
+  if (days < 7) return `${days}d`;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+};
 // Tree Builder helper
 // ────────────────────────────────────────────────
 function buildThreadTree(posts: any[], rootId: string) {
@@ -352,7 +372,49 @@ const ReplyItem = memo(
                   </ScrollView>
                 );
               })()}
+
             </View>
+
+            {/* Quote Post Preview for Reply */}
+            {item.originalPost && !item.isRepost && (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(`/post/${item.originalPost!.id}`);
+                }}
+                className={`mt-3 p-3 rounded-2xl border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50`}
+              >
+                <View className="flex-row items-center mb-2">
+                  <Image
+                    source={{
+                      uri: item.originalPost.author?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.originalPost.author?.id}`
+                    }}
+                    className={`w-5 h-5 rounded-full mr-2 bg-gray-200 dark:bg-slate-700`}
+                  />
+                  <Text className={`font-bold text-[13px] mr-1 text-gray-800 dark:text-slate-200`} numberOfLines={1}>
+                    {item.originalPost.author?.name}
+                  </Text>
+                  <Text className={`text-[11px] text-gray-500 dark:text-slate-500`} numberOfLines={1}>
+                    @{item.originalPost.author?.username} · {formatRelativeTime(item.originalPost.createdAt)}
+                  </Text>
+                </View>
+                {item.originalPost.content ? (
+                  <Text className={`text-[13px] leading-5 text-gray-700 dark:text-slate-300`} numberOfLines={3}>
+                    {item.originalPost.content}
+                  </Text>
+                ) : null}
+                {(item.originalPost.image || (item.originalPost.images && item.originalPost.images.length > 0)) && (
+                  <View className="mt-3">
+                    <Image
+                      source={{ uri: item.originalPost.images?.[0] || item.originalPost.image }}
+                      className="w-full h-32 rounded-xl bg-gray-200"
+                      contentFit="cover"
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
 
             <View className="flex-row mt-4 items-center justify-between">
               <ActionButton
@@ -407,8 +469,8 @@ const ReplyItem = memo(
               hasReposted={hasReposted}
             />
           </View>
-        </TouchableOpacity>
-      </View>
+        </TouchableOpacity >
+      </View >
     );
   },
 );
@@ -459,7 +521,7 @@ export default function PostDetailScreen() {
 
   useEffect(() => {
     if (id) {
-      incrementViewCount({ postId: id }).catch(() => {});
+      incrementViewCount({ postId: id }).catch(() => { });
     }
   }, [id, incrementViewCount]);
 
@@ -711,11 +773,10 @@ export default function PostDetailScreen() {
                 <View className="flex-row items-center space-x-2">
                   {rootPost.author?.id !== currentUser?.id && (
                     <TouchableOpacity
-                      className={`px-6 py-2.5 rounded-2xl shadow-sm ${
-                        rootPost.isFollowing
-                          ? "bg-white border border-gray-100"
-                          : "bg-sky-500 shadow-sky-200"
-                      }`}
+                      className={`px-6 py-2.5 rounded-2xl shadow-sm ${rootPost.isFollowing
+                        ? "bg-white border border-gray-100"
+                        : "bg-sky-500 shadow-sky-200"
+                        }`}
                       onPress={handleFollow}
                       disabled={isFollowingMutation}
                     >
@@ -814,6 +875,47 @@ export default function PostDetailScreen() {
                   </ScrollView>
                 );
               })()}
+
+              {/* Quote Post Preview for Root */}
+              {rootPost.originalPost && !rootPost.isRepost && (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push(`/post/${rootPost.originalPost!.id}`);
+                  }}
+                  className={`mt-2 mb-6 p-4 rounded-[24px] border border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 shadow-sm`}
+                >
+                  <View className="flex-row items-center mb-3">
+                    <Image
+                      source={{
+                        uri: rootPost.originalPost.author?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${rootPost.originalPost.author?.id}`
+                      }}
+                      className={`w-6 h-6 rounded-full mr-2 bg-gray-200 dark:bg-slate-700`}
+                    />
+                    <Text className={`font-black text-[14px] mr-1 text-gray-900 dark:text-white`} numberOfLines={1}>
+                      {rootPost.originalPost.author?.name}
+                    </Text>
+                    <Text className={`text-[12px] font-medium text-gray-500 dark:text-slate-500`} numberOfLines={1}>
+                      @{rootPost.originalPost.author?.username} · {formatRelativeTime(rootPost.originalPost.createdAt)}
+                    </Text>
+                  </View>
+                  {rootPost.originalPost.content ? (
+                    <Text className={`text-[14px] leading-6 font-medium text-gray-800 dark:text-slate-200`} numberOfLines={4}>
+                      {rootPost.originalPost.content}
+                    </Text>
+                  ) : null}
+                  {(rootPost.originalPost.image || (rootPost.originalPost.images && rootPost.originalPost.images.length > 0)) && (
+                    <View className="mt-4">
+                      <Image
+                        source={{ uri: rootPost.originalPost.images?.[0] || rootPost.originalPost.image }}
+                        className="w-full h-40 rounded-2xl bg-gray-200"
+                        contentFit="cover"
+                      />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
 
               {/* Timestamp & Metrics */}
               <View className="py-4 border-y border-gray-100/80 dark:border-slate-800/80 mb-4 px-1">
@@ -954,7 +1056,7 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </View>
         </BlurView>
-      </KeyboardAvoidingView>
+      </KeyboardAvoidingView >
 
       <PostOptionsModal
         isVisible={optionsVisible}
@@ -972,6 +1074,6 @@ export default function PostDetailScreen() {
           }
         }}
       />
-    </View>
+    </View >
   );
 }
