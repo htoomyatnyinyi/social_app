@@ -8,7 +8,7 @@ export const notificationApi = api.injectEndpoints({
         params,
       }),
       keepUnusedDataFor: 30,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: ["Notification"],
     }),
     markAsRead: builder.mutation({
@@ -28,7 +28,7 @@ export const notificationApi = api.injectEndpoints({
     getUnreadCount: builder.query({
       query: () => "/notifications/unread-count",
       keepUnusedDataFor: 20,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: ["Notification"],
     }),
   }),

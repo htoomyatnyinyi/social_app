@@ -5,6 +5,7 @@ const transformNormalizedResponse = (response: any) => {
   if (response.posts && response.users) {
     const mapUser = (post: any) => {
       if (!post) return post;
+
       // Map author to post
       if (post.authorId && response.users[post.authorId]) {
         post.author = response.users[post.authorId];
@@ -16,15 +17,19 @@ const transformNormalizedResponse = (response: any) => {
           image: "https://via.placeholder.com/48",
         };
       }
-      // Map author to quoted/original post
-      if (post.originalPost) {
+
+      // Map author to quoted/original post recursively
+      let currentPost = post;
+      while (currentPost.originalPost) {
         if (
-          post.originalPost.authorId &&
-          response.users[post.originalPost.authorId]
+          currentPost.originalPost.authorId &&
+          response.users[currentPost.originalPost.authorId]
         ) {
-          post.originalPost.author = response.users[post.originalPost.authorId];
+          currentPost.originalPost.author = response.users[currentPost.originalPost.authorId];
         }
+        currentPost = currentPost.originalPost;
       }
+
       // Map author to parent post (for Replies tab)
       if (post.parentPost) {
         if (
@@ -74,16 +79,16 @@ export const postApi = api.injectEndpoints({
         return currentArg?.cursor !== previousArg?.cursor;
       },
       keepUnusedDataFor: 120,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: (result) =>
         result?.posts
           ? [
-              ...result.posts.map(({ id }: any) => ({
-                type: "Post" as const,
-                id,
-              })),
-              { type: "Post", id: "LIST" },
-            ]
+            ...result.posts.map(({ id }: any) => ({
+              type: "Post" as const,
+              id,
+            })),
+            { type: "Post", id: "LIST" },
+          ]
           : [{ type: "Post", id: "LIST" }],
     }),
 
@@ -106,32 +111,32 @@ export const postApi = api.injectEndpoints({
         return currentArg?.cursor !== previousArg?.cursor;
       },
       keepUnusedDataFor: 120,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: (result) =>
         result?.posts
           ? [
-              ...result.posts.map(({ id }: any) => ({
-                type: "Post" as const,
-                id,
-              })),
-              { type: "Post" as const, id: "FEED" },
-            ]
+            ...result.posts.map(({ id }: any) => ({
+              type: "Post" as const,
+              id,
+            })),
+            { type: "Post" as const, id: "FEED" },
+          ]
           : [{ type: "Post" as const, id: "FEED" }],
     }),
 
     getBookmarks: builder.query({
       query: () => "/posts/bookmarks",
       keepUnusedDataFor: 180,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: (result) =>
         result
           ? [
-              ...(result.posts || result).map(({ id }: any) => ({
-                type: "Post" as const,
-                id,
-              })),
-              { type: "Post", id: "BOOKMARKS" },
-            ]
+            ...(result.posts || result).map(({ id }: any) => ({
+              type: "Post" as const,
+              id,
+            })),
+            { type: "Post", id: "BOOKMARKS" },
+          ]
           : [{ type: "Post", id: "BOOKMARKS" }],
     }),
 
@@ -160,8 +165,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -214,19 +221,19 @@ export const postApi = api.injectEndpoints({
           ),
           ...(threadId
             ? [
-                dispatch(
-                  postApi.util.updateQueryData("getThread", threadId, (draft) =>
-                    updatePostInDraft(draft, postId),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData("getThread", threadId, (draft) =>
+                  updatePostInDraft(draft, postId),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getReplies",
-                    { id: threadId } as any,
-                    (draft) => updatePostInDraft(draft, postId),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getReplies",
+                  { id: threadId } as any,
+                  (draft) => updatePostInDraft(draft, postId),
                 ),
-              ]
+              ),
+            ]
             : []),
         ];
         if (userId) {
@@ -294,8 +301,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -339,51 +348,51 @@ export const postApi = api.injectEndpoints({
           ),
           ...(threadId
             ? [
-                dispatch(
-                  postApi.util.updateQueryData("getThread", threadId, (draft) =>
-                    updateBookmarkInDraft(draft, id),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData("getThread", threadId, (draft) =>
+                  updateBookmarkInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getReplies",
-                    { id: threadId } as any,
-                    (draft) => updateBookmarkInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getReplies",
+                  { id: threadId } as any,
+                  (draft) => updateBookmarkInDraft(draft, id),
                 ),
-              ]
+              ),
+            ]
             : []),
           ...(userId
             ? [
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserPosts" as any,
-                    { id: userId, cursor: null } as any,
-                    (draft) => updateBookmarkInDraft(draft, id),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserPosts" as any,
+                  { id: userId, cursor: null } as any,
+                  (draft) => updateBookmarkInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserLikes" as any,
-                    { id: userId, cursor: null } as any,
-                    (draft) => updateBookmarkInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserLikes" as any,
+                  { id: userId, cursor: null } as any,
+                  (draft) => updateBookmarkInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserReplies" as any,
-                    { id: userId, cursor: null } as any,
-                    (draft) => updateBookmarkInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserReplies" as any,
+                  { id: userId, cursor: null } as any,
+                  (draft) => updateBookmarkInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getBookmarks" as any,
-                    undefined as any,
-                    (draft) => updateBookmarkInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getBookmarks" as any,
+                  undefined as any,
+                  (draft) => updateBookmarkInDraft(draft, id),
                 ),
-              ]
+              ),
+            ]
             : []),
         ];
 
@@ -402,9 +411,17 @@ export const postApi = api.injectEndpoints({
           patches.forEach((p) => p.undo());
         }
       },
+      // only unbookmark work
+      // invalidatesTags: (result, error, arg) => {
+      //   const id = typeof arg === "string" ? arg : arg.id;
+      //   return [{ type: "Post", id }];
+      // },
       invalidatesTags: (result, error, arg) => {
         const id = typeof arg === "string" ? arg : arg.id;
-        return [{ type: "Post", id }];
+        return [
+          { type: "Post", id },
+          { type: "Post", id: "BOOKMARKS" } // <--- ADD THIS LINE
+        ];
       },
     }),
 
@@ -438,8 +455,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -482,54 +501,54 @@ export const postApi = api.injectEndpoints({
           ),
           ...(threadId
             ? [
-                dispatch(
-                  postApi.util.updateQueryData("getThread", threadId, (draft) =>
-                    updateRepostInDraft(draft, id),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData("getThread", threadId, (draft) =>
+                  updateRepostInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getReplies",
-                    { id: threadId } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getReplies",
+                  { id: threadId } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-              ]
+              ),
+            ]
             : []),
           // Profile awareness
           ...((getState() as any).auth?.user?.id
             ? [
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserPosts" as any,
-                    {
-                      id: (getState() as any).auth.user.id,
-                      cursor: null,
-                    } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserPosts" as any,
+                  {
+                    id: (getState() as any).auth.user.id,
+                    cursor: null,
+                  } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserLikes" as any,
-                    {
-                      id: (getState() as any).auth.user.id,
-                      cursor: null,
-                    } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserLikes" as any,
+                  {
+                    id: (getState() as any).auth.user.id,
+                    cursor: null,
+                  } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserReplies" as any,
-                    {
-                      id: (getState() as any).auth.user.id,
-                      cursor: null,
-                    } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserReplies" as any,
+                  {
+                    id: (getState() as any).auth.user.id,
+                    cursor: null,
+                  } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-              ]
+              ),
+            ]
             : []),
         ];
 
@@ -581,8 +600,10 @@ export const postApi = api.injectEndpoints({
           let post;
           if (Array.isArray(draft)) {
             post = draft.find((p: any) => p.id === targetId);
-          } else if (draft?.posts) {
+          } else if (draft?.posts && Array.isArray(draft.posts)) {
             post = draft.posts.find((p: any) => p.id === targetId);
+          } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+            post = draft.posts.posts.find((p: any) => p.id === targetId);
           } else if (draft?.id === targetId) {
             post = draft;
           }
@@ -624,54 +645,54 @@ export const postApi = api.injectEndpoints({
           ),
           ...(threadId
             ? [
-                dispatch(
-                  postApi.util.updateQueryData("getThread", threadId, (draft) =>
-                    updateRepostInDraft(draft, id),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData("getThread", threadId, (draft) =>
+                  updateRepostInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getReplies",
-                    { id: threadId } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getReplies",
+                  { id: threadId } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-              ]
+              ),
+            ]
             : []),
           // Profile awareness
           ...((getState() as any).auth?.user?.id
             ? [
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserPosts" as any,
-                    {
-                      id: (getState() as any).auth.user.id,
-                      cursor: null,
-                    } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserPosts" as any,
+                  {
+                    id: (getState() as any).auth.user.id,
+                    cursor: null,
+                  } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserLikes" as any,
-                    {
-                      id: (getState() as any).auth.user.id,
-                      cursor: null,
-                    } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserLikes" as any,
+                  {
+                    id: (getState() as any).auth.user.id,
+                    cursor: null,
+                  } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-                dispatch(
-                  postApi.util.updateQueryData(
-                    "getUserReplies" as any,
-                    {
-                      id: (getState() as any).auth.user.id,
-                      cursor: null,
-                    } as any,
-                    (draft) => updateRepostInDraft(draft, id),
-                  ),
+              ),
+              dispatch(
+                postApi.util.updateQueryData(
+                  "getUserReplies" as any,
+                  {
+                    id: (getState() as any).auth.user.id,
+                    cursor: null,
+                  } as any,
+                  (draft) => updateRepostInDraft(draft, id),
                 ),
-              ]
+              ),
+            ]
             : []),
         ];
 
@@ -709,13 +730,13 @@ export const postApi = api.injectEndpoints({
       query: (id) => `/posts/${id}/thread`,
       transformResponse: (res: any) => transformNormalizedResponse(res).posts,
       keepUnusedDataFor: 90,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: (result, error, id) =>
         result
           ? [
-              ...result.map((p: any) => ({ type: "Post" as const, id: p.id })),
-              { type: "Post", id: `THREAD-${id}` },
-            ]
+            ...result.map((p: any) => ({ type: "Post" as const, id: p.id })),
+            { type: "Post", id: `THREAD-${id}` },
+          ]
           : [{ type: "Post", id: `THREAD-${id}` }],
     }),
 
@@ -736,16 +757,16 @@ export const postApi = api.injectEndpoints({
         return currentArg?.cursor !== previousArg?.cursor;
       },
       keepUnusedDataFor: 90,
-      refetchOnReconnect: true,
+      // refetchOnReconnect: true,
       providesTags: (result, error, { id }) =>
         result?.posts
           ? [
-              ...result.posts.map((p: any) => ({
-                type: "Post" as const,
-                id: p.id,
-              })),
-              { type: "Post", id: `REPLIES-${id}` },
-            ]
+            ...result.posts.map((p: any) => ({
+              type: "Post" as const,
+              id: p.id,
+            })),
+            { type: "Post", id: `REPLIES-${id}` },
+          ]
           : [{ type: "Post", id: `REPLIES-${id}` }],
     }),
 
@@ -811,8 +832,12 @@ export const postApi = api.injectEndpoints({
               endpointName as any,
               args,
               (draft: any) => {
-                if (!draft?.posts) return;
-                const post = draft.posts.find((p: any) => p.id === postId);
+                let post;
+                if (draft?.posts && Array.isArray(draft.posts)) {
+                  post = draft.posts.find((p: any) => p.id === postId);
+                } else if (draft?.posts?.posts && Array.isArray(draft.posts.posts)) {
+                  post = draft.posts.posts.find((p: any) => p.id === postId);
+                }
                 if (post) post.viewCount = (post.viewCount || 0) + 1;
               },
             ),

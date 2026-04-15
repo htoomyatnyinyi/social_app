@@ -235,6 +235,10 @@ export const profileApi = api.injectEndpoints({
       query: () => "/profile/muted",
       providesTags: ["User"],
     }),
+    getUserAnalytics: builder.query({
+      query: () => "/profile/analytics",
+      providesTags: ["User"],
+    }),
   }),
 });
 
@@ -254,4 +258,5 @@ export const {
   useUpdatePushTokenMutation,
   useGetBlockedUsersQuery,
   useGetMutedUsersQuery,
+  useGetUserAnalyticsQuery,
 } = profileApi;

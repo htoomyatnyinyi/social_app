@@ -50,30 +50,79 @@ import Animated, {
 // ];
 
 /* Memoized List Items */
+const RANK_COLORS = ["#F59E0B", "#94A3B8", "#CD7F32"] as const;
+
 const TrendingHashtagItem = React.memo(function TrendingHashtagItem({
   item,
   index,
   onPress,
+  totalMax,
 }: any) {
+  const rank = index + 1;
+  const isTopThree = rank <= 3;
+  const barPercent = totalMax > 0 ? Math.max((item.count / totalMax) * 100, 8) : 8;
+
   return (
     <Animated.View entering={FadeInDown.delay(index * 50)}>
       <TouchableOpacity
         onPress={() => onPress(item.name)}
         className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] justify-between active:opacity-80"
       >
+        {/* Rank Badge */}
+        <View
+          className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${
+            isTopThree ? "" : "bg-gray-100/80 dark:bg-slate-800/80"
+          }`}
+          style={isTopThree ? { backgroundColor: `${RANK_COLORS[index]}20` } : {}}
+        >
+          <Text
+            className={`text-[13px] font-black ${
+              isTopThree ? "" : "text-gray-400 dark:text-slate-500"
+            }`}
+            style={isTopThree ? { color: RANK_COLORS[index] } : {}}
+          >
+            {rank}
+          </Text>
+        </View>
+
         <View className="flex-1 mr-4">
           <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
-            Rising · #{index + 1}
+            {isTopThree ? "🔥 Hot" : "Rising"} · #{rank}
           </Text>
           <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
             #{item.name}
           </Text>
-          <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] mt-1.5 uppercase tracking-wider">
-            {item.count} Posts
-          </Text>
+          <View className="flex-row items-center mt-2">
+            <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider mr-3">
+              {item.count} Posts
+            </Text>
+            {/* Volume bar */}
+            <View className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+              <View
+                className="h-full rounded-full"
+                style={{
+                  width: `${barPercent}%`,
+                  backgroundColor: isTopThree ? RANK_COLORS[index] || "#0EA5E9" : "#0EA5E9",
+                  opacity: isTopThree ? 1 : 0.4,
+                }}
+              />
+            </View>
+          </View>
         </View>
-        <View className="bg-gray-100/80 dark:bg-slate-800/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50 dark:border-slate-700/50">
-          <Ionicons name="trending-up" size={18} color="#94A3B8" />
+
+        <View
+          className={`w-10 h-10 rounded-2xl items-center justify-center border ${
+            isTopThree
+              ? "border-amber-200/50 dark:border-amber-500/20"
+              : "border-gray-200/50 dark:border-slate-700/50"
+          }`}
+          style={isTopThree ? { backgroundColor: `${RANK_COLORS[index]}10` } : { backgroundColor: "rgba(148,163,184,0.08)" }}
+        >
+          <Ionicons
+            name={isTopThree ? "flame" : "trending-up"}
+            size={18}
+            color={isTopThree ? RANK_COLORS[index] : "#94A3B8"}
+          />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -521,6 +570,7 @@ export default function ExploreScreen() {
                 item={item}
                 index={index}
                 onPress={handleHashtagPress}
+                totalMax={Math.max(...(trendingData?.hashtags || []).map((h: any) => h.count || 0), 1)}
               />
             )}
           />

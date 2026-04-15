@@ -30,6 +30,7 @@ import {
   useMarkAllAsReadMutation,
   useMarkAsReadMutation,
 } from "../../store/notificationApi";
+import { useGetNotificationPreferencesQuery } from "../../store/settingsApi";
 
 // const { width } = Dimensions.get("window");
 
@@ -135,11 +136,10 @@ const NotificationItem = React.memo(function NotificationItem({
       <TouchableOpacity
         onPress={() => onPress(item)}
         activeOpacity={0.8}
-        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${
-          item.read
+        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${item.read
             ? "bg-white dark:bg-slate-900 border-gray-50/50 dark:border-slate-800/50"
             : `${config.bg} border-gray-100/50 dark:border-slate-700/50`
-        } items-start shadow-sm shadow-gray-100 dark:shadow-none`}
+          } items-start shadow-sm shadow-gray-100 dark:shadow-none`}
       >
         <View className="mr-4 pt-1">
           <View className="w-12 h-12 rounded-[20px] items-center justify-center bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
@@ -230,6 +230,8 @@ export default function NotificationsScreen() {
     },
   );
 
+  const { data: preferences } = useGetNotificationPreferencesQuery({});
+
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [markAsRead] = useMarkAsReadMutation();
   const [createChatRoom] = useCreateChatRoomMutation();
@@ -267,14 +269,32 @@ export default function NotificationsScreen() {
     if (!Array.isArray(notifications)) return [];
 
     let filtered = notifications;
+
+    // Apply notification preferences logic
+    if (preferences) {
+      if (!preferences.pushEnabled) {
+        return []; // Master switch disables all notifications
+      }
+
+      filtered = filtered.filter((n) => {
+        if (n.type === "LIKE" && !preferences.likes) return false;
+        if (n.type === "REPLY" && !preferences.replies) return false;
+        if (n.type === "MENTION" && !preferences.mentions) return false;
+        if (n.type === "REPOST" && !preferences.reposts) return false;
+        if (n.type === "FOLLOW" && !preferences.follows) return false;
+        if (n.type === "MESSAGE" && !preferences.messages) return false;
+        return true;
+      });
+    }
+
     if (activeTab === "mentions") {
-      filtered = notifications.filter(
+      filtered = filtered.filter(
         (n) => n.type === "MENTION" || n.type === "REPLY",
       );
     } else if (activeTab === "following") {
       // 2. Updated filtering logic to check if the user is following the issuer
       // Note: This requires your backend to include `isFollowing: true` on the issuer object
-      filtered = notifications.filter(
+      filtered = filtered.filter(
         (n) => n.issuer?.isFollowing === true || n.type === "SYSTEM",
       );
     }
@@ -299,7 +319,7 @@ export default function NotificationsScreen() {
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-  }, [notificationsData, activeTab]);
+  }, [notificationsData, activeTab, preferences]);
 
   const tabProgress = useSharedValue(0);
   const handleTabChange = useCallback(
@@ -388,11 +408,10 @@ export default function NotificationsScreen() {
               onPress={() => handleTabChange(tab as any, index)}
             >
               <Text
-                className={`font-black uppercase text-[10px] tracking-widest ${
-                  activeTab === tab
+                className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab
                     ? "text-gray-900"
                     : "text-gray-400 dark:text-slate-500"
-                }`}
+                  }`}
               >
                 {tab}
               </Text>

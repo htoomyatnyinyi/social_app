@@ -2,10 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View, LayoutAnimation, Platform, UIManager } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function PrivacyCenterScreen() {
   const router = useRouter();
@@ -14,7 +18,7 @@ export default function PrivacyCenterScreen() {
 
   return (
     <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
-      {/* Premium Header */}
+      {/* Header */}
       <BlurView
         intensity={90}
         tint={isDark ? "dark" : "light"}
@@ -27,159 +31,158 @@ export default function PrivacyCenterScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.back();
             }}
-            className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
+              } mr-4`}
           >
-            <Ionicons name="chevron-back" size={20} color="#64748B" />
+            <Ionicons name="chevron-back" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
           </TouchableOpacity>
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1px] uppercase">Privacy Center</Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Data & Security Controls</Text>
+            <Text className={`text-2xl font-black tracking-[-1px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}>Privacy Center</Text>
+            <Text className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-400" : "text-gray-400"}`}>Security & Visibility</Text>
           </View>
         </View>
       </BlurView>
 
       <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-        {/* Intro Section */}
+
+        {/* Intro */}
         <View className="mt-8 px-1 mb-8">
-          <Text className="text-2xl font-black text-gray-900 leading-[32px] tracking-tight">
-            Your data, your control. Privacy is the foundation.
+          <Text className={`text-2xl font-black leading-[32px] tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+            Your presence, your rules.
           </Text>
-          <Text className="text-gray-500 text-[14px] font-medium leading-[22px] mt-4">
-            We align with the highest data protection standards to ensure your social experience remains private and secure.
+          <Text className={`text-[14px] font-medium leading-[22px] mt-2 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+            Manage how you appear to others and how your data is handled across the network.
           </Text>
         </View>
 
-        {/* Visibility Controls Grid */}
-        <Text className="px-1 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Visibility Controls</Text>
+        {/* Visibility Grid */}
+        <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>Quick Controls</Text>
         <View className="flex-row flex-wrap justify-between">
-          <GridCard 
-            icon="eye-off" 
-            label="Invisibility" 
-            sub="Ghost Mode" 
-            color="#0EA5E9" 
-          />
-          <GridCard 
-            icon="people" 
-            label="Audience" 
-            sub="Connections Only" 
-            color="#6366F1" 
-          />
-          <GridCard 
-            icon="search" 
-            label="Searchable" 
-            sub="Discovery Settings" 
-            color="#10B981" 
-          />
-          <GridCard 
-            icon="finger-print" 
-            label="Access" 
-            sub="Access Keys" 
-            color="#F59E0B" 
-          />
+          <GridCard icon="eye-off" label="Invisibility" sub="Ghost Mode" color="#0EA5E9" isDark={isDark} />
+          <GridCard icon="people" label="Audience" sub="Connections" color="#6366F1" isDark={isDark} />
+          <GridCard icon="search" label="Searchable" sub="Discovery" color="#10B981" isDark={isDark} />
+          <GridCard icon="stats-chart" label="Analytics" sub="Data Usage" color="#F59E0B" isDark={isDark} />
         </View>
 
-        {/* Data Management Section */}
+        {/* Detailed Visibility Breakdown */}
         <View className="mt-8">
-            <Text className="px-1 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Data Management</Text>
-            <View className="bg-white rounded-[32px] border border-gray-100/50 shadow-sm shadow-gray-100 overflow-hidden">
-                <PolicyItem
-                    title="Retention Protocol"
-                    desc="Logs managed for 3 years (Compliance 2026)"
-                    icon="time-outline"
-                    onPress={() => {}}
-                />
-                <PolicyItem
-                    title="Software Encryption"
-                    desc="AES-256 platform protection active"
-                    icon="lock-closed-outline"
-                    onPress={() => {}}
-                />
-                <PolicyItem
-                    title="Download My Data"
-                    desc="Request a copy of your social archive"
-                    icon="download-outline"
-                    onPress={() => {}}
-                />
-            </View>
+          <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>Visibility Breakdown</Text>
+          <View className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-white border-gray-100"}`}>
+            <PolicyAccordion
+              isDark={isDark}
+              title="Invisibility (Ghost Mode)"
+              icon="eye-off-outline"
+              content="Enabling Ghost Mode hides your 'Online' status and last seen timestamp. Additionally, read receipts for messages and story views will remain anonymous until you choose to reveal them."
+            />
+            <PolicyAccordion
+              isDark={isDark}
+              title="Audience Control"
+              icon="people-outline"
+              content="Define who can see your full profile. 'Connections Only' ensures that only users you have mutually followed can view your media, posts, and personal bio details."
+            />
+            <PolicyAccordion
+              isDark={isDark}
+              title="Search Discovery"
+              icon="search-outline"
+              content="Control if your account appears in global search or 'Suggested Users.' When disabled, you can only be found if someone has your direct @handle or unique profile link."
+            />
+            <PolicyAccordion
+              isDark={isDark}
+              title="Analytics & Tracking"
+              icon="stats-chart-outline"
+              content="Choose whether to share anonymous app usage data to help us improve performance. We do not track your activity across other companies' apps and websites."
+            />
+          </View>
         </View>
 
-        {/* Blocks & Mutes Section */}
+        {/* Data & Legal */}
         <View className="mt-8">
-            <Text className="px-1 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Interactions</Text>
-            <View className="bg-white rounded-[32px] border border-gray-100/50 shadow-sm shadow-gray-100 overflow-hidden">
-                <PolicyItem
-                    title="Blocked Users"
-                    desc="Manage users you've blocked"
-                    icon="hand-left-outline"
-                    onPress={() => router.push("/settings/block")}
-                />
-                <PolicyItem
-                    title="Muted Users"
-                    desc="Manage users you've muted"
-                    icon="volume-mute-outline"
-                    onPress={() => router.push("/settings/mute")}
-                />
-            </View>
+          <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>Data Policies</Text>
+          <View className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-white border-gray-100"}`}>
+            <PolicyAccordion
+              isDark={isDark}
+              title="Information Collection"
+              icon="server-outline"
+              content="We only store what's necessary: your email for login and encrypted metadata for app performance. We never sell your personal data to third-party ad networks."
+            />
+            <PolicyAccordion
+              isDark={isDark}
+              title="Retention Protocol"
+              icon="time-outline"
+              content="Active account data is kept as long as the account exists. Deleted data is purged from our primary servers within 30 days, aligned with 2026 compliance standards."
+            />
+          </View>
         </View>
 
         {/* Danger Zone */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             router.push("/settings/delete-account");
           }}
-          className="mt-12 bg-rose-50 border border-rose-100 p-6 rounded-[32px] items-center flex-row justify-between shadow-sm shadow-rose-100"
+          className={`mt-12 p-6 rounded-[32px] items-center flex-row justify-between border ${isDark ? "bg-rose-500/10 border-rose-500/20" : "bg-rose-50 border-rose-100 shadow-sm shadow-rose-100"
+            }`}
         >
           <View>
             <Text className="text-rose-500 font-black text-lg uppercase tracking-tight">Delete Account</Text>
-            <Text className="text-rose-400 text-xs font-medium uppercase tracking-widest mt-1">Permanently erase data</Text>
+            <Text className={`text-xs font-medium uppercase tracking-widest mt-1 ${isDark ? "text-rose-300/50" : "text-rose-400"}`}>Permanent Data Removal</Text>
           </View>
-          <View className="bg-white p-3 rounded-2xl shadow-sm">
+          <View className={`p-3 rounded-2xl ${isDark ? "bg-slate-800" : "bg-white"}`}>
             <Ionicons name="trash" size={24} color="#F43F5E" />
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
-        <View className="mt-12 opacity-30">
-          <Text className="text-center text-[10px] font-medium text-gray-500 leading-[18px]">
-            Privacy Policy Alpha v2.4.1009{"\n"}
-            Aligned with Modern Social Standards
-          </Text>
+        <View className="mt-12 opacity-30 items-center">
+          <Text className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>Develop By HTOO MYAT NYI NYI</Text>
+          <Text className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>All rights reserved © 2026</Text>
+          <Text className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>[EMAIL_ADDRESS]</Text>
+          <Text className={`text-[9px] mt-2 font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>V 2.4.1009-ALPHA • 2026 PRIVACY ACT</Text>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-// Sub-component for the Grid
-const GridCard = ({ icon, label, sub, color }: any) => (
-  <TouchableOpacity 
+// --- Components ---
+
+const PolicyAccordion = ({ title, content, icon, isDark }: any) => {
+  const [expanded, setExpanded] = useState(false);
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  return (
+    <View className={`border-b ${isDark ? "border-slate-800" : "border-gray-50"}`}>
+      <TouchableOpacity onPress={toggle} className="flex-row items-center px-6 py-5">
+        <View className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${isDark ? "bg-slate-700/50" : "bg-gray-50"}`}>
+          <Ionicons name={icon} size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+        </View>
+        <Text className={`flex-1 font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>{title}</Text>
+        <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#CBD5E1" />
+      </TouchableOpacity>
+      {expanded && (
+        <View className="px-6 pb-6 ml-12">
+          <Text className={`text-[13px] leading-[20px] font-medium ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+            {content}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const GridCard = ({ icon, label, sub, color, isDark }: any) => (
+  <TouchableOpacity
     onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-    className="w-[48%] bg-white border border-gray-50 p-5 rounded-[28px] mb-4 shadow-sm shadow-gray-100"
+    className={`w-[48%] border p-5 rounded-[28px] mb-4 shadow-sm ${isDark ? "bg-slate-800/50 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
+      }`}
   >
-    <View style={{ backgroundColor: `${color}10` }} className="w-10 h-10 rounded-2xl items-center justify-center mb-3">
+    <View style={{ backgroundColor: `${color}20` }} className="w-10 h-10 rounded-2xl items-center justify-center mb-3">
       <Ionicons name={icon} size={20} color={color} />
     </View>
-    <Text className="text-gray-900 font-black text-sm tracking-tight">{label}</Text>
-    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">{sub}</Text>
-  </TouchableOpacity>
-);
-
-// Sub-component for the policy rows
-const PolicyItem = ({ title, desc, icon, onPress }: any) => (
-  <TouchableOpacity 
-    onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-    }}
-    className="flex-row items-center px-6 py-5 border-b border-gray-50"
-  >
-    <View className="bg-gray-50 p-3 rounded-xl mr-4 border border-gray-100/50">
-      <Ionicons name={icon} size={20} color="#64748B" />
-    </View>
-    <View className="flex-1">
-      <Text className="text-gray-900 font-black tracking-tight">{title}</Text>
-      <Text className="text-gray-400 text-[11px] font-medium mt-0.5">{desc}</Text>
-    </View>
-    <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+    <Text className={`font-black text-sm tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>{label}</Text>
+    <Text className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>{sub}</Text>
   </TouchableOpacity>
 );

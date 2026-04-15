@@ -46,6 +46,12 @@ export default function SettingsScreen() {
           sublabel: "Change your security password",
           onPress: () => router.push("/settings/change-password"),
         },
+        {
+          icon: "person",
+          label: "Account Settings",
+          sublabel: "Manage your account settings",
+          onPress: () => router.push("/settings/account"),
+        },
       ],
     },
     {
@@ -82,6 +88,25 @@ export default function SettingsScreen() {
         },
       ],
     },
+
+    {
+      title: "Privacy Center",
+      items: [
+        {
+          icon: "hand-left",
+          label: "Privacy Center",
+          sublabel: "Manage your privacy settings",
+          onPress: () => router.push("/settings/privacy"),
+        },
+        {
+          icon: "shield",
+          label: "Security Settings",
+          sublabel: "Manage your security settings",
+          onPress: () => router.push("/settings/security"),
+        },
+      ],
+    },
+
     {
       title: "Wellness",
       items: [
@@ -135,9 +160,8 @@ export default function SettingsScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.back();
             }}
-            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${
-              isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
-            } mr-4`}
+            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
+              } mr-4`}
           >
             <Ionicons name="chevron-back" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
           </TouchableOpacity>
@@ -148,15 +172,15 @@ export default function SettingsScreen() {
         </View>
       </BlurView>
 
+
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         {sections.map((section, index) => (
           <View key={index} className="mt-8 px-5">
             <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>
               {section.title}
             </Text>
-            <View className={`rounded-[32px] border overflow-hidden ${
-              isDark ? "bg-slate-800/50 border-slate-800 shadow-black" : "bg-white border-gray-100/50 shadow-sm shadow-gray-100"
-            }`}>
+            <View className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800 shadow-black" : "bg-white border-gray-100/50 shadow-sm shadow-gray-100"
+              }`}>
               {section.items.map((item, i) => (
                 <TouchableOpacity
                   key={i}
@@ -164,13 +188,11 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     item.onPress();
                   }}
-                  className={`flex-row items-center px-6 py-5 ${
-                    i !== section.items.length - 1 ? (isDark ? "border-b border-slate-700/50" : "border-b border-gray-100/30") : ""
-                  }`}
+                  className={`flex-row items-center px-6 py-5 ${i !== section.items.length - 1 ? (isDark ? "border-b border-slate-700/50" : "border-b border-gray-100/30") : ""
+                    }`}
                 >
-                  <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 ${
-                    isDark ? "bg-slate-700/50" : "bg-gray-50"
-                  }`}>
+                  <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 ${isDark ? "bg-slate-700/50" : "bg-gray-50"
+                    }`}>
                     <Ionicons name={item.icon as any} size={20} color={isDark ? accentColor : "#64748B"} />
                   </View>
                   <View className="flex-1">
@@ -191,13 +213,11 @@ export default function SettingsScreen() {
         <View className="mt-12 px-5 mb-10">
           <TouchableOpacity
             onPress={handleLogout}
-            className={`flex-row items-center px-6 py-5 rounded-[32px] border mb-6 shadow-sm ${
-              isDark ? "bg-rose-500/10 border-rose-500/20 shadow-black" : "bg-rose-50 border-rose-100/50 shadow-rose-100"
-            }`}
+            className={`flex-row items-center px-6 py-5 rounded-[32px] border mb-6 shadow-sm ${isDark ? "bg-rose-500/10 border-rose-500/20 shadow-black" : "bg-rose-50 border-rose-100/50 shadow-rose-100"
+              }`}
           >
-            <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 ${
-              isDark ? "bg-rose-500/20" : "bg-white"
-            }`}>
+            <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 ${isDark ? "bg-rose-500/20" : "bg-white"
+              }`}>
               <Ionicons name="log-out" size={20} color="#F43F5E" />
             </View>
             <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
@@ -205,17 +225,17 @@ export default function SettingsScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => router.push("/settings/delete-account")}
             className="items-center py-4"
           >
             <Text className={`text-center font-bold text-[12px] uppercase tracking-widest ${isDark ? "text-slate-600" : "text-gray-400"}`}>
               Delete Account
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <View className="items-center mt-12 opacity-20">
-            <Text className={`text-[10px] font-black uppercase tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>Social App</Text>
+            <Text className={`text-[10px] font-black uppercase tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>Develop By Htoo Myat Nyi Nyi</Text>
             <Text className={`text-[9px] font-bold mt-2 uppercase tracking-widest ${isDark ? "text-slate-400" : "text-gray-500"}`}>Version Alpha 2.4.1009</Text>
           </View>
         </View>

@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   FlatList,
@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
-// import { useTheme } from "../../context/ThemeContext";
 import { useTheme } from "@/context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import {
@@ -30,15 +29,16 @@ import RepostModal from "@/components/RepostModal";
 export default function BookmarksScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isDark } = useTheme();
+  const { isDark, accentColor } = useTheme();
   const user = useSelector((state: any) => state.auth.user);
 
+  // 1. Match the API structure: bookmarks is an object { posts: Post[], users: Object }
   const {
-    data: bookmarks,
+    data: bookmarkData,
     isLoading,
     refetch,
     isFetching,
-  } = useGetBookmarksQuery({}, { skip: !user });
+  } = useGetBookmarksQuery(undefined, { skip: !user?.id });
 
   const [likePost] = useLikePostMutation();
   const [bookmarkPost] = useBookmarkPostMutation();
@@ -50,94 +50,51 @@ export default function BookmarksScreen() {
   const [postForOptions, setPostForOptions] = React.useState<Post | null>(null);
   const [postForRepost, setPostForRepost] = React.useState<Post | null>(null);
 
+  // 2. Safely extract the posts array based on your transformNormalizedResponse
+  const bookmarks = useMemo(() => bookmarkData?.posts || [], [bookmarkData]);
+
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
   }, [router]);
 
-  const handleLike = useCallback(
-    async (postId: string) => {
-      try {
-        await likePost({ postId }).unwrap();
-      } catch (err) {
-        console.error("Like failed", err);
-      }
-    },
-    [likePost],
-  );
+  const handleLike = useCallback(async (postId: string) => {
+    try {
+      await likePost({ postId }).unwrap();
+    } catch (err) {
+      console.error("Like failed", err);
+    }
+  }, [likePost]);
 
-  const handleBookmark = useCallback(
-    async (postId: string) => {
-      try {
-        await bookmarkPost(postId).unwrap();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch (err) {
-        console.error("Bookmark failed", err);
-      }
-    },
-    [bookmarkPost],
-  );
+  const handleBookmark = useCallback(async (postId: string) => {
+    try {
+      await bookmarkPost(postId).unwrap();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error("Bookmark failed", err);
+    }
+  }, [bookmarkPost]);
 
-  const handleRepostAction = useCallback(
-    (post: Post) => {
-      setPostForRepost(post);
-      setRepostModalVisible(true);
-    },
-    [],
-  );
+  const handleRepostAction = useCallback((post: Post) => {
+    setPostForRepost(post);
+    setRepostModalVisible(true);
+  }, []);
 
   const onDirectRepost = useCallback(async () => {
     if (!postForRepost) return;
-    const isRepostItem = !!postForRepost.isRepost || !!postForRepost.repostedByMe;
-    const realPostId = isRepostItem && postForRepost.originalPost ? postForRepost.originalPost.id : postForRepost.id;
+    const realPostId = postForRepost.originalPost?.id || postForRepost.id;
 
     try {
       if (postForRepost.repostedByMe) {
         await deleteRepost({ id: realPostId }).unwrap();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         await repostPost({ id: realPostId }).unwrap();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-    } catch (err: any) {
-      console.error("Repost action failed", err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      console.error("Repost failed", err);
     }
   }, [postForRepost, repostPost, deleteRepost]);
-
-  const onQuote = useCallback(() => {
-    if (!postForRepost) return;
-    const isRepostItem = !!postForRepost.isRepost || !!postForRepost.repostedByMe;
-    const displayPost = isRepostItem && postForRepost.originalPost ? postForRepost.originalPost : postForRepost;
-
-    router.push({
-      pathname: "/compose/post",
-      params: {
-        quoteId: displayPost.id,
-        quoteContent: displayPost.content,
-        quoteAuthor: displayPost.author?.name || "Member",
-      },
-    });
-  }, [postForRepost]);
-
-  const handlePressPost = useCallback(
-    (id: string) => {
-      router.push(`/post/${id}`);
-    },
-    [router],
-  );
-
-  const handlePressProfile = useCallback(
-    (id: string) => {
-      router.push(`/profile/${id}`);
-    },
-    [router],
-  );
-
-  const handlePressOptions = useCallback((p: Post) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPostForOptions(p);
-    setOptionsModalVisible(true);
-  }, []);
 
   const onRefresh = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -146,17 +103,16 @@ export default function BookmarksScreen() {
 
   if (isLoading && !isFetching) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#F8FAFC]">
-        <ActivityIndicator size="large" color="#0EA5E9" />
+      <View className={`flex-1 justify-center items-center ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
+        <ActivityIndicator size="large" color={accentColor} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#F8FAFC]">
-      {/* Premium Header */}
+    <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
       <BlurView
-        intensity={90}
+        intensity={80}
         tint={isDark ? "dark" : "light"}
         className={`px-5 pb-5 z-50 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`}
         style={{ paddingTop: insets.top + 10 }}
@@ -164,16 +120,17 @@ export default function BookmarksScreen() {
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={handleBack}
-            className="w-10 h-10 rounded-2xl bg-white items-center justify-center border border-gray-50 shadow-sm shadow-gray-100 mr-4"
+            className={`w-10 h-10 rounded-2xl items-center justify-center border ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-100 shadow-sm shadow-gray-100"
+              } mr-4`}
           >
-            <Ionicons name="chevron-back" size={20} color="#64748B" />
+            <Ionicons name="chevron-back" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
           </TouchableOpacity>
           <View>
-            <Text className="text-2xl font-black text-gray-900 tracking-[-1.5px] uppercase">
+            <Text className={`text-2xl font-black tracking-[-1.5px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}>
               Bookmarks
             </Text>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-              Saved Posts
+            <Text className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+              {bookmarks.length} Saved {bookmarks.length === 1 ? 'Post' : 'Posts'}
             </Text>
           </View>
         </View>
@@ -181,16 +138,19 @@ export default function BookmarksScreen() {
 
       <FlatList
         data={bookmarks}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => `bookmark-${item.id}`}
         renderItem={({ item }) => (
           <View className="px-3">
             <PostCard
               item={item}
-              user={user}
-              onPressPost={handlePressPost}
-              onPressProfile={handlePressProfile}
-              onPressOptions={handlePressOptions}
-              onPressComment={handlePressPost}
+              user={user || null}
+              onPressPost={(id) => router.push(`/post/${id}`)}
+              onPressProfile={(id) => router.push(`/profile/${id}`)}
+              onPressOptions={(p) => {
+                setPostForOptions(p);
+                setOptionsModalVisible(true);
+              }}
+              onPressComment={(id) => router.push(`/post/${id}`)}
               onPressRepost={handleRepostAction}
               onLike={handleLike}
               onBookmark={handleBookmark}
@@ -201,25 +161,22 @@ export default function BookmarksScreen() {
           <RefreshControl
             refreshing={isFetching}
             onRefresh={onRefresh}
-            tintColor="#0EA5E9"
+            tintColor={accentColor}
           />
         }
         contentContainerStyle={{ paddingTop: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={Platform.OS === "android"}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center mt-32 px-14 opacity-20">
-            <View className="w-24 h-24 bg-white rounded-[40px] items-center justify-center mb-10 border border-gray-100">
-              <Ionicons name="bookmark" size={48} color="#94A3B8" />
+          <View className="flex-1 items-center justify-center mt-32 px-14">
+            <View className={`w-24 h-24 rounded-[40px] items-center justify-center mb-10 border ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-100"
+              }`}>
+              <Ionicons name="bookmark" size={42} color={accentColor} />
             </View>
-            <Text className="text-xl font-black text-center mb-2 text-gray-900 uppercase tracking-widest">
-              No Bookmarks
+            <Text className={`text-xl font-black text-center mb-2 uppercase tracking-widest ${isDark ? "text-slate-200" : "text-gray-900"}`}>
+              Library Empty
             </Text>
-            <Text className="text-gray-400 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
-              You have not saved any posts here yet.
+            <Text className="text-slate-500 text-center text-[13px] font-bold uppercase tracking-wider leading-5">
+              Posts you bookmark will appear here for quick access.
             </Text>
           </View>
         }
@@ -239,7 +196,13 @@ export default function BookmarksScreen() {
         isVisible={repostModalVisible}
         onClose={() => setRepostModalVisible(false)}
         onRepost={onDirectRepost}
-        onQuote={onQuote}
+        onQuote={() => {
+          if (!postForRepost) return;
+          router.push({
+            pathname: "/compose/post",
+            params: { quoteId: postForRepost.id, quoteContent: postForRepost.content },
+          });
+        }}
         hasReposted={!!postForRepost?.repostedByMe}
       />
     </View>

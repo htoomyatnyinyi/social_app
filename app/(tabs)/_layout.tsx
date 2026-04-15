@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch } from "../../store/store";
 import { notificationApi, useGetUnreadCountQuery } from "../../store/notificationApi";
+import { useGetNotificationPreferencesQuery } from "../../store/settingsApi";
 import { useUpdatePushTokenMutation } from "../../store/profileApi";
 import { API_URL, api } from "../../store/api";
 import { usePushNotifications, scheduleLocalNotificationAsync } from "../../hooks/usePushNotifications";
@@ -20,6 +21,7 @@ export default function TabLayout() {
   const { processGlobalSignaling, setGlobalSendSignal } = useWebRTCContext();
 
   // Notifications logic
+  const { data: preferences } = useGetNotificationPreferencesQuery({}, { skip: !token });
   const { data: notificationData, refetch: refetchUnread } =
     useGetUnreadCountQuery(undefined, {
       pollingInterval: 60000,
@@ -54,6 +56,11 @@ export default function TabLayout() {
   useEffect(() => {
     setGlobalSendSignalRef.current = setGlobalSendSignal;
   }, [setGlobalSendSignal]);
+
+  const currentPreferencesRef = useRef(preferences);
+  useEffect(() => {
+    currentPreferencesRef.current = preferences;
+  }, [preferences]);
 
   useEffect(() => {
     if (!token) return;
@@ -105,6 +112,23 @@ export default function TabLayout() {
 
           if (data.type === "new_notification") {
             const notif = data.data;
+
+            // Check if notification is allowed by preferences
+            const currentPrefs = currentPreferencesRef.current;
+            let isAllowed = true;
+            if (currentPrefs) {
+              if (!currentPrefs.pushEnabled) isAllowed = false;
+              else if (notif.type === "LIKE" && !currentPrefs.likes) isAllowed = false;
+              else if (notif.type === "REPLY" && !currentPrefs.replies) isAllowed = false;
+              else if (notif.type === "MENTION" && !currentPrefs.mentions) isAllowed = false;
+              else if (notif.type === "REPOST" && !currentPrefs.reposts) isAllowed = false;
+              else if (notif.type === "FOLLOW" && !currentPrefs.follows) isAllowed = false;
+              else if (notif.type === "MESSAGE" && !currentPrefs.messages) isAllowed = false;
+            }
+
+            if (!isAllowed) {
+              return; // Ignore this notification completely
+            }
 
             // 1. Update unread count manually
             dispatch(
