@@ -905,6 +905,8 @@ export const postApi = api.injectEndpoints({
         { type: "Post", id },
         { type: "Post", id: "LIST" },
         { type: "Post", id: "FEED" },
+        { type: "Post", id: `ANALYTICS-${id}` },
+        { type: "User" }, // Refresh global analytics
       ],
     }),
 
@@ -939,6 +941,11 @@ export const postApi = api.injectEndpoints({
         { type: "Post", id: "FEED" },
       ],
     }),
+    getPostAnalytics: builder.query({
+      query: (id) => `/posts/${id}/analytics`,
+      providesTags: (result, error, id) => [{ type: "Post", id: `ANALYTICS-${id}` }],
+      keepUnusedDataFor: 300,
+    }),
   }),
 });
 
@@ -959,4 +966,5 @@ export const {
   useBlockUserMutation,
   useDeleteRepostMutation,
   useReportPostMutation,
+  useGetPostAnalyticsQuery,
 } = postApi;

@@ -946,6 +946,35 @@ export default function PostDetailScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {/* Analytics Entry Point for Authors */}
+                {currentUser?.id === rootPost.authorId && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push({
+                        pathname: "/post/post-analytics",
+                        params: { id: rootPost.id }
+                      });
+                    }}
+                    className={`mt-4 flex-row items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-slate-800/40 border-slate-700/50" : "bg-gray-50/80 border-gray-100"}`}
+                  >
+                    <View className="flex-row items-center">
+                      <View className={`w-8 h-8 rounded-xl items-center justify-center mr-3 ${isDark ? "bg-emerald-500/10" : "bg-emerald-50"}`}>
+                        <Ionicons name="bar-chart" size={16} color="#10B981" />
+                      </View>
+                      <View>
+                        <Text className={`text-[13px] font-black ${isDark ? "text-white" : "text-gray-900"}`}>
+                          View Post Analytics
+                        </Text>
+                        <Text className={`text-[10px] font-bold ${isDark ? "text-slate-500" : "text-gray-400"}`}>
+                          Granular insights and reach data
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={isDark ? "#475569" : "#CBD5E1"} />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <View className="flex-row justify-between items-center px-1">

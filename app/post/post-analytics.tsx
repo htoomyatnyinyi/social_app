@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -8,25 +8,23 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import { useTheme } from "../context/ThemeContext";
-import { useAnalyticsLogic } from "../hooks/useAnalyticsLogic";
-import { StatCard } from "../components/analytics/StatCard";
-import { AnalyticsSkeleton } from "../components/analytics/AnalyticsSkeleton";
-import { formatMetric } from "../utils/analyticsUtils";
+import { useTheme } from "../../context/ThemeContext";
+import { useAnalyticsLogic } from "../../hooks/useAnalyticsLogic";
+import { StatCard } from "../../components/analytics/StatCard";
+import { AnalyticsSkeleton } from "../../components/analytics/AnalyticsSkeleton";
+import { formatMetric } from "../../utils/analyticsUtils";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// ─── Helpers ──────────────────────────────────────────────
 function getMaxBarValue(data: { count: number }[]): number {
   return Math.max(...data.map((d) => d.count), 1);
 }
 
-// ─── Mini Bar Chart Component ─────────────────────────────
 function MiniBarChart({
   data,
   isDark,
@@ -78,11 +76,10 @@ function MiniBarChart({
           );
         })}
       </View>
-      {/* X-axis labels — show every 7th day */}
       <View style={{ flexDirection: "row", marginTop: 6 }}>
         {data.map((d, i) => (
           <View key={d.date} style={{ width: barWidth, alignItems: "center" }}>
-            {i % 7 === 0 && (
+            {i % 4 === 0 && (
               <Text
                 className={`text-[8px] font-bold uppercase ${isDark ? "text-slate-500" : "text-gray-400"}`}
               >
@@ -96,8 +93,8 @@ function MiniBarChart({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────
-export default function AnalyticsScreen() {
+export default function PostAnalyticsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark, accentColor } = useTheme();
@@ -107,11 +104,11 @@ export default function AnalyticsScreen() {
     charts,
     isLoading,
     refetch,
-  } = useAnalyticsLogic();
+  } = useAnalyticsLogic(id);
 
   const stats = [
-    { label: "Impressions", value: overview.formattedImpressions, icon: "eye" as const, color: "#0EA5E9" },
-    { label: "Total Likes", value: formatMetric(overview.likes, 'number'), icon: "heart" as const, color: "#F43F5E" },
+    { label: "Reach", value: overview.formattedImpressions, icon: "eye" as const, color: "#0EA5E9" },
+    { label: "Likes", value: formatMetric(overview.likes, 'number'), icon: "heart" as const, color: "#F43F5E" },
     { label: "Replies", value: formatMetric(overview.replies, 'number'), icon: "chatbubble" as const, color: "#8B5CF6" },
     { label: "Reposts", value: formatMetric(overview.reposts, 'number'), icon: "repeat" as const, color: "#10B981" },
   ];
@@ -127,7 +124,7 @@ export default function AnalyticsScreen() {
         >
           <View className="flex-row items-center px-5 pb-4">
              <Text className={`text-xl font-black tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>
-               Analytics
+               Post Analytics
              </Text>
           </View>
         </BlurView>
@@ -138,7 +135,6 @@ export default function AnalyticsScreen() {
 
   return (
     <View className={`flex-1 ${isDark ? "bg-[#0F172A]" : "bg-[#F8FAFC]"}`}>
-      {/* Header */}
       <BlurView
         intensity={90}
         tint={isDark ? "dark" : "light"}
@@ -157,10 +153,10 @@ export default function AnalyticsScreen() {
           </TouchableOpacity>
           <View className="flex-1">
             <Text className={`text-xl font-black tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>
-              Analytics
+              Post Metrics
             </Text>
             <Text className={`text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-              Account Overview
+              Individual Post Performance
             </Text>
           </View>
           <TouchableOpacity
@@ -186,11 +182,10 @@ export default function AnalyticsScreen() {
           />
         }
       >
-        {/* ── Stat Grid ────────────────────────────────── */}
         <View className="px-3 pt-5">
           <Animated.View entering={FadeInDown.delay(50)} className="px-2 mb-4">
             <Text className={`text-[10px] font-black uppercase tracking-[3px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-              Account Performance
+              Key Performance Indicators
             </Text>
           </Animated.View>
 
@@ -206,7 +201,6 @@ export default function AnalyticsScreen() {
           </View>
         </View>
 
-        {/* ── Engagement Rate ────────────────────────────── */}
         <View className="px-5 mt-4">
           <Animated.View
             entering={FadeInDown.delay(300).springify()}
@@ -216,7 +210,7 @@ export default function AnalyticsScreen() {
               <View className="flex-row items-center justify-between mb-4">
                 <View>
                   <Text className={`text-[10px] font-black uppercase tracking-[2px] mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-                    Engagement Rate
+                    Post Engagement Rate
                   </Text>
                   <Text className={`text-4xl font-black tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>
                     {overview.formattedEngagement}
@@ -226,7 +220,7 @@ export default function AnalyticsScreen() {
                   className="w-14 h-14 rounded-[20px] items-center justify-center"
                   style={{ backgroundColor: `${accentColor}15` }}
                 >
-                  <Ionicons name="pulse" size={28} color={accentColor} />
+                  <Ionicons name="analytics-outline" size={28} color={accentColor} />
                 </View>
               </View>
 
@@ -242,10 +236,10 @@ export default function AnalyticsScreen() {
                 <View className={`w-[1px] ${isDark ? "bg-slate-600" : "bg-gray-200"}`} />
                 <View className="flex-1 items-center">
                   <Text className={`text-lg font-black ${isDark ? "text-white" : "text-gray-900"}`}>
-                    {formatMetric(overview.totalPosts || 0, 'number')}
+                    {formatMetric(overview.reposts, 'number')}
                   </Text>
                   <Text className={`text-[8px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-                    Posts
+                    Reposts
                   </Text>
                 </View>
                 <View className={`w-[1px] ${isDark ? "bg-slate-600" : "bg-gray-200"}`} />
@@ -262,8 +256,7 @@ export default function AnalyticsScreen() {
           </Animated.View>
         </View>
 
-        {/* ── Follower Growth Chart ──────────────────────── */}
-        {charts.followerGrowth && (
+        {charts.likeTrend && (
           <View className="px-5 mt-6">
             <Animated.View
               entering={FadeInDown.delay(400).springify()}
@@ -273,76 +266,35 @@ export default function AnalyticsScreen() {
                 <View className="flex-row items-center justify-between mb-2">
                   <View>
                     <Text className={`text-[10px] font-black uppercase tracking-[2px] mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-                      Follower Growth
+                      Likes Over Time
                     </Text>
                     <Text className={`text-2xl font-black tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>
-                      {formatMetric(overview.totalFollowers || 0, 'number')}
+                      {formatMetric(overview.likes, 'number')}
                       <Text className={`text-sm ${isDark ? "text-slate-500" : "text-gray-400"}`}> total</Text>
                     </Text>
                   </View>
                 </View>
 
                 <MiniBarChart
-                  data={charts.followerGrowth}
+                  data={charts.likeTrend}
                   isDark={isDark}
                   accentColor={accentColor}
                 />
 
                 <Text className={`text-center text-[9px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-600" : "text-gray-300"}`}>
-                  Last 30 Days
+                  Last 14 Days
                 </Text>
               </View>
             </Animated.View>
           </View>
         )}
 
-        {/* ── Audience Summary ─────────────────────────── */}
-        <View className="px-5 mt-6">
-          <Animated.View entering={FadeInDown.delay(450)} className="mb-4">
-            <Text className={`text-[10px] font-black uppercase tracking-[3px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-              Audience
-            </Text>
-          </Animated.View>
-
-          <Animated.View
-            entering={FadeInDown.delay(500).springify()}
-            className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-700/50" : "bg-white border-gray-100/50 shadow-sm shadow-gray-100"}`}
-          >
-            <View className="flex-row">
-              <View className={`flex-1 p-5 items-center border-r ${isDark ? "border-slate-700/50" : "border-gray-100/50"}`}>
-                <View className="w-12 h-12 rounded-[18px] items-center justify-center mb-3"
-                  style={{ backgroundColor: `${accentColor}15` }}>
-                  <Ionicons name="people" size={24} color={accentColor} />
-                </View>
-                <Text className={`text-2xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
-                  {formatMetric(overview.totalFollowers || 0, 'number')}
-                </Text>
-                <Text className={`text-[9px] font-black uppercase tracking-[2px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-                  Followers
-                </Text>
-              </View>
-              <View className="flex-1 p-5 items-center">
-                <View className="w-12 h-12 rounded-[18px] items-center justify-center mb-3 bg-violet-500/10">
-                  <Ionicons name="person-add" size={24} color="#8B5CF6" />
-                </View>
-                <Text className={`text-2xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
-                  {formatMetric(overview.totalFollowing || 0, 'number')}
-                </Text>
-                <Text className={`text-[9px] font-black uppercase tracking-[2px] mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
-                  Following
-                </Text>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-
-        {/* Footer */}
         <View className="items-center mt-10 mb-6 opacity-20">
           <Text className={`text-[9px] font-black uppercase tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>
-            Analytics Dashboard
+            Post Analytics
           </Text>
           <Text className={`text-[8px] font-bold mt-1 uppercase tracking-widest ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-            Data refreshes in real-time
+            Secure and Private View
           </Text>
         </View>
       </ScrollView>
