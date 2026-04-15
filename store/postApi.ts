@@ -411,9 +411,17 @@ export const postApi = api.injectEndpoints({
           patches.forEach((p) => p.undo());
         }
       },
+      // only unbookmark work
+      // invalidatesTags: (result, error, arg) => {
+      //   const id = typeof arg === "string" ? arg : arg.id;
+      //   return [{ type: "Post", id }];
+      // },
       invalidatesTags: (result, error, arg) => {
         const id = typeof arg === "string" ? arg : arg.id;
-        return [{ type: "Post", id }];
+        return [
+          { type: "Post", id },
+          { type: "Post", id: "BOOKMARKS" } // <--- ADD THIS LINE
+        ];
       },
     }),
 
