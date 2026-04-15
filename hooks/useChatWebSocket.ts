@@ -5,6 +5,9 @@ import { messages as messagesTable } from "../db/schema";
 import { eq } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
 import { metrics } from "../lib/metrics";
+import { safeJsonParse } from "../lib/safeJson";
+import { Platform } from "react-native";
+import { resolveMessageTypeFromMetadata } from "../lib/chatMessage";
 
 interface UseChatWebSocketProps {
   chatId: string | null;
@@ -39,23 +42,39 @@ export const useChatWebSocket = ({
 
     const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
     const cleanBase = API_URL.replace(/^https?:\/\//, "");
-    const wsUrl = `${wsProtocol}://${cleanBase}/chat/ws?chatId=${chatId}&token=${token}`;
+    const wsUrlNative = `${wsProtocol}://${cleanBase}/chat/ws?chatId=${chatId}`;
+    const wsUrlWeb = `${wsProtocol}://${cleanBase}/chat/ws?chatId=${chatId}&token=${token}`;
+    const wsUrlNativeWithToken = `${wsProtocol}://${cleanBase}/chat/ws?chatId=${chatId}&token=${token}`;
 
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let isCleanedUp = false;
+    let didOpen = false;
+    let usedFallback = false;
 
-    const connect = () => {
+    const connect = (mode: "header" | "query") => {
       if (isCleanedUp) return;
 
-      const socket = new WebSocket(wsUrl);
+      didOpen = false;
+      const socket = (() => {
+        if (Platform.OS === "web") return new WebSocket(wsUrlWeb);
+
+        if (mode === "query") {
+          return new WebSocket(wsUrlNativeWithToken);
+        }
+
+        return new (WebSocket as any)(wsUrlNative, undefined, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      })();
       socketRef.current = socket;
 
       socket.onopen = () => {
+        didOpen = true;
         console.log(`✅ Chat WS Connected: ${chatId}`);
         metrics.increment("chat_ws_open_total", { chatId });
       };
 
-      socket.onmessage = async (event) => {
+      socket.onmessage = async (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
           
@@ -69,8 +88,14 @@ export const useChatWebSocket = ({
             const stopTimer = metrics.startTimer("chat_ws_message_process_ms", {
               chatId,
             });
-            const parsedMetadata = data.metadata ? (typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata) : null;
-            const messageType = parsedMetadata?.messageType || (data.image ? "image" : "text");
+            const parsedMetadata =
+              typeof data.metadata === "string"
+                ? safeJsonParse<any>(data.metadata, null)
+                : (data.metadata ?? null);
+            const messageType = resolveMessageTypeFromMetadata(
+              parsedMetadata,
+              Boolean(data.image),
+            );
 
             await db.insert(messagesTable).values({
               id: data.id,
@@ -113,23 +138,32 @@ export const useChatWebSocket = ({
         }
       };
 
-      socket.onerror = (e) => {
+      socket.onerror = (e: any) => {
         console.error("❌ Chat WS Error:", e);
         metrics.increment("chat_ws_error_total", { chatId });
       };
 
-      socket.onclose = (e) => {
+      socket.onclose = (e: any) => {
         console.log(`🔌 Chat WS Closed. Code: ${e.code}, Reason: ${e.reason}`);
         metrics.increment("chat_ws_close_total", { chatId, code: e.code });
         socketRef.current = null;
 
         if (!isCleanedUp) {
-          reconnectTimer = setTimeout(connect, 3000);
+          // If the header-auth connection never opened, fallback to query-token.
+          if (Platform.OS !== "web" && !didOpen && !usedFallback) {
+            usedFallback = true;
+            reconnectTimer = setTimeout(() => connect("query"), 250);
+            return;
+          }
+          reconnectTimer = setTimeout(
+            () => connect(usedFallback ? "query" : "header"),
+            3000,
+          );
         }
       };
     };
 
-    connect();
+    connect(Platform.OS === "web" ? "query" : "header");
 
     return () => {
       isCleanedUp = true;

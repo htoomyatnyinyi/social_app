@@ -16,6 +16,7 @@ import {
   Alert,
   Pressable,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,6 +36,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { useWebRTCContext } from "@/context/WebRTCContext";
 import * as FileSystem from "expo-file-system/legacy";
+import { safeJsonParse } from "@/lib/safeJson";
 
 type ReplyContext = {
   id: string;
@@ -280,7 +282,7 @@ const MessageBubble = memo(function MessageBubble({
             onPress={() => {
               const meta =
                 typeof item.metadata === "string"
-                  ? JSON.parse(item.metadata)
+                  ? safeJsonParse<any>(item.metadata, null)
                   : item.metadata;
               if (meta.location) {
                 const url =
@@ -456,16 +458,20 @@ export default function ChatScreen() {
   const user = useSelector((state: any) => state.auth.user);
   const token = useSelector((state: any) => state.auth.token);
   const [markAsRead] = useMarkMessagesAsReadMutation();
+  const lastMarkedChatIdRef = useRef<string | null>(null);
 
-  const { messages, fetchMessages, sendMessage } = useChatMessages(
+  const { messages, loading, fetchMessages, sendMessage } = useChatMessages(
     resolvedChatId,
     token,
     user,
   );
 
   useEffect(() => {
-    if (resolvedChatId) markAsRead(resolvedChatId);
-  }, [resolvedChatId, messages?.length, markAsRead]);
+    if (!resolvedChatId) return;
+    if (lastMarkedChatIdRef.current === resolvedChatId) return;
+    lastMarkedChatIdRef.current = resolvedChatId;
+    markAsRead(resolvedChatId);
+  }, [resolvedChatId, markAsRead]);
 
   const [inputText, setInputText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -655,7 +661,7 @@ export default function ChatScreen() {
           try {
             await FileSystem.deleteAsync(tempUri, { idempotent: true });
           } catch {}
-        }, 5000);
+        }, 60000);
       }
     }
   };
@@ -955,6 +961,43 @@ export default function ChatScreen() {
           maxToRenderPerBatch={10}
           windowSize={10}
           removeClippedSubviews={Platform.OS === "android"}
+          ListEmptyComponent={
+            <View style={{ paddingTop: 60, alignItems: "center" }}>
+              {loading ? (
+                <>
+                  <ActivityIndicator size="small" color="#0EA5E9" />
+                  <Text
+                    style={{
+                      marginTop: 10,
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: "#94A3B8",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    Loading…
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="chatbubbles" size={44} color="#94A3B8" />
+                  <Text
+                    style={{
+                      marginTop: 12,
+                      fontSize: 14,
+                      fontWeight: "900",
+                      color: isDark ? "white" : "#0F172A",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    No messages yet
+                  </Text>
+                </>
+              )}
+            </View>
+          }
         />
 
         <View

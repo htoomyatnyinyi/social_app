@@ -68,18 +68,30 @@ export default function TabLayout() {
     let isCleanedUp = false;
     let reconnectTimer: any = null;
     let socketRef: WebSocket | null = null;
+    let didOpen = false;
+    let usedFallback = false;
 
     const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
     const cleanBase = API_URL.replace(/^https?:\/\//, "");
 
-    const connect = () => {
+    const connect = (mode: "header" | "query") => {
       if (isCleanedUp) return;
-      const socket = new WebSocket(
-        `${wsProtocol}://${cleanBase}/notifications/ws?token=${token}`,
-      );
+      didOpen = false;
+      const wsUrlNative = `${wsProtocol}://${cleanBase}/notifications/ws`;
+      const wsUrlWeb = `${wsProtocol}://${cleanBase}/notifications/ws?token=${token}`;
+      const wsUrlNativeWithToken = `${wsProtocol}://${cleanBase}/notifications/ws?token=${token}`;
+
+      const socket = (() => {
+        if (Platform.OS === "web") return new WebSocket(wsUrlWeb);
+        if (mode === "query") return new WebSocket(wsUrlNativeWithToken);
+        return new (WebSocket as any)(wsUrlNative, undefined, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      })();
       socketRef = socket;
 
       socket.onopen = () => {
+        didOpen = true;
         console.log("✅ Notification WS: Opened (stable)");
         setGlobalSendSignalRef.current((payload: any) => {
           if (socket.readyState === WebSocket.OPEN) {
@@ -150,14 +162,19 @@ export default function TabLayout() {
             // The query arg in notifications.tsx is {}
             dispatch(
               notificationApi.util.updateQueryData("getNotifications", {}, (draft: any) => {
-                if (draft && draft.notifications) {
-                  // Prepend to the top if not already exists
-                  if (!draft.notifications.find((n: any) => n.id === notif.id)) {
-                    draft.notifications.unshift(notif);
-                  }
+                if (!draft) return;
+                if (!Array.isArray(draft.notifications)) {
+                  draft.notifications = [];
+                }
+                if (!draft.notifications.find((n: any) => n.id === notif.id)) {
+                  draft.notifications.unshift(notif);
                 }
               })
             );
+
+            // If the notifications list query isn't in cache (or was GC'd),
+            // make sure mounted screens still update without manual refresh.
+            dispatch(api.util.invalidateTags(["Notification"]));
 
             // 3. If it's a message notification, we need to update the Chat list
             if (notif.type === "MESSAGE") {
@@ -174,11 +191,21 @@ export default function TabLayout() {
 
       socket.onclose = () => {
         console.log("🔌 Notification WS closed, reconnecting in 5s...");
-        if (!isCleanedUp) reconnectTimer = setTimeout(connect, 5000);
+        if (!isCleanedUp) {
+          if (Platform.OS !== "web" && !didOpen && !usedFallback) {
+            usedFallback = true;
+            reconnectTimer = setTimeout(() => connect("query"), 250);
+            return;
+          }
+          reconnectTimer = setTimeout(
+            () => connect(usedFallback ? "query" : "header"),
+            5000,
+          );
+        }
       };
     };
 
-    connect();
+    connect(Platform.OS === "web" ? "query" : "header");
 
     return () => {
       isCleanedUp = true;

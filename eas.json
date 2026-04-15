@@ -1,38 +1,3 @@
-// {
-//   "cli": {
-//     "version": ">= 10.0.0",
-//     "appVersionSource": "remote"
-//   },
-//   "build": {
-//     "development": {
-//       "developmentClient": true,
-//       "distribution": "internal",
-//       "ios": {
-//         "simulator": true
-//       },
-//       "android": {
-//         "gradleCommand": ":app:assembleDebug"
-//       }
-//     },
-//     "preview": {
-//       "distribution": "internal",
-//       "android": {
-//         "buildType": "apk"
-//       },
-//       "ios": {
-//         "simulator": false
-//       }
-//     },
-//     "production": {
-//       "android": {
-//         "buildType": "app-bundle"
-//       },
-//       "ios": {
-//         "bundleIdentifier": "com.htoomyatnyinyi.arkta"
-//       }
-//     }
-//   }
-// }
 
 {
   "build": {
