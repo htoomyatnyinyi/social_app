@@ -29,7 +29,7 @@ export const metrics = {
     bucket.push(value);
     if (bucket.length > 200) bucket.shift();
     inMemoryDurations.set(key, bucket);
-    if (isDev) console.log(`[metrics] observe ${key}=${Math.round(value)}ms`);
+    if (isDev) console.log(`[metrics] observe ${key}=${Math.round(value)}`);
   },
 
   startTimer(name: string, tags?: MetricRecord["tags"]) {

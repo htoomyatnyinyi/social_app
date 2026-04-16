@@ -7,7 +7,12 @@ import { ScrollView, Text, TouchableOpacity, View, LayoutAnimation, Platform, UI
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+const isFabricEnabled = Boolean((global as any)?.nativeFabricUIManager);
+if (
+  Platform.OS === "android" &&
+  !isFabricEnabled &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 

@@ -501,10 +501,27 @@ export default function ChatScreen() {
     if (text.length > 0) sendTyping();
   };
 
-  const reversedMessages = useMemo(
-    () => (messages ? [...messages].reverse() : []),
-    [messages],
-  );
+  const reversedMessages = useMemo(() => {
+    if (!messages) return [];
+
+    // Deduplicate: Hide "pending" messages if a matching "synced" message exists from server
+    // (Matching by senderId + content + timestamp within 60 seconds)
+    const filtered = messages.filter((msg, index) => {
+      if (msg.status !== "pending") return true;
+
+      const hasSyncedMatch = messages.some(
+        (other) =>
+          other.status === "synced" &&
+          other.senderId === msg.senderId &&
+          other.content === msg.content &&
+          Math.abs(Number(other.createdAt) - Number(msg.createdAt)) < 60000,
+      );
+
+      return !hasSyncedMatch;
+    });
+
+    return [...filtered].reverse();
+  }, [messages]);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -932,7 +949,15 @@ export default function ChatScreen() {
         </View>
       </View>
     ),
-    [insets.top, isTyping, title, router, isDark, startVideoCall, startVoiceCall],
+    [
+      insets.top,
+      isTyping,
+      title,
+      router,
+      isDark,
+      startVideoCall,
+      startVoiceCall,
+    ],
     // [insets.top, isTyping, title, router],
   );
 

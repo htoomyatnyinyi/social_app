@@ -50,10 +50,13 @@ export const useChatWebSocket = ({
     let isCleanedUp = false;
     let didOpen = false;
     let usedFallback = false;
+    let activeMode: "header" | "query" =
+      Platform.OS === "web" ? "query" : "header";
 
     const connect = (mode: "header" | "query") => {
       if (isCleanedUp) return;
 
+      activeMode = mode;
       didOpen = false;
       const socket = (() => {
         if (Platform.OS === "web") return new WebSocket(wsUrlWeb);
@@ -70,18 +73,26 @@ export const useChatWebSocket = ({
 
       socket.onopen = () => {
         didOpen = true;
-        console.log(`✅ Chat WS Connected: ${chatId}`);
+        console.log(`✅ Chat WS Connected: ${chatId} (${activeMode})`);
         metrics.increment("chat_ws_open_total", { chatId });
       };
 
       socket.onmessage = async (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          
-          const signalingTypes = ["call_invite", "call_accept", "call_reject", "offer", "answer", "ice_candidate", "end_call"];
+
+          const signalingTypes = [
+            "call_invite",
+            "call_accept",
+            "call_reject",
+            "offer",
+            "answer",
+            "ice_candidate",
+            "end_call",
+          ];
           if (signalingTypes.includes(data.type)) {
-             onSignalingMessageRef.current?.(data);
-             return;
+            onSignalingMessageRef.current?.(data);
+            return;
           }
 
           if (data.type === "new_message") {
@@ -97,41 +108,49 @@ export const useChatWebSocket = ({
               Boolean(data.image),
             );
 
-            await db.insert(messagesTable).values({
-              id: data.id,
-              chatId: chatId,
-              senderId: data.senderId,
-              content: data.content,
-              type: messageType,
-              mediaUrl: data.image || null,
-              read: data.read ? 1 : 0,
-              createdAt: new Date(data.createdAt).getTime(),
-              status: "synced",
-              replyToId: data.replyToId || null,
-              replyToName: data.replyTo?.sender?.name || null,
-              replyToContent: data.replyTo?.content || null,
-              metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-            }).onConflictDoNothing();
+            await db
+              .insert(messagesTable)
+              .values({
+                id: data.id,
+                chatId: chatId,
+                senderId: data.senderId,
+                content: data.content,
+                type: messageType,
+                mediaUrl: data.image || null,
+                read: data.read ? 1 : 0,
+                createdAt: new Date(data.createdAt).getTime(),
+                status: "synced",
+                replyToId: data.replyToId || null,
+                replyToName: data.replyTo?.sender?.name || null,
+                replyToContent: data.replyTo?.content || null,
+                metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+              })
+              .onConflictDoNothing();
 
             if (currentUserId && data.senderId !== currentUserId) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             }
             onMessageReceivedRef.current?.();
             stopTimer();
-          } 
-          else if (data.type === "message_deleted") {
-            await db.delete(messagesTable).where(eq(messagesTable.id, data.messageId));
+          } else if (data.type === "message_deleted") {
+            await db
+              .delete(messagesTable)
+              .where(eq(messagesTable.id, data.messageId));
             onMessageReceivedRef.current?.();
-          }
-          else if (data.type === "reaction_update") {
-             const reactionsStr = JSON.stringify({ reactions: data.reactions });
-             await db.update(messagesTable)
-               .set({ metadata: reactionsStr })
-               .where(eq(messagesTable.id, data.messageId));
-             onMessageReceivedRef.current?.();
-          }
-          else if (data.type === "typing_start" && data.userId !== currentUserId) {
-             onTypingStatusRef.current?.(data.userId);
+          } else if (data.type === "reaction_update") {
+            const reactionsStr = JSON.stringify({ reactions: data.reactions });
+            await db
+              .update(messagesTable)
+              .set({ metadata: reactionsStr })
+              .where(eq(messagesTable.id, data.messageId));
+            onMessageReceivedRef.current?.();
+          } else if (
+            data.type === "typing_start" &&
+            data.userId !== currentUserId
+          ) {
+            onTypingStatusRef.current?.(data.userId);
           }
         } catch (e) {
           console.error("❌ Chat WS Message Error:", e);
@@ -152,6 +171,7 @@ export const useChatWebSocket = ({
           // If the header-auth connection never opened, fallback to query-token.
           if (Platform.OS !== "web" && !didOpen && !usedFallback) {
             usedFallback = true;
+            console.log("↪️ Chat WS auth fallback: header -> query token");
             reconnectTimer = setTimeout(() => connect("query"), 250);
             return;
           }
@@ -181,13 +201,17 @@ export const useChatWebSocket = ({
 
   const deleteMessage = (messageId: string) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "delete", chatId, messageId }));
+      socketRef.current.send(
+        JSON.stringify({ type: "delete", chatId, messageId }),
+      );
     }
   };
 
   const sendReaction = (messageId: string, emoji: string) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "reaction", chatId, messageId, content: emoji }));
+      socketRef.current.send(
+        JSON.stringify({ type: "reaction", chatId, messageId, content: emoji }),
+      );
     }
   };
 
@@ -197,5 +221,11 @@ export const useChatWebSocket = ({
     }
   };
 
-  return { socket: socketRef.current, sendTyping, deleteMessage, sendReaction, sendSignal };
+  return {
+    socket: socketRef.current,
+    sendTyping,
+    deleteMessage,
+    sendReaction,
+    sendSignal,
+  };
 };
