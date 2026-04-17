@@ -38,6 +38,17 @@ export default function SettingsLayout() {
       <Stack.Screen name="privacy" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="meditation" />
+      <Stack.Screen name="account" />
+      <Stack.Screen name="delete-account" />
+      <Stack.Screen name="change-password" />
+      <Stack.Screen name="change-email" />
+      <Stack.Screen name="change-phone" />
+      <Stack.Screen name="appearance" />
+      <Stack.Screen name="block" />
+      <Stack.Screen name="mute" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="security" />
+      <Stack.Screen name="help" />
     </Stack>
   );
 }

@@ -13,7 +13,11 @@ export const GlobalCallHandler = () => {
     rejectGlobalCall, 
     endGlobalCall,
     toggleMute,
-    toggleVideo
+    toggleVideo,
+    toggleSpeaker,
+    isSpeakerPhone,
+    isMuted,
+    isVideoOff,
   } = useWebRTCContext();
 
   if (callState === 'IDLE') return null;
@@ -30,6 +34,10 @@ export const GlobalCallHandler = () => {
       onEnd={endGlobalCall}
       onToggleMute={toggleMute}
       onToggleVideo={toggleVideo}
+      onToggleSpeaker={toggleSpeaker}
+      isSpeakerPhone={isSpeakerPhone}
+      isMuted={isMuted}
+      isVideoOff={isVideoOff}
     />
   );
 };

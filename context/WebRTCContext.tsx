@@ -10,12 +10,16 @@ interface WebRTCContextType {
   remoteStream: MediaStream | null;
   chatId: string;
   remoteName: string;
+  isSpeakerPhone: boolean;
+  isMuted: boolean;
+  isVideoOff: boolean;
   startGlobalCall: (chatId: string, type: CallType, senderName?: string) => void;
   acceptGlobalCall: () => void;
   rejectGlobalCall: () => void;
   endGlobalCall: () => void;
   toggleMute: () => void;
   toggleVideo: () => void;
+  toggleSpeaker: () => void;
   processGlobalSignaling: (data: any) => void;
   setGlobalSendSignal: (fn: (payload: any) => void) => void;
 }
@@ -24,16 +28,16 @@ const WebRTCContext = createContext<WebRTCContextType | undefined>(undefined);
 
 export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const user = useSelector((state: any) => state.auth.user);
+  const { speakerDefault, autoMute } = useSelector((state: any) => state.settings);
+  
   const sendSignalRef = useRef<(payload: any) => void>(() => {
     console.warn("WebRTC: Attempted to send signal before WebSocket was ready.");
   });
 
-  // Stable function — never changes reference
   const setGlobalSendSignal = useCallback((fn: (payload: any) => void) => {
     sendSignalRef.current = fn;
   }, []);
 
-  // Stable sendSignal wrapper — never changes reference
   const sendSignal = useCallback((payload: any) => {
     sendSignalRef.current(payload);
   }, []);
@@ -41,9 +45,10 @@ export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const webrtc = useWebRTC({
     currentUserId: user?.id,
     sendSignal,
+    initialSpeaker: speakerDefault,
+    initialMute: autoMute,
   });
 
-  // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     callState: webrtc.callState,
     callType: webrtc.callType,
@@ -51,6 +56,9 @@ export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     remoteStream: webrtc.remoteStream,
     chatId: webrtc.chatId,
     remoteName: webrtc.remoteName,
+    isSpeakerPhone: webrtc.isSpeakerPhone,
+    isMuted: webrtc.isMuted,
+    isVideoOff: webrtc.isVideoOff,
     startGlobalCall: webrtc.startCall,
     acceptGlobalCall: webrtc.acceptCall,
     rejectGlobalCall: webrtc.rejectCall,
@@ -58,6 +66,7 @@ export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     processGlobalSignaling: webrtc.processSignalingMessage,
     toggleMute: webrtc.toggleMute,
     toggleVideo: webrtc.toggleVideo,
+    toggleSpeaker: webrtc.toggleSpeaker,
     setGlobalSendSignal,
   }), [
     webrtc.callState,
@@ -66,6 +75,9 @@ export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     webrtc.remoteStream,
     webrtc.chatId,
     webrtc.remoteName,
+    webrtc.isSpeakerPhone,
+    webrtc.isMuted,
+    webrtc.isVideoOff,
     webrtc.startCall,
     webrtc.acceptCall,
     webrtc.rejectCall,
@@ -73,6 +85,7 @@ export const WebRTCProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     webrtc.processSignalingMessage,
     webrtc.toggleMute,
     webrtc.toggleVideo,
+    webrtc.toggleSpeaker,
     setGlobalSendSignal,
   ]);
 
