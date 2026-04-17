@@ -21,6 +21,7 @@ SplashScreen.preventAutoHideAsync();
 
 import { WebRTCProvider } from "../context/WebRTCContext";
 import { GlobalCallHandler } from "../components/GlobalCallHandler";
+import { GlobalNotificationSocket } from "../components/GlobalNotificationSocket";
 import { ThemeProvider, useTheme } from "../context/ThemeContext";
 
 function ThemeLayout() {
@@ -35,6 +36,7 @@ function ThemeLayout() {
           headerTintColor: accentColor,
         }}
       />
+      <GlobalNotificationSocket />
       <GlobalCallHandler />
     </>
   );

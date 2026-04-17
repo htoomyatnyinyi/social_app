@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "./api"; // Your base API
 import authReducer from "./authSlice"; // The persisted auth slice
 import settingsReducer from "./settingsSlice"; // The persisted settings slice
+import { AppState } from "react-native";
 
 // 1. Combine all your reducers
 const rootReducer = combineReducers({
@@ -53,3 +54,32 @@ export const persistor = persistStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+
+// THIS IS THE KEY: Custom listener for React Native
+setupListeners(store.dispatch, (dispatch, actions) => {
+  let isFocused = true;
+
+  // 1. Handle Focus (AppState)
+  const subscription = AppState.addEventListener('change', (nextAppState : any) => {
+    if (nextAppState === 'active') {
+      dispatch(actions.onFocus());
+    } else {
+      dispatch(actions.onFocusLost());
+    }
+  });
+
+  // 2. Handle Reconnect (Optional: requires @react-native-community/netinfo)
+  // If you have NetInfo installed, uncomment this:
+  /*
+  NetInfo.addEventListener((state) => {
+    if (state.isConnected) {
+      dispatch(actions.onOnline());
+    } else {
+      dispatch(actions.onOffline());
+    }
+  });
+  */
+
+  return () => subscription.remove();
+});

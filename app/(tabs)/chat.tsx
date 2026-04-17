@@ -1,3 +1,4 @@
+// oroginal ode
 import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
@@ -7,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -40,6 +42,7 @@ const ChatItem = React.memo(function ChatItem({
 }) {
   const otherUser = item.users.find((u: any) => u.id !== currentUserId);
   const lastMessage = item.messages?.[0];
+  const isOnline = Boolean(otherUser?.isOnline);
 
   const formatLastMessageTime = (dateString: string) => {
     if (!dateString) return "";
@@ -75,8 +78,9 @@ const ChatItem = React.memo(function ChatItem({
             contentFit="cover"
             transition={200}
           />
-          {/* Logic for Online Status could go here */}
-          <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white dark:border-[#0F172A] rounded-full" />
+          {isOnline && (
+            <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-4 border-white dark:border-[#0F172A] rounded-full" />
+          )}
         </View>
 
         <View className="flex-1 ml-5 justify-center">
@@ -133,6 +137,7 @@ export default function ChatListScreen() {
     data: rooms,
     isLoading, // Initial loading state
     isFetching, // Refetch loading state
+    isError,
     refetch,
   } = useGetChatRoomsQuery(
     {},
@@ -233,7 +238,7 @@ export default function ChatListScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    router.push(`/chat/${publicRoom?.id}?title=Public Lounge`);
+                    router.push(`/chat/${publicRoom?.id}?title=Public`);
                   }}
                   activeOpacity={0.9}
                   className="mx-2 my-2 rounded-[40px] overflow-hidden border border-slate-800 dark:border-white shadow-2xl"
@@ -248,7 +253,8 @@ export default function ChatListScreen() {
                   <BlurView
                     intensity={70}
                     tint="dark"
-                    className="p-6 flex-row items-center h-24 bg-black/30"
+                    className="p-4 flex-row items-center h-12"
+                    // className="p-6 flex-row items-center h-24 bg-black/30"
                   >
                     {/* <View className="w-14 h-14 rounded-[22px] bg-white/20 items-center justify-center border border-white/40">
                       <Ionicons name="infinite" size={32} color="white" />
@@ -268,14 +274,40 @@ export default function ChatListScreen() {
           </>
         }
         ListEmptyComponent={
-          !isLoading ? (
+          isError ? (
+            <View className="items-center justify-center mt-24 px-10">
+              <Ionicons name="cloud-offline" size={44} color="#94A3B8" />
+              <Text className="text-lg font-black text-center mt-4 text-gray-900 dark:text-white uppercase">
+                Couldn’t load chats
+              </Text>
+              <Text className="text-[12px] text-gray-400 font-bold text-center mt-2">
+                Pull to refresh, or tap retry.
+              </Text>
+              <TouchableOpacity
+                onPress={() => refetch()}
+                activeOpacity={0.85}
+                className="mt-6 px-5 py-3 rounded-full bg-sky-500"
+              >
+                <Text className="text-white font-black text-[12px] uppercase tracking-widest">
+                  Retry
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : isLoading ? (
+            <View className="items-center justify-center mt-24 px-10">
+              <ActivityIndicator size="small" color="#0EA5E9" />
+              <Text className="text-[12px] text-gray-400 font-bold text-center mt-3 uppercase tracking-widest">
+                Loading…
+              </Text>
+            </View>
+          ) : (
             <View className="items-center justify-center mt-32 px-14 opacity-20">
               <Ionicons name="chatbubbles" size={48} color="#94A3B8" />
               <Text className="text-xl font-black text-center mt-4 text-gray-900 dark:text-white uppercase">
                 No Messages
               </Text>
             </View>
-          ) : null
+          )
         }
       />
 

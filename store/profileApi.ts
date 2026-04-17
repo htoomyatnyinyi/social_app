@@ -238,6 +238,7 @@ export const profileApi = api.injectEndpoints({
     getUserAnalytics: builder.query({
       query: () => "/profile/analytics",
       providesTags: ["User"],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
   }),
 });

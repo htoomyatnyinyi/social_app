@@ -3,11 +3,24 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View, LayoutAnimation, Platform, UIManager } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+const isFabricEnabled = Boolean((global as any)?.nativeFabricUIManager);
+if (
+  Platform.OS === "android" &&
+  !isFabricEnabled &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -31,43 +44,100 @@ export default function PrivacyCenterScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.back();
             }}
-            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${isDark ? "bg-slate-800 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
-              } mr-4`}
+            className={`w-10 h-10 rounded-2xl items-center justify-center border shadow-sm ${
+              isDark
+                ? "bg-slate-800 border-slate-700 shadow-black"
+                : "bg-white border-gray-50 shadow-gray-100"
+            } mr-4`}
           >
-            <Ionicons name="chevron-back" size={20} color={isDark ? "#94A3B8" : "#64748B"} />
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={isDark ? "#94A3B8" : "#64748B"}
+            />
           </TouchableOpacity>
           <View>
-            <Text className={`text-2xl font-black tracking-[-1px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}>Privacy Center</Text>
-            <Text className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-400" : "text-gray-400"}`}>Security & Visibility</Text>
+            <Text
+              className={`text-2xl font-black tracking-[-1px] uppercase ${isDark ? "text-white" : "text-gray-900"}`}
+            >
+              Privacy Center
+            </Text>
+            <Text
+              className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-400" : "text-gray-400"}`}
+            >
+              Security & Visibility
+            </Text>
           </View>
         </View>
       </BlurView>
 
-      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-
+      <ScrollView
+        className="flex-1 px-5"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 60 }}
+      >
         {/* Intro */}
         <View className="mt-8 px-1 mb-8">
-          <Text className={`text-2xl font-black leading-[32px] tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+          <Text
+            className={`text-2xl font-black leading-[32px] tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+          >
             Your presence, your rules.
           </Text>
-          <Text className={`text-[14px] font-medium leading-[22px] mt-2 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-            Manage how you appear to others and how your data is handled across the network.
+          <Text
+            className={`text-[14px] font-medium leading-[22px] mt-2 ${isDark ? "text-slate-400" : "text-gray-500"}`}
+          >
+            Manage how you appear to others and how your data is handled across
+            the network.
           </Text>
         </View>
 
         {/* Visibility Grid */}
-        <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>Quick Controls</Text>
+        <Text
+          className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}
+        >
+          Quick Controls
+        </Text>
         <View className="flex-row flex-wrap justify-between">
-          <GridCard icon="eye-off" label="Invisibility" sub="Ghost Mode" color="#0EA5E9" isDark={isDark} />
-          <GridCard icon="people" label="Audience" sub="Connections" color="#6366F1" isDark={isDark} />
-          <GridCard icon="search" label="Searchable" sub="Discovery" color="#10B981" isDark={isDark} />
-          <GridCard icon="stats-chart" label="Analytics" sub="Data Usage" color="#F59E0B" isDark={isDark} />
+          <GridCard
+            icon="eye-off"
+            label="Invisibility"
+            sub="Ghost Mode"
+            color="#0EA5E9"
+            isDark={isDark}
+          />
+          <GridCard
+            icon="people"
+            label="Audience"
+            sub="Connections"
+            color="#6366F1"
+            isDark={isDark}
+          />
+          <GridCard
+            icon="search"
+            label="Searchable"
+            sub="Discovery"
+            color="#10B981"
+            isDark={isDark}
+          />
+          <GridCard
+            icon="stats-chart"
+            label="Analytics"
+            sub="Data Usage"
+            color="#F59E0B"
+            isDark={isDark}
+          />
         </View>
 
         {/* Detailed Visibility Breakdown */}
         <View className="mt-8">
-          <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>Visibility Breakdown</Text>
-          <View className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-white border-gray-100"}`}>
+          <Text
+            className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}
+          >
+            Visibility Breakdown
+          </Text>
+          <View
+            className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-white border-gray-100"}`}
+          >
             <PolicyAccordion
               isDark={isDark}
               title="Invisibility (Ghost Mode)"
@@ -97,8 +167,14 @@ export default function PrivacyCenterScreen() {
 
         {/* Data & Legal */}
         <View className="mt-8">
-          <Text className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}>Data Policies</Text>
-          <View className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-white border-gray-100"}`}>
+          <Text
+            className={`px-1 mb-3 text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}
+          >
+            Data Policies
+          </Text>
+          <View
+            className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-white border-gray-100"}`}
+          >
             <PolicyAccordion
               isDark={isDark}
               title="Information Collection"
@@ -133,11 +209,39 @@ export default function PrivacyCenterScreen() {
         </TouchableOpacity> */}
 
         <View className="mt-12 opacity-30 items-center">
-          <Text className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>Develop By HTOO MYAT NYI NYI</Text>
-          <Text className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>All rights reserved © 2026</Text>
-          <Text className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}>[EMAIL_ADDRESS]</Text>
-          <Text className={`text-[9px] mt-2 font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>V 2.4.1009-ALPHA • 2026 PRIVACY ACT</Text>
+          <Text
+            className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}
+          >
+            HTOO MYAT NYI NYI
+          </Text>
+          <Text
+            className={`text-[9px] mt-2 font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}
+          >
+            V 2.4.1009-ALPHA • PRIVACY MODULE
+          </Text>
         </View>
+        {/* <View className="mt-12 opacity-30 items-center">
+          <Text
+            className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}
+          >
+            Develop By HTOO MYAT NYI NYI
+          </Text>
+          <Text
+            className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}
+          >
+            All rights reserved © 2026
+          </Text>
+          <Text
+            className={`text-[10px] font-black tracking-[4px] ${isDark ? "text-white" : "text-gray-900"}`}
+          >
+            [EMAIL_ADDRESS]
+          </Text>
+          <Text
+            className={`text-[9px] mt-2 font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}
+          >
+            V 2.4.1009-ALPHA • 2026 PRIVACY ACT
+          </Text>
+        </View> */}
       </ScrollView>
     </View>
   );
@@ -154,17 +258,38 @@ const PolicyAccordion = ({ title, content, icon, isDark }: any) => {
   };
 
   return (
-    <View className={`border-b ${isDark ? "border-slate-800" : "border-gray-50"}`}>
-      <TouchableOpacity onPress={toggle} className="flex-row items-center px-6 py-5">
-        <View className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${isDark ? "bg-slate-700/50" : "bg-gray-50"}`}>
-          <Ionicons name={icon} size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+    <View
+      className={`border-b ${isDark ? "border-slate-800" : "border-gray-50"}`}
+    >
+      <TouchableOpacity
+        onPress={toggle}
+        className="flex-row items-center px-6 py-5"
+      >
+        <View
+          className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${isDark ? "bg-slate-700/50" : "bg-gray-50"}`}
+        >
+          <Ionicons
+            name={icon}
+            size={18}
+            color={isDark ? "#94A3B8" : "#64748B"}
+          />
         </View>
-        <Text className={`flex-1 font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>{title}</Text>
-        <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#CBD5E1" />
+        <Text
+          className={`flex-1 font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+        >
+          {title}
+        </Text>
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={16}
+          color="#CBD5E1"
+        />
       </TouchableOpacity>
       {expanded && (
         <View className="px-6 pb-6 ml-12">
-          <Text className={`text-[13px] leading-[20px] font-medium ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+          <Text
+            className={`text-[13px] leading-[20px] font-medium ${isDark ? "text-slate-400" : "text-gray-500"}`}
+          >
             {content}
           </Text>
         </View>
@@ -176,13 +301,27 @@ const PolicyAccordion = ({ title, content, icon, isDark }: any) => {
 const GridCard = ({ icon, label, sub, color, isDark }: any) => (
   <TouchableOpacity
     onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-    className={`w-[48%] border p-5 rounded-[28px] mb-4 shadow-sm ${isDark ? "bg-slate-800/50 border-slate-700 shadow-black" : "bg-white border-gray-50 shadow-gray-100"
-      }`}
+    className={`w-[48%] border p-5 rounded-[28px] mb-4 shadow-sm ${
+      isDark
+        ? "bg-slate-800/50 border-slate-700 shadow-black"
+        : "bg-white border-gray-50 shadow-gray-100"
+    }`}
   >
-    <View style={{ backgroundColor: `${color}20` }} className="w-10 h-10 rounded-2xl items-center justify-center mb-3">
+    <View
+      style={{ backgroundColor: `${color}20` }}
+      className="w-10 h-10 rounded-2xl items-center justify-center mb-3"
+    >
       <Ionicons name={icon} size={20} color={color} />
     </View>
-    <Text className={`font-black text-sm tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>{label}</Text>
-    <Text className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>{sub}</Text>
+    <Text
+      className={`font-black text-sm tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+    >
+      {label}
+    </Text>
+    <Text
+      className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}
+    >
+      {sub}
+    </Text>
   </TouchableOpacity>
 );

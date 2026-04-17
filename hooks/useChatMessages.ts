@@ -38,42 +38,49 @@ export const useChatMessages = (
 
   const sendMessage = useCallback(
     async (
-      content: string, 
-      image?: string, 
-      replyTo?: { id: string, name: string, content: string },
+      content: string,
+      image?: string,
+      replyTo?: { id: string; name: string; content: string },
       messageType?: string,
-      metadata?: any
+      metadata?: any,
     ) => {
       if ((!content.trim() && !image && !messageType) || !chatId) return;
 
       const tempId = Crypto.randomUUID();
       const finalType = messageType || (image ? "image" : "text");
+      const timestamp = Date.now();
+
+      // 1. Optimistic UI Update — Update state immediately for zero-latency feel
+      const optimisticMsg: any = {
+        id: tempId,
+        chatId: chatId,
+        senderId: user?.id,
+        content: content || "",
+        type: finalType,
+        mediaUrl: image || null,
+        createdAt: timestamp,
+        status: "pending",
+        replyToId: replyTo?.id || null,
+        replyToName: replyTo?.name || null,
+        replyToContent: replyTo?.content || null,
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      };
+
+      setMessages((prev) => [...prev, optimisticMsg]);
 
       try {
-        // 1. Optimistic UI Update — insert into local SQLite
+        // 2. Persist to local SQLite in background
         await db.insert(messagesTable).values({
-          id: tempId,
-          chatId: chatId,
-          senderId: user?.id,
-          content: content || "",
-          type: finalType,
-          mediaUrl: image || null,
-          createdAt: Date.now(),
-          status: "pending",
-          replyToId: replyTo?.id || null,
-          replyToName: replyTo?.name || null,
-          replyToContent: replyTo?.content || null,
-          metadata: metadata ? JSON.stringify(metadata) : null,
+          ...optimisticMsg,
+          read: 0,
         });
 
-        // Immediately refresh UI with optimistic message
-        await fetchMessages();
-
-        // 2. Trigger sync to push pending + pull new
+        // 3. Trigger sync to push pending + pull new
         if (token) {
           try {
             await syncMessages(chatId, token);
-            await fetchMessages(); // Refresh after sync to show server-confirmed messages
+            // Refresh ONLY after full sync completes to get final server IDs/states
+            await fetchMessages();
           } catch (e) {
             console.error("Sync failed after send", e);
           }

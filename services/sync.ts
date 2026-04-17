@@ -3,6 +3,38 @@ import { messages, chats } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { API_URL } from "../store/api";
 import { metrics } from "../lib/metrics";
+import { safeJsonParse } from "../lib/safeJson";
+import * as FileSystem from "expo-file-system";
+import { resolveMessageTypeFromMetadata } from "../lib/chatMessage";
+
+const MAX_MEDIA_BYTES = 5 * 1024 * 1024; // keep payloads reasonable for JSON transport
+
+async function mediaUrlToDataUriIfNeeded(
+  mediaUrl: string,
+  messageType: string | null,
+): Promise<string> {
+  if (!mediaUrl) return mediaUrl;
+
+  // already data URI (images are sent this way today)
+  if (mediaUrl.startsWith("data:")) return mediaUrl;
+
+  // For audio messages we currently store a local file URI; convert to base64.
+  if (messageType === "audio") {
+    const info = await FileSystem.getInfoAsync(mediaUrl, { size: true });
+    if (!info.exists) {
+      throw new Error("Audio file does not exist");
+    }
+    if (typeof info.size === "number" && info.size > MAX_MEDIA_BYTES) {
+      throw new Error("Audio file too large to upload");
+    }
+    const base64 = await FileSystem.readAsStringAsync(mediaUrl, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:audio/m4a;base64,${base64}`;
+  }
+
+  return mediaUrl;
+}
 
 type SyncResult = {
   pushed: number;
@@ -31,6 +63,11 @@ export const syncMessages = async (
           const maxAttempts = 3;
           for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
+              const uploadableMedia =
+                msg.mediaUrl && msg.type
+                  ? await mediaUrlToDataUriIfNeeded(msg.mediaUrl, msg.type)
+                  : undefined;
+
               const response = await fetch(`${API_URL}/chat/message`, {
                 method: "POST",
                 headers: {
@@ -40,7 +77,7 @@ export const syncMessages = async (
                 body: JSON.stringify({
                   chatId,
                   content: msg.content,
-                  image: msg.mediaUrl || undefined,
+                  image: uploadableMedia || undefined,
                   replyToId: msg.replyToId || undefined,
                   messageType:
                     msg.type !== "text" && msg.type !== "image"
@@ -52,13 +89,14 @@ export const syncMessages = async (
               if (!response.ok) throw new Error(`Push failed: ${response.status}`);
 
               const serverMsg = await response.json();
-              const parsedMetadata = serverMsg.metadata
-                ? typeof serverMsg.metadata === "string"
-                  ? JSON.parse(serverMsg.metadata)
-                  : serverMsg.metadata
-                : null;
-              const messageType =
-                parsedMetadata?.messageType || (serverMsg.image ? "image" : "text");
+              const parsedMetadata =
+                typeof serverMsg.metadata === "string"
+                  ? safeJsonParse<any>(serverMsg.metadata, null)
+                  : (serverMsg.metadata ?? null);
+              const messageType = resolveMessageTypeFromMetadata(
+                parsedMetadata,
+                Boolean(serverMsg.image),
+              );
 
               await db
                 .insert(messages)
@@ -103,6 +141,10 @@ export const syncMessages = async (
               if (attempt === maxAttempts) {
                 metrics.increment("sync_push_fail_total", { chatId });
                 console.error("Failed to push message", msg.id, e);
+                await db
+                  .update(messages)
+                  .set({ status: "failed" })
+                  .where(eq(messages.id, msg.id));
                 return;
               }
 
@@ -140,8 +182,14 @@ export const syncMessages = async (
           const batch = newMessages.slice(i, i + pullBatchSize);
           await Promise.all(
             batch.map(async (msg: any) => {
-          const parsedMetadata = msg.metadata ? (typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata) : null;
-          const messageType = parsedMetadata?.messageType || (msg.image ? "image" : "text");
+              const parsedMetadata =
+                typeof msg.metadata === "string"
+                  ? safeJsonParse<any>(msg.metadata, null)
+                  : (msg.metadata ?? null);
+              const messageType = resolveMessageTypeFromMetadata(
+                parsedMetadata,
+                Boolean(msg.image),
+              );
 
               await db
                 .insert(messages)

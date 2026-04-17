@@ -173,7 +173,8 @@ const PostCard = React.memo(
 
     // Safety checks for logic derivation
     const isRepostAction = !!item?.isRepost;
-    const displayPost = isRepostAction && item.originalPost ? item.originalPost : item;
+    const displayPost =
+      isRepostAction && item.originalPost ? item.originalPost : item;
 
     // 1. ISOWNER CHECK (Crucial for preventing Guest Mode crashes)
     const isOwner = useMemo(() => {
@@ -184,7 +185,8 @@ const PostCard = React.memo(
     const displayId = displayPost?.id;
 
     const createdAtFormatted = useMemo(
-      () => displayPost?.createdAt ? formatRelativeTime(displayPost.createdAt) : "",
+      () =>
+        displayPost?.createdAt ? formatRelativeTime(displayPost.createdAt) : "",
       [displayPost?.createdAt],
     );
 
@@ -256,15 +258,11 @@ const PostCard = React.memo(
             <View
               className={`${isDark ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-100"} px-2 py-1 rounded-lg flex-row items-center border`}
             >
-              <Ionicons
-                name="repeat"
-                size={12}
-                color="#10B981"
-              />
+              <Ionicons name="repeat" size={12} color="#10B981" />
               <Text
                 className={`ml-1.5 text-[10px] font-black tracking-widest ${isDark ? "text-emerald-400" : "text-emerald-600"}`}
               >
-                {isOwner ? "YOU" : (item.author.name || "MEMBER")} SHARED
+                {isOwner ? "YOU" : item.author.name || "MEMBER"} SHARED
               </Text>
             </View>
           </View>
@@ -273,7 +271,9 @@ const PostCard = React.memo(
         <View className="flex-row">
           {/* Avatar - Fixed Optional Chaining */}
           <TouchableOpacity
-            onPress={() => displayAuthor?.id && onPressProfile(displayAuthor.id)}
+            onPress={() =>
+              displayAuthor?.id && onPressProfile(displayAuthor.id)
+            }
             className="mr-4"
           >
             <View
@@ -284,7 +284,7 @@ const PostCard = React.memo(
                 source={{
                   uri:
                     displayAuthor?.image ||
-                    `https://api.dicebear.com/7.x/avataaars/png?seed=${displayAuthor?.id || 'guest'}`,
+                    `https://api.dicebear.com/7.x/avataaars/png?seed=${displayAuthor?.id || "guest"}`,
                 }}
                 className={`w-[52px] h-[52px] rounded-[22px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-gray-50 border-gray-100"} border`}
                 contentFit="cover"
@@ -306,18 +306,19 @@ const PostCard = React.memo(
                   </Text>
                   {(displayAuthor?.username === "official" ||
                     displayAuthor?.id === "system") && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={16}
-                        color={accentColor}
-                        className="ml-1"
-                      />
-                    )}
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color={accentColor}
+                      className="ml-1"
+                    />
+                  )}
                 </View>
                 <Text
                   className={`text-[11px] tracking-widest mt-0.5 ${isDark ? "text-slate-500" : "text-gray-400"}`}
                 >
-                  @{displayAuthor?.username || 'anonymous'} · {createdAtFormatted}
+                  @{displayAuthor?.username || "anonymous"} ·{" "}
+                  {createdAtFormatted}
                 </Text>
               </View>
               <TouchableOpacity
@@ -343,7 +344,7 @@ const PostCard = React.memo(
                   >
                     Replying to{" "}
                     <Text style={{ color: accentColor }}>
-                      @{displayPost.parentPost.author?.username || 'user'}
+                      @{displayPost.parentPost.author?.username || "user"}
                     </Text>
                   </Text>
                 </View>
@@ -376,32 +377,53 @@ const PostCard = React.memo(
             {displayPost.originalPost && !isRepostAction && (
               <TouchableOpacity
                 activeOpacity={0.9}
-                onPress={() => displayPost.originalPost && onPressPost(displayPost.originalPost.id)}
+                onPress={() =>
+                  displayPost.originalPost &&
+                  onPressPost(displayPost.originalPost.id)
+                }
                 className={`mt-2 p-3 rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800/50" : "border-gray-200 bg-gray-50/50"}`}
               >
                 <View className="flex-row items-center mb-2">
                   <Image
                     source={{
-                      uri: displayPost.originalPost.author?.image || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayPost.originalPost.author?.id || 'quoted'}`
+                      uri:
+                        displayPost.originalPost.author?.image ||
+                        `https://api.dicebear.com/7.x/avataaars/png?seed=${displayPost.originalPost.author?.id || "quoted"}`,
                     }}
                     className={`w-5 h-5 rounded-full mr-2 ${isDark ? "bg-slate-700" : "bg-gray-200"}`}
                   />
-                  <Text className={`font-bold text-[13px] mr-1 ${isDark ? "text-slate-200" : "text-gray-800"}`} numberOfLines={1}>
+                  <Text
+                    className={`font-bold text-[13px] mr-1 ${isDark ? "text-slate-200" : "text-gray-800"}`}
+                    numberOfLines={1}
+                  >
                     {displayPost.originalPost.author?.name || "Member"}
                   </Text>
-                  <Text className={`text-[11px] ${isDark ? "text-slate-500" : "text-gray-500"}`} numberOfLines={1}>
-                    @{displayPost.originalPost.author?.username} · {formatRelativeTime(displayPost.originalPost.createdAt)}
+                  <Text
+                    className={`text-[11px] ${isDark ? "text-slate-500" : "text-gray-500"}`}
+                    numberOfLines={1}
+                  >
+                    @{displayPost.originalPost.author?.username} ·{" "}
+                    {formatRelativeTime(displayPost.originalPost.createdAt)}
                   </Text>
                 </View>
                 {displayPost.originalPost.content ? (
-                  <Text className={`text-[13px] leading-5 ${isDark ? "text-slate-300" : "text-gray-700"}`} numberOfLines={3}>
+                  <Text
+                    className={`text-[13px] leading-5 ${isDark ? "text-slate-300" : "text-gray-700"}`}
+                    numberOfLines={3}
+                  >
                     {displayPost.originalPost.content}
                   </Text>
                 ) : null}
-                {(displayPost.originalPost.image || (displayPost.originalPost.images && displayPost.originalPost.images.length > 0)) && (
+                {(displayPost.originalPost.image ||
+                  (displayPost.originalPost.images &&
+                    displayPost.originalPost.images.length > 0)) && (
                   <View className="mt-3">
                     <Image
-                      source={{ uri: displayPost.originalPost.images?.[0] || displayPost.originalPost.image }}
+                      source={{
+                        uri:
+                          displayPost.originalPost.images?.[0] ||
+                          displayPost.originalPost.image,
+                      }}
                       className="w-full h-32 rounded-xl bg-gray-200"
                       contentFit="cover"
                     />
@@ -455,7 +477,7 @@ const PostCard = React.memo(
 PostCard.displayName = "PostCard";
 export default PostCard;
 
-//  before bookmark error 
+//  before bookmark error
 // import React, { useState, useMemo, useCallback } from "react";
 // import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 // import { Ionicons } from "@expo/vector-icons";

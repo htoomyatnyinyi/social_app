@@ -1,191 +1,22 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSelector, useDispatch } from "react-redux";
-import { AppDispatch } from "../../store/store";
-import { notificationApi, useGetUnreadCountQuery } from "../../store/notificationApi";
-import { useGetNotificationPreferencesQuery } from "../../store/settingsApi";
-import { useUpdatePushTokenMutation } from "../../store/profileApi";
-import { API_URL, api } from "../../store/api";
-import { usePushNotifications, scheduleLocalNotificationAsync } from "../../hooks/usePushNotifications";
+import { useSelector } from "react-redux";
+import { useGetUnreadCountQuery } from "../../store/notificationApi";
 import { Platform, View } from "react-native";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
-import { useWebRTCContext } from "../../context/WebRTCContext";
 
 export default function TabLayout() {
   const { accentColor, isDark } = useTheme();
   const token = useSelector((state: any) => state.auth.token);
-  const dispatch = useDispatch<AppDispatch>();
-  const { processGlobalSignaling, setGlobalSendSignal } = useWebRTCContext();
-
-  // Notifications logic
-  const { data: preferences } = useGetNotificationPreferencesQuery({}, { skip: !token });
-  const { data: notificationData, refetch: refetchUnread } =
-    useGetUnreadCountQuery(undefined, {
-      pollingInterval: 60000,
-      refetchOnFocus: false,
-      refetchOnReconnect: true,
-      skip: !token,
-    });
-
-  const { expoPushToken } = usePushNotifications();
-  const [updatePushToken] = useUpdatePushTokenMutation();
-
-  // Fix 1: Update push token with full dependency array
-  useEffect(() => {
-    if (expoPushToken && token) {
-      updatePushToken({ token: expoPushToken }).catch(console.error);
-    }
-  }, [expoPushToken, token, updatePushToken]);
-
-  // Fix 2: Handle WebSocket with stable ref to prevent constant reconnections
-  const refetchRef = useRef(refetchUnread);
-  useEffect(() => {
-    refetchRef.current = refetchUnread;
-  }, [refetchUnread]);
-
-  // Use refs for signaling functions so they NEVER trigger WebSocket reconnection
-  const processSignalingRef = useRef(processGlobalSignaling);
-  useEffect(() => {
-    processSignalingRef.current = processGlobalSignaling;
-  }, [processGlobalSignaling]);
-
-  const setGlobalSendSignalRef = useRef(setGlobalSendSignal);
-  useEffect(() => {
-    setGlobalSendSignalRef.current = setGlobalSendSignal;
-  }, [setGlobalSendSignal]);
-
-  const currentPreferencesRef = useRef(preferences);
-  useEffect(() => {
-    currentPreferencesRef.current = preferences;
-  }, [preferences]);
-
-  useEffect(() => {
-    if (!token) return;
-
-    let isCleanedUp = false;
-    let reconnectTimer: any = null;
-    let socketRef: WebSocket | null = null;
-
-    const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
-    const cleanBase = API_URL.replace(/^https?:\/\//, "");
-
-    const connect = () => {
-      if (isCleanedUp) return;
-      const socket = new WebSocket(
-        `${wsProtocol}://${cleanBase}/notifications/ws?token=${token}`,
-      );
-      socketRef = socket;
-
-      socket.onopen = () => {
-        console.log("✅ Notification WS: Opened (stable)");
-        setGlobalSendSignalRef.current((payload: any) => {
-          if (socket.readyState === WebSocket.OPEN) {
-            console.log("➡️ Sending:", payload.type);
-            socket.send(JSON.stringify(payload));
-          } else {
-            console.warn("⚠️ Socket not OPEN, readyState:", socket.readyState);
-          }
-        });
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const signalingTypes = [
-            "call_invite",
-            "call_accept",
-            "call_reject",
-            "offer",
-            "answer",
-            "ice_candidate",
-            "end_call",
-          ];
-
-          if (signalingTypes.includes(data.type)) {
-            console.log("⬅️ Received:", data.type);
-            processSignalingRef.current(data);
-            return;
-          }
-
-          if (data.type === "new_notification") {
-            const notif = data.data;
-
-            // Check if notification is allowed by preferences
-            const currentPrefs = currentPreferencesRef.current;
-            let isAllowed = true;
-            if (currentPrefs) {
-              if (!currentPrefs.pushEnabled) isAllowed = false;
-              else if (notif.type === "LIKE" && !currentPrefs.likes) isAllowed = false;
-              else if (notif.type === "REPLY" && !currentPrefs.replies) isAllowed = false;
-              else if (notif.type === "MENTION" && !currentPrefs.mentions) isAllowed = false;
-              else if (notif.type === "REPOST" && !currentPrefs.reposts) isAllowed = false;
-              else if (notif.type === "FOLLOW" && !currentPrefs.follows) isAllowed = false;
-              else if (notif.type === "MESSAGE" && !currentPrefs.messages) isAllowed = false;
-            }
-
-            if (!isAllowed) {
-              return; // Ignore this notification completely
-            }
-
-            // 1. Update unread count manually
-            dispatch(
-              notificationApi.util.updateQueryData("getUnreadCount", undefined, (draft: any) => {
-                if (draft) {
-                  draft.count = (draft.count || 0) + 1;
-                }
-              })
-            );
-
-            // Show a local notification for better UX in foreground/when WS resolves
-            if (notif.message || notif.type) {
-              const title = notif.type === "MESSAGE" ? "New Message" : "New Notification";
-              const body = notif.message || "You have a new notification";
-              scheduleLocalNotificationAsync(title, body, { id: notif.id, type: notif.type });
-            }
-
-            // 2. Optimistically append to notifications list cache
-            // The query arg in notifications.tsx is {}
-            dispatch(
-              notificationApi.util.updateQueryData("getNotifications", {}, (draft: any) => {
-                if (draft && draft.notifications) {
-                  // Prepend to the top if not already exists
-                  if (!draft.notifications.find((n: any) => n.id === notif.id)) {
-                    draft.notifications.unshift(notif);
-                  }
-                }
-              })
-            );
-
-            // 3. If it's a message notification, we need to update the Chat list
-            if (notif.type === "MESSAGE") {
-              dispatch(api.util.invalidateTags(["Chat"]));
-            }
-          } else if (data.type === "refresh") {
-            refetchRef.current();
-            dispatch(api.util.invalidateTags(["Notification", "Chat"]));
-          }
-        } catch (e) {
-          console.error("WS Error:", e);
-        }
-      };
-
-      socket.onclose = () => {
-        console.log("🔌 Notification WS closed, reconnecting in 5s...");
-        if (!isCleanedUp) reconnectTimer = setTimeout(connect, 5000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      isCleanedUp = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      socketRef?.close();
-    };
-  }, [token, dispatch]); // ONLY token and dispatch — WebSocket stays alive during calls
+  const { data: notificationData } = useGetUnreadCountQuery(undefined, {
+    pollingInterval: 60000,
+    refetchOnFocus: false,
+    refetchOnReconnect: true,
+    skip: !token,
+  });
 
   // Modern Icon Component using className
   const TabIcon = useCallback(

@@ -55,12 +55,24 @@ interface UseWebRTCProps {
   initialChatId?: string;
   currentUserId?: string;
   sendSignal: (payload: any) => void;
+  initialSpeaker?: boolean;
+  initialMute?: boolean;
+  shouldUseVideo?: boolean;
+  shouldUseAudio?: boolean;
+  shouldDuckOthersIOS?: boolean;
+  shouldPlayThroughEarpieceAndroid?: boolean;
+  shouldPlayThroughEarpieceIOS?: boolean;
+  shouldStaysActiveInBackgroundIOS?: boolean;
+  shouldStaysActiveInBackgroundAndroid?: boolean;
+  shouldStaysActiveInBackground?: boolean;
 }
 
 export const useWebRTC = ({
   initialChatId,
   currentUserId,
   sendSignal,
+  initialSpeaker = true,
+  initialMute = false,
 }: UseWebRTCProps) => {
   const [callState, setCallState] = useState<CallState>("IDLE");
   const [callType, setCallType] = useState<CallType>("video");
@@ -70,6 +82,9 @@ export const useWebRTC = ({
     null,
   );
   const [remoteName, setRemoteName] = useState<string>("");
+  const [isSpeakerPhone, setIsSpeakerPhone] = useState(initialSpeaker);
+  const [isMuted, setIsMuted] = useState(initialMute);
+  const [isVideoOff, setIsVideoOff] = useState(false);
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -87,10 +102,18 @@ export const useWebRTC = ({
   const sendSignalRef = useRef(sendSignal);
   const currentUserIdRef = useRef(currentUserId);
 
-  useEffect(() => { chatIdRef.current = chatId; }, [chatId]);
-  useEffect(() => { callTypeRef.current = callType; }, [callType]);
-  useEffect(() => { sendSignalRef.current = sendSignal; }, [sendSignal]);
-  useEffect(() => { currentUserIdRef.current = currentUserId; }, [currentUserId]);
+  useEffect(() => {
+    chatIdRef.current = chatId;
+  }, [chatId]);
+  useEffect(() => {
+    callTypeRef.current = callType;
+  }, [callType]);
+  useEffect(() => {
+    sendSignalRef.current = sendSignal;
+  }, [sendSignal]);
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   const setLocalStream = (stream: MediaStream | null) => {
     localStreamRef.current = stream;
@@ -102,7 +125,21 @@ export const useWebRTC = ({
     setRemoteStreamState(stream);
   };
 
-  const cleanup = useCallback(() => {
+  const updateAudioMode = useCallback(async (isSpeaker: boolean) => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckOthersIOS: true,
+        playThroughEarpieceAndroid: !isSpeaker,
+      });
+    } catch (e) {
+      console.error("WebRTC: Error setting audio mode:", e);
+    }
+  }, []);
+
+  const cleanup = useCallback(async () => {
     console.log("WebRTC: Cleaning up...");
     setCallState("IDLE");
     if (localStreamRef.current) {
@@ -117,11 +154,27 @@ export const useWebRTC = ({
       peerConnection.current = null;
     }
     pendingIceCandidates.current = [];
+    setIsMuted(false);
+    setIsVideoOff(false);
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckOthersIOS: false,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (e) {}
   }, []);
 
   const setupLocalStream = async (type: CallType = "video") => {
     try {
       await Audio.requestPermissionsAsync();
+      const defaultSpeaker = type === "video";
+      setIsSpeakerPhone(defaultSpeaker);
+      await updateAudioMode(defaultSpeaker);
+
       const constraints = {
         audio: true,
         video:
@@ -142,7 +195,12 @@ export const useWebRTC = ({
     }
   };
 
-  // initPeerConnection uses refs so it has a STABLE reference
+  const toggleSpeaker = async () => {
+    const nextValue = !isSpeakerPhone;
+    setIsSpeakerPhone(nextValue);
+    await updateAudioMode(nextValue);
+  };
+
   const initPeerConnection = useCallback(
     async (targetChatId: string) => {
       const config = {
@@ -162,7 +220,6 @@ export const useWebRTC = ({
 
       pc.addEventListener("icecandidate", (event: any) => {
         if (event.candidate) {
-          console.log("🧊 ICE candidate generated, sending...");
           sendSignalRef.current({
             type: "ice_candidate",
             chatId: targetChatId,
@@ -174,35 +231,27 @@ export const useWebRTC = ({
 
       pc.addEventListener("track", (event: any) => {
         if (event.streams && event.streams[0]) {
-          console.log("WebRTC: Remote stream received via track event");
           setRemoteStream(event.streams[0]);
         }
       });
 
       pc.addEventListener("addstream", (event: any) => {
         if (event.stream) {
-          console.log("WebRTC: Remote stream received via addstream event");
           setRemoteStream(event.stream);
         }
       });
 
       pc.addEventListener("connectionstatechange", () => {
-        console.log("WebRTC: Connection state:", pc.connectionState);
         if (pc.connectionState === "connected") {
           setCallState("CONNECTED");
         }
-        if (
-          pc.connectionState === "disconnected" ||
-          pc.connectionState === "failed" ||
-          pc.connectionState === "closed"
-        ) {
+        if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
           cleanup();
         }
       });
 
       pc.addEventListener("iceconnectionstatechange", () => {
-        console.log("WebRTC: ICE connection state:", pc.iceConnectionState);
-        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+        if (["connected", "completed"].includes(pc.iceConnectionState)) {
           setCallState("CONNECTED");
         }
       });
@@ -210,7 +259,7 @@ export const useWebRTC = ({
       peerConnection.current = pc;
       return pc;
     },
-    [cleanup], // stable deps only — uses refs for userId/sendSignal
+    [cleanup],
   );
 
   const startCall = async (
@@ -226,7 +275,6 @@ export const useWebRTC = ({
     setCallType(type);
     setCallState("CALLING");
     await setupLocalStream(type);
-    console.log("📞 Sending call_invite to", targetChatId);
     sendSignalRef.current({
       type: "call_invite",
       chatId: targetChatId,
@@ -239,7 +287,6 @@ export const useWebRTC = ({
   const acceptCall = async () => {
     setCallState("CALLING");
     await setupLocalStream(callTypeRef.current);
-    console.log("✅ Accepting call, sending call_accept");
     sendSignalRef.current({
       type: "call_accept",
       chatId: chatIdRef.current,
@@ -247,21 +294,15 @@ export const useWebRTC = ({
     });
   };
 
-  // processSignalingMessage has STABLE reference — only depends on
-  // initPeerConnection and cleanup, both of which are stable useCallbacks.
-  // All changing values (chatId, callType, sendSignal, currentUserId) are
-  // read from refs.
   const processSignalingMessage = useCallback(
     async (data: any) => {
-      console.log("📡 processSignaling:", data.type, "from:", data.senderId);
       if (data.senderId === currentUserIdRef.current) {
-        return; // ignore own signals
+        return;
       }
 
       try {
         switch (data.type) {
           case "call_invite":
-            console.log("☎️ Incoming call from", data.senderName);
             setChatId(data.chatId);
             setRemoteName(data.senderName || "Anonymous");
             setCallType(data.callType || "video");
@@ -269,7 +310,6 @@ export const useWebRTC = ({
             break;
 
           case "call_accept": {
-            console.log("✅ Remote accepted, creating offer...");
             const activeChatId = data.chatId || chatIdRef.current;
             const pc = await initPeerConnection(activeChatId);
             if (localStreamRef.current) {
@@ -279,7 +319,6 @@ export const useWebRTC = ({
             }
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            console.log("📤 Sending offer");
             sendSignalRef.current({
               type: "offer",
               chatId: activeChatId,
@@ -290,7 +329,6 @@ export const useWebRTC = ({
           }
 
           case "offer": {
-            console.log("📩 Received offer, creating answer...");
             const activeChatId = data.chatId || chatIdRef.current;
             const calleePc = await initPeerConnection(activeChatId);
             await calleePc.setRemoteDescription(
@@ -307,7 +345,6 @@ export const useWebRTC = ({
 
             const answer = await calleePc.createAnswer();
             await calleePc.setLocalDescription(answer);
-            console.log("📤 Sending answer");
             sendSignalRef.current({
               type: "answer",
               chatId: activeChatId,
@@ -323,7 +360,6 @@ export const useWebRTC = ({
           }
 
           case "answer":
-            console.log("📩 Received answer, setting remote description");
             if (peerConnection.current) {
               await peerConnection.current.setRemoteDescription(
                 new ActualRTCSessionDescription(data.answer),
@@ -356,27 +392,31 @@ export const useWebRTC = ({
         console.error("WebRTC Signaling Error:", e);
       }
     },
-    [initPeerConnection, cleanup], // STABLE deps only — no chatId, callType, sendSignal
+    [initPeerConnection, cleanup],
   );
 
   const toggleMute = () => {
     if (localStreamRef.current) {
-      localStreamRef.current
-        .getAudioTracks()
-        .forEach((t) => (t.enabled = !t.enabled));
+      localStreamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = !t.enabled;
+        setIsMuted(!t.enabled);
+      });
     }
   };
 
   const toggleVideo = () => {
     if (localStreamRef.current) {
-      localStreamRef.current
-        .getVideoTracks()
-        .forEach((t) => (t.enabled = !t.enabled));
+      localStreamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = !t.enabled;
+        setIsVideoOff(!t.enabled);
+      });
     }
   };
 
   useEffect(() => {
-    return () => cleanup();
+    return () => {
+      cleanup();
+    };
   }, [cleanup]);
 
   return {
@@ -388,16 +428,28 @@ export const useWebRTC = ({
     startCall,
     acceptCall,
     rejectCall: () => {
-      sendSignalRef.current({ type: "call_reject", chatId: chatIdRef.current, senderId: currentUserIdRef.current });
+      sendSignalRef.current({
+        type: "call_reject",
+        chatId: chatIdRef.current,
+        senderId: currentUserIdRef.current,
+      });
       cleanup();
     },
     endCall: () => {
-      sendSignalRef.current({ type: "end_call", chatId: chatIdRef.current, senderId: currentUserIdRef.current });
+      sendSignalRef.current({
+        type: "end_call",
+        chatId: chatIdRef.current,
+        senderId: currentUserIdRef.current,
+      });
       cleanup();
     },
     processSignalingMessage,
     toggleMute,
     toggleVideo,
+    toggleSpeaker,
+    isSpeakerPhone,
+    isMuted,
+    isVideoOff,
     remoteName,
   };
 };

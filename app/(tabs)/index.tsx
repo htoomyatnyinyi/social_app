@@ -27,7 +27,6 @@ import PostCard, { Post } from "../../components/PostCard";
 import PostOptionsModal from "../../components/PostOptionsModal";
 import RepostModal from "../../components/RepostModal";
 import {
-  useBlockUserMutation,
   useBookmarkPostMutation,
   useDeletePostMutation,
   useDeleteRepostMutation,
@@ -36,6 +35,7 @@ import {
   useReportPostMutation,
   useRepostPostMutation,
 } from "../../store/postApi";
+import { useBlockUserMutation } from "../../store/profileApi";
 import { metrics } from "../../lib/metrics";
 
 export default function FeedScreen() {
@@ -433,7 +433,7 @@ export default function FeedScreen() {
         onBlock={async () => {
           if (!postForOptions?.author?.id) return;
           try {
-            await blockUser({ id: postForOptions.author.id }).unwrap();
+            await blockUser(postForOptions.author.id).unwrap();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } catch (error: any) {
             console.error("Error blocking user:", error);

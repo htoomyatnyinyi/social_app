@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -55,11 +55,15 @@ interface CallOverlayProps {
   remoteStream: MediaStream | null;
   callerName?: string;
   callerImage?: string;
+  isMuted: boolean;
+  isVideoOff: boolean;
+  isSpeakerPhone: boolean;
   onAccept: () => void;
   onReject: () => void;
   onEnd: () => void;
   onToggleMute: () => void;
   onToggleVideo: () => void;
+  onToggleSpeaker: () => void;
 }
 
 const { width, height } = Dimensions.get("window");
@@ -71,14 +75,16 @@ export default function CallOverlay({
   remoteStream,
   callerName = "User",
   callerImage,
+  isMuted,
+  isVideoOff,
+  isSpeakerPhone,
   onAccept,
   onReject,
   onEnd,
   onToggleMute,
   onToggleVideo,
+  onToggleSpeaker,
 }: CallOverlayProps) {
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
   const insets = useSafeAreaInsets();
 
   if (callState === "IDLE") return null;
@@ -86,13 +92,16 @@ export default function CallOverlay({
   const handleMute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggleMute();
-    setIsMuted(!isMuted);
   };
 
   const handleVideo = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggleVideo();
-    setIsVideoOff(!isVideoOff);
+  };
+
+  const handleSpeaker = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onToggleSpeaker();
   };
 
   const handleAccept = () => {
@@ -113,13 +122,13 @@ export default function CallOverlay({
   return (
     <Modal
       visible={true}
-      animationType="slide"
+      animationType="fade"
       transparent={false}
       presentationStyle="fullScreen"
     >
       <View style={styles.container}>
         {/* BACKGROUND LAYER */}
-        {callState === "CONNECTED" && callType === "video" && remoteStream ? (
+        {callState === "CONNECTED" && callType === "video" && remoteStream && !remoteStream.getVideoTracks().every(t => !t.enabled) ? (
           <RTCView
             streamURL={remoteStream.toURL()}
             style={styles.fullScreenVideo}
@@ -181,6 +190,7 @@ export default function CallOverlay({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="close" size={32} color="white" />
+                    <Text style={styles.buttonLabel}>Decline</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -193,6 +203,7 @@ export default function CallOverlay({
                       size={32}
                       color="white"
                     />
+                    <Text style={styles.buttonLabel}>Accept</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -209,22 +220,7 @@ export default function CallOverlay({
                       size={26}
                       color="white"
                     />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.mainButton,
-                      styles.declineButton,
-                      { width: 72, height: 72 },
-                    ]}
-                    onPress={handleEnd}
-                  >
-                    <Ionicons
-                      name="call"
-                      size={32}
-                      color="white"
-                      style={{ transform: [{ rotate: "135deg" }] }}
-                    />
+                    <Text style={styles.minLabel}>{isMuted ? "Muted" : "Mute"}</Text>
                   </TouchableOpacity>
 
                   {callType === "video" ? (
@@ -240,12 +236,36 @@ export default function CallOverlay({
                         size={26}
                         color="white"
                       />
+                      <Text style={styles.minLabel}>{isVideoOff ? "Video Off" : "Video"}</Text>
                     </TouchableOpacity>
-                  ) : (
-                    <View style={styles.actionButton}>
-                      <Ionicons name="volume-high" size={26} color="white" />
-                    </View>
-                  )}
+                  ) : null}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      isSpeakerPhone && styles.actionButtonActive,
+                    ]}
+                    onPress={handleSpeaker}
+                  >
+                    <Ionicons
+                      name={isSpeakerPhone ? "volume-high" : "volume-medium"}
+                      size={26}
+                      color="white"
+                    />
+                    <Text style={styles.minLabel}>{isSpeakerPhone ? "Speaker" : "Earpiece"}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.mainButton, styles.declineButton, { width: 72, height: 72 }]}
+                    onPress={handleEnd}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={32}
+                      color="white"
+                      style={{ transform: [{ rotate: "135deg" }] }}
+                    />
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -277,7 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E293B",
     marginBottom: 32,
     borderWidth: 6,
-    borderColor: "rgba(14, 165, 233, 0.2)", // Sky-500 low opacity
+    borderColor: "rgba(14, 165, 233, 0.2)",
   },
   callerName: {
     fontSize: 32,
@@ -334,11 +354,11 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     paddingTop: 30,
-    paddingHorizontal: 40,
+    paddingHorizontal: 30,
   },
   ringingRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     alignItems: "center",
   },
   activeRow: {
@@ -359,10 +379,10 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   actionButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -375,4 +395,22 @@ const styles = StyleSheet.create({
   declineButton: {
     backgroundColor: "#F43F5E",
   },
+  buttonLabel: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+    marginTop: 8,
+    position: "absolute",
+    bottom: -25,
+  },
+  minLabel: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 10,
+    fontWeight: "800",
+    marginTop: 4,
+    position: "absolute",
+    bottom: -20,
+    width: 80,
+    textAlign: "center",
+  }
 });
