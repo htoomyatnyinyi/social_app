@@ -4,10 +4,19 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useGetMutedUsersQuery, useMuteUserMutation } from "../../store/profileApi";
+import {
+  useGetMutedUsersQuery,
+  useMuteUserMutation,
+} from "../../store/profileApi";
 
 export default function MutedScreen() {
   const router = useRouter();
@@ -15,6 +24,8 @@ export default function MutedScreen() {
   const { isDark } = useTheme();
   const { data: mutedUsers, isLoading, refetch } = useGetMutedUsersQuery({});
   const [unmuteUser] = useMuteUserMutation();
+
+  console.log("mutedUsers", mutedUsers?.muted_users, "or", mutedUsers);
 
   const handleUnmute = async (id: string) => {
     try {
@@ -27,28 +38,41 @@ export default function MutedScreen() {
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <View className={`flex-row items-center px-5 py-4 ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-50"} border-b mb-1`}>
+    <View
+      className={`flex-row items-center px-5 py-4 ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-50"} border-b mb-1`}
+    >
       <TouchableOpacity
         onPress={() => router.push(`/profile/${item.id}`)}
         className="flex-row items-center flex-1"
       >
         <Image
-          source={{ uri: item.image || "https://api.dicebear.com/7.x/avataaars/png?seed=" + item.username }}
+          source={{
+            uri:
+              item.image ||
+              "https://api.dicebear.com/7.x/avataaars/png?seed=" +
+                item.username,
+          }}
           className="w-14 h-14 rounded-2xl bg-gray-100"
           contentFit="cover"
           transition={300}
         />
         <View className="ml-4 flex-1">
-          <Text className="font-black text-[16px] text-gray-900 tracking-tight">{item.name}</Text>
-          <Text className="text-emerald-500 font-bold text-xs uppercase tracking-widest mt-0.5">@{item.username}</Text>
+          <Text className="font-black text-[16px] text-gray-900 tracking-tight">
+            {item.name}
+          </Text>
+          <Text className="text-emerald-500 font-bold text-xs uppercase tracking-widest mt-0.5">
+            @{item.username}
+          </Text>
         </View>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         onPress={() => handleUnmute(item.id)}
         className="bg-emerald-50 border border-emerald-100 px-6 py-2 rounded-2xl"
       >
-        <Text className="text-emerald-600 text-[10px] font-black uppercase tracking-wider">Unmute</Text>
+        <Text className="text-emerald-600 text-[10px] font-black uppercase tracking-wider">
+          Unmute
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -58,14 +82,18 @@ export default function MutedScreen() {
       <BlurView
         intensity={80}
         tint={isDark ? "dark" : "light"}
-        className={`flex-row items-center px-5 py-4 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`} style={{ paddingTop: insets.top }}>
+        className={`flex-row items-center px-5 py-4 border-b ${isDark ? "border-slate-800/50" : "border-gray-100/50"}`}
+        style={{ paddingTop: insets.top }}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           className="w-10 h-10 items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm"
         >
           <Ionicons name="chevron-back" size={24} color="#64748B" />
         </TouchableOpacity>
-        <Text className="text-xl font-black ml-4 text-gray-900 tracking-tighter uppercase">Muted Users</Text>
+        <Text className="text-xl font-black ml-4 text-gray-900 tracking-tighter uppercase">
+          Muted Users
+        </Text>
       </BlurView>
 
       {isLoading ? (
@@ -82,10 +110,18 @@ export default function MutedScreen() {
           ListEmptyComponent={
             <View className="items-center py-20 px-10">
               <View className="w-16 h-16 bg-gray-100 rounded-3xl items-center justify-center mb-4">
-                <Ionicons name="volume-mute-outline" size={32} color="#94A3B8" />
+                <Ionicons
+                  name="volume-mute-outline"
+                  size={32}
+                  color="#94A3B8"
+                />
               </View>
-              <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">List Empty</Text>
-              <Text className="text-gray-400 text-center mt-2 font-medium">You haven't muted any users on the platform.</Text>
+              <Text className="text-xl font-black text-gray-900 tracking-tight text-center uppercase">
+                List Empty
+              </Text>
+              <Text className="text-gray-400 text-center mt-2 font-medium">
+                You have not muted any users on the platform.
+              </Text>
             </View>
           }
         />

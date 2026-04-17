@@ -5,29 +5,29 @@ import { router } from "expo-router";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
+// import { useDispatch, useSelector } from "react-redux";
+// import { logout } from "../../store/authSlice";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const dispatch = useDispatch();
-  const user = useSelector((state: any) => state.auth.user);
+  // const dispatch = useDispatch();
+  // const user = useSelector((state: any) => state.auth.user);
 
-  const handleLogout = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert("Logout", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log Out",
-        style: "destructive",
-        onPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          router.replace("/auth");
-          setTimeout(() => dispatch(logout()), 100);
-        },
-      },
-    ]);
-  };
+  // const handleLogout = () => {
+  //   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  //   Alert.alert("Logout", "Are you sure you want to log out?", [
+  //     { text: "Cancel", style: "cancel" },
+  //     {
+  //       text: "Log Out",
+  //       style: "destructive",
+  //       onPress: () => {
+  //         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  //         router.replace("/auth");
+  //         setTimeout(() => dispatch(logout()), 100);
+  //       },
+  //     },
+  //   ]);
+  // };
 
   const sections = [
     {
@@ -261,7 +261,7 @@ export default function SettingsScreen() {
         ))}
 
         <View className="mt-12 px-5 mb-10">
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={handleLogout}
             className={`flex-row items-center px-6 py-5 rounded-[32px] border mb-6 shadow-sm ${
               isDark
@@ -279,7 +279,7 @@ export default function SettingsScreen() {
             <Text className="flex-1 text-[15px] font-black text-rose-500 uppercase tracking-widest">
               Log Out
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* <TouchableOpacity
             onPress={() => router.push("/settings/delete-account")}

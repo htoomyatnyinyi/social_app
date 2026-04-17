@@ -152,7 +152,6 @@ export default function AccountSettingsScreen() {
             isDark={isDark}
             accentColor={accentColor}
           />
-
           <InfoItem
             icon="mail"
             title="Email Address"
@@ -165,7 +164,18 @@ export default function AccountSettingsScreen() {
             isDark={isDark}
             accentColor={accentColor}
           />
-
+          <InfoItem
+            icon="key"
+            title="Password"
+            desc="Update your password"
+            value={"********"}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/settings/change-password");
+            }}
+            isDark={isDark}
+            accentColor={accentColor}
+          />
           <InfoItem
             icon="call"
             title="Phone Number"
