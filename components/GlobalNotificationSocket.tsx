@@ -18,7 +18,7 @@ export function GlobalNotificationSocket() {
     { skip: !token },
   );
   useGetUnreadCountQuery(undefined, {
-    pollingInterval: 60000,
+    pollingInterval: 300000,
     refetchOnFocus: false,
     refetchOnReconnect: true,
     skip: !token,

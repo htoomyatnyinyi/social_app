@@ -8,12 +8,16 @@ const transformNotifications = (response: any) => {
       if (notification.issuerId && response.users[notification.issuerId]) {
         notification.issuer = response.users[notification.issuerId];
       }
-      
+
       // Map Post (if notification is related to one)
-      if (notification.postId && response.posts && response.posts[notification.postId]) {
+      if (
+        notification.postId &&
+        response.posts &&
+        response.posts[notification.postId]
+      ) {
         notification.post = response.posts[notification.postId];
       }
-      
+
       return notification;
     };
     response.notifications = response.notifications.map(mapDetails);
@@ -45,8 +49,8 @@ export const notificationApi = api.injectEndpoints({
         return currentArg?.cursor !== previousArg?.cursor;
       },
       keepUnusedDataFor: 60,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
+      // refetchOnFocus: true,
+      // refetchOnReconnect: true,
       providesTags: (result) =>
         result?.notifications
           ? [
@@ -71,12 +75,14 @@ export const notificationApi = api.injectEndpoints({
             "getNotifications",
             {} as any, // Adjust based on your query args
             (draft) => {
-              const notification = draft.notifications?.find((n: any) => n.id === id);
+              const notification = draft.notifications?.find(
+                (n: any) => n.id === id,
+              );
               if (notification) {
                 notification.read = true;
               }
-            }
-          )
+            },
+          ),
         );
         try {
           await queryFulfilled;
@@ -95,14 +101,22 @@ export const notificationApi = api.injectEndpoints({
       // Optimistic Update: Mark everything read
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
-          notificationApi.util.updateQueryData("getNotifications", {} as any, (draft) => {
-            draft.notifications?.forEach((n: any) => (n.read = true));
-          })
+          notificationApi.util.updateQueryData(
+            "getNotifications",
+            {} as any,
+            (draft) => {
+              draft.notifications?.forEach((n: any) => (n.read = true));
+            },
+          ),
         );
         const patchCount = dispatch(
-          notificationApi.util.updateQueryData("getUnreadCount", undefined, (draft) => {
-            if (draft) draft.count = 0;
-          })
+          notificationApi.util.updateQueryData(
+            "getUnreadCount",
+            undefined,
+            (draft) => {
+              if (draft) draft.count = 0;
+            },
+          ),
         );
         try {
           await queryFulfilled;
@@ -117,13 +131,11 @@ export const notificationApi = api.injectEndpoints({
     getUnreadCount: builder.query({
       query: () => "/notifications/unread-count",
       keepUnusedDataFor: 20,
-      refetchOnReconnect: true,
-      refetchOnFocus: true,
+      // refetchOnReconnect: true,
+      // refetchOnFocus: true,
       providesTags: (result) =>
         result?.count
-          ? [
-              { type: "Notification", id: "UNREAD-COUNT" },
-            ]
+          ? [{ type: "Notification", id: "UNREAD-COUNT" }]
           : [{ type: "Notification", id: "UNREAD-COUNT" }],
     }),
   }),

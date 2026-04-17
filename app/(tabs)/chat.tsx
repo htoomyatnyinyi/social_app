@@ -1,5 +1,3 @@
-
-
 // oroginal ode
 import React, { useState, useCallback, useMemo } from "react";
 import {
@@ -240,7 +238,7 @@ export default function ChatListScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    router.push(`/chat/${publicRoom?.id}?title=Public Lounge`);
+                    router.push(`/chat/${publicRoom?.id}?title=Public`);
                   }}
                   activeOpacity={0.9}
                   className="mx-2 my-2 rounded-[40px] overflow-hidden border border-slate-800 dark:border-white shadow-2xl"
@@ -255,7 +253,8 @@ export default function ChatListScreen() {
                   <BlurView
                     intensity={70}
                     tint="dark"
-                    className="p-6 flex-row items-center h-24 bg-black/30"
+                    className="p-4 flex-row items-center h-12"
+                    // className="p-6 flex-row items-center h-24 bg-black/30"
                   >
                     {/* <View className="w-14 h-14 rounded-[22px] bg-white/20 items-center justify-center border border-white/40">
                       <Ionicons name="infinite" size={32} color="white" />

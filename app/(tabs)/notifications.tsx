@@ -136,10 +136,11 @@ const NotificationItem = React.memo(function NotificationItem({
       <TouchableOpacity
         onPress={() => onPress(item)}
         activeOpacity={0.8}
-        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${item.read
+        className={`flex-row px-5 py-4 mb-2 mx-3 rounded-[32px] border ${
+          item.read
             ? "bg-white dark:bg-slate-900 border-gray-50/50 dark:border-slate-800/50"
             : `${config.bg} border-gray-100/50 dark:border-slate-700/50`
-          } items-start shadow-sm shadow-gray-100 dark:shadow-none`}
+        } items-start shadow-sm shadow-gray-100 dark:shadow-none`}
       >
         <View className="mr-4 pt-1">
           <View className="w-12 h-12 rounded-[20px] items-center justify-center bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none">
@@ -408,10 +409,11 @@ export default function NotificationsScreen() {
               onPress={() => handleTabChange(tab as any, index)}
             >
               <Text
-                className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab
+                className={`font-black uppercase text-[10px] tracking-widest ${
+                  activeTab === tab
                     ? "text-gray-900"
                     : "text-gray-400 dark:text-slate-500"
-                  }`}
+                }`}
               >
                 {tab}
               </Text>
