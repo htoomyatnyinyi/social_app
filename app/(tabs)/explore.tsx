@@ -7,8 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  RefreshControl,
-  Alert,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -19,7 +18,6 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
@@ -41,123 +39,13 @@ import Animated, {
   interpolate,
 } from "react-native-reanimated";
 
-// const EXPLORE_CATEGORIES = [
-//   { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
-//   { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
-//   { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
-//   { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
-//   { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
-// ];
-
-/* Memoized List Items */
-const RANK_COLORS = ["#F59E0B", "#94A3B8", "#CD7F32"] as const;
-
-const TrendingHashtagItem = React.memo(function TrendingHashtagItem({
-  item,
-  index,
-  onPress,
-  totalMax,
-}: any) {
-  const rank = index + 1;
-  const isTopThree = rank <= 3;
-  const barPercent = totalMax > 0 ? Math.max((item.count / totalMax) * 100, 8) : 8;
-
-  return (
-    <Animated.View entering={FadeInDown.delay(index * 50)}>
-      <TouchableOpacity
-        onPress={() => onPress(item.name)}
-        className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] justify-between active:opacity-80"
-      >
-        {/* Rank Badge */}
-        <View
-          className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${
-            isTopThree ? "" : "bg-gray-100/80 dark:bg-slate-800/80"
-          }`}
-          style={isTopThree ? { backgroundColor: `${RANK_COLORS[index]}20` } : {}}
-        >
-          <Text
-            className={`text-[13px] font-black ${
-              isTopThree ? "" : "text-gray-400 dark:text-slate-500"
-            }`}
-            style={isTopThree ? { color: RANK_COLORS[index] } : {}}
-          >
-            {rank}
-          </Text>
-        </View>
-
-        <View className="flex-1 mr-4">
-          <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
-            {isTopThree ? "🔥 Hot" : "Rising"} · #{rank}
-          </Text>
-          <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
-            #{item.name}
-          </Text>
-          <View className="flex-row items-center mt-2">
-            <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider mr-3">
-              {item.count} Posts
-            </Text>
-            {/* Volume bar */}
-            <View className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${barPercent}%`,
-                  backgroundColor: isTopThree ? RANK_COLORS[index] || "#0EA5E9" : "#0EA5E9",
-                  opacity: isTopThree ? 1 : 0.4,
-                }}
-              />
-            </View>
-          </View>
-        </View>
-
-        <View
-          className={`w-10 h-10 rounded-2xl items-center justify-center border ${
-            isTopThree
-              ? "border-amber-200/50 dark:border-amber-500/20"
-              : "border-gray-200/50 dark:border-slate-700/50"
-          }`}
-          style={isTopThree ? { backgroundColor: `${RANK_COLORS[index]}10` } : { backgroundColor: "rgba(148,163,184,0.08)" }}
-        >
-          <Ionicons
-            name={isTopThree ? "flame" : "trending-up"}
-            size={18}
-            color={isTopThree ? RANK_COLORS[index] : "#94A3B8"}
-          />
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
-
-const UserSearchItem = React.memo(function UserSearchItem({
-  item,
-  onPress,
-}: any) {
-  return (
-    <TouchableOpacity
-      onPress={() => onPress(item.id)}
-      className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] active:opacity-80"
-    >
-      <Image
-        source={{
-          uri:
-            item.image ||
-            `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
-        }}
-        className="w-14 h-14 rounded-[22px] bg-gray-100 dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
-      />
-      <View className="ml-4 flex-1">
-        <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
-          {item.name}
-        </Text>
-        <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
-          @{item.username}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-    </TouchableOpacity>
-  );
-});
+const EXPLORE_CATEGORIES = [
+  { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
+  { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
+  { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
+  { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
+  { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
+];
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -169,7 +57,8 @@ export default function ExploreScreen() {
   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
     "users",
   );
-  // const [selectedCategory, setSelectedCategory] = useState("1");
+  const [selectedCategory, setSelectedCategory] = useState("1");
+
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   const [repostModalVisible, setRepostModalVisible] = useState(false);
   const [postForOptions, setPostForOptions] = useState<any>(null);
@@ -187,14 +76,16 @@ export default function ExploreScreen() {
   }, [search, q]);
 
   // API Queries
-  const { data: searchResults, isFetching: isSearching } = useGlobalSearchQuery(
+  const { data: searchResults, isLoading: isSearching } = useGlobalSearchQuery(
     search,
-    { skip: search.length < 2 },
+    {
+      skip: search.length < 2,
+    },
   );
 
   const {
     data: trendingData,
-    isFetching: isTrendingFetching,
+    isLoading: isTrendingLoading,
     refetch: refetchTrending,
   } = useGetTrendingQuery();
 
@@ -205,56 +96,48 @@ export default function ExploreScreen() {
   const [bookmarkPost] = useBookmarkPostMutation();
   const [deletePost] = useDeletePostMutation();
 
-  // Refetch on focus
-  useFocusEffect(
-    useCallback(() => {
-      refetchTrending();
-    }, [refetchTrending]),
-  );
-
   // ==================== HANDLERS ====================
-  const handleHashtagPress = useCallback(
-    (name: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSearch(`#${name}`);
-      setActiveTab("posts");
-      tabProgress.value = withSpring(1 / 3, { damping: 20 });
+  const handleLike = useCallback(
+    async (id: string) => {
+      try {
+        await likePost({ postId: id }).unwrap();
+      } catch (err) {
+        console.error("Like failed", err);
+      }
     },
-    [tabProgress],
+    [likePost],
   );
 
-  const handleTabChange = useCallback(
-    (tab: "users" | "posts" | "hashtags", index: number) => {
-      if (tab === activeTab) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setActiveTab(tab);
-      tabProgress.value = withSpring(index * (1 / 3), {
-        damping: 20,
-        stiffness: 120,
-      });
+  const handleBookmark = useCallback(
+    async (id: string) => {
+      try {
+        await bookmarkPost({ postId: id }).unwrap();
+      } catch (err) {
+        console.error("Bookmark failed", err);
+      }
     },
-    [activeTab, tabProgress],
+    [bookmarkPost],
   );
 
-  const handlePressOptions = useCallback((post: any) => {
-    setPostForOptions(post);
+  const handlePressPost = useCallback(
+    (id: string) => {
+      router.push(`/post/${id}`);
+    },
+    [router],
+  );
+
+  const handlePressProfile = useCallback(
+    (id: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push(id === currentUser?.id ? "/profile" : `/profile/${id}`);
+    },
+    [router, currentUser?.id],
+  );
+
+  const handlePressOptions = useCallback((p: any) => {
+    setPostForOptions(p);
     setOptionsModalVisible(true);
   }, []);
-
-  const onPressPost = useCallback(
-    (id: string) => router.push(`/post/${id}`),
-    [router],
-  );
-
-  const onPressProfile = useCallback(
-    (userId: string) => router.push(`/profile/${userId}`),
-    [router],
-  );
-
-  const onPressComment = useCallback(
-    (postId: string) => router.push(`/post/${postId}?comment=true`),
-    [router],
-  );
 
   const onPressRepost = useCallback((post: any) => {
     setPostForRepost(post);
@@ -302,31 +185,22 @@ export default function ExploreScreen() {
     });
   }, [postForRepost, router]);
 
-  const onLike = useCallback(
-    async (postId: string) => {
-      try {
-        await likePost({ postId }).unwrap();
-      } catch (error) {
-        console.error("Like failed:", error);
-      }
-    },
-    [likePost],
-  );
-
-  const onBookmark = useCallback(
-    async (postId: string) => {
-      try {
-        await bookmarkPost({ postId }).unwrap();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch (error) {
-        console.error("Bookmark failed:", error);
-      }
-    },
-    [bookmarkPost],
-  );
+  // FIXED: Tab Animation Logic
+  const handleTabChange = (
+    tab: "users" | "posts" | "hashtags",
+    index: number,
+  ) => {
+    if (tab === activeTab) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveTab(tab);
+    tabProgress.value = withSpring(index, {
+      damping: 20,
+      stiffness: 150,
+    });
+  };
 
   const indicatorStyle = useAnimatedStyle(() => ({
-    left: `${interpolate(tabProgress.value, [0, 1], [0, 66.67])}%`,
+    left: `${interpolate(tabProgress.value, [0, 1, 2], [0, 33.33, 66.66])}%`,
   }));
 
   const filteredUsers = useMemo(() => {
@@ -337,15 +211,53 @@ export default function ExploreScreen() {
     );
   }, [searchResults, currentUser]);
 
+  // ==================== RENDERERS ====================
+  const renderTrendingHashtag = ({
+    item,
+    index,
+  }: {
+    item: any;
+    index: number;
+  }) => (
+    <Animated.View entering={FadeInDown.delay(index * 50)}>
+      <TouchableOpacity
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setSearch(`#${item.name}`);
+          setActiveTab("posts");
+          tabProgress.value = withSpring(1, { damping: 20 });
+        }}
+        className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A] justify-between"
+      >
+        <View className="flex-1 mr-4">
+          <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
+            Rising · #{index + 1}
+          </Text>
+          <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
+            #{item.name}
+          </Text>
+          <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] mt-1.5 uppercase tracking-wider">
+            {item.count} Posts
+          </Text>
+        </View>
+        <TouchableOpacity className="bg-gray-100/80 dark:bg-slate-800/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50 dark:border-slate-700/50">
+          <Ionicons name="trending-up" size={18} color="#94A3B8" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+
   const renderHeroTrending = () => {
     if (!trendingData?.posts?.[0]) return null;
     const hero = trendingData.posts[0];
-
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        className="mx-5 mt-4 mb-8 rounded-[40px] overflow-hidden border border-white dark:border-slate-800 shadow-xl shadow-sky-100 dark:shadow-none"
-        onPress={() => router.push(`/post/${hero.id}`)}
+        className="mx-5 mt-4 mb-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 dark:shadow-none border border-white dark:border-slate-800"
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push(`/post/${hero.id}`);
+        }}
       >
         <Image
           source={{
@@ -355,98 +267,194 @@ export default function ExploreScreen() {
           }}
           className="w-full h-56 bg-sky-200"
           contentFit="cover"
+          transition={500}
         />
         <BlurView
           intensity={95}
           tint={isDark ? "dark" : "light"}
-          className="p-6 absolute bottom-0 left-0 right-0"
+          className="p-6 bg-white/40 dark:bg-slate-900/60 absolute bottom-0 left-0 right-0"
         >
           <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">
             Featured Post
           </Text>
           <Text
-            className="text-xl font-black text-gray-900 dark:text-white leading-7"
+            className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-7"
             numberOfLines={2}
           >
             {hero.content}
           </Text>
+          <View className="flex-row items-center mt-4">
+            <View className="shadow-sm shadow-gray-200 dark:shadow-none">
+              <Image
+                source={{
+                  uri:
+                    hero.author?.image ||
+                    `https://api.dicebear.com/7.x/avataaars/png?seed=${hero.author?.id}`,
+                }}
+                className="w-7 h-7 rounded-xl mr-3 bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
+              />
+            </View>
+            <Text className="text-gray-500 dark:text-slate-400 font-black text-[12px] uppercase tracking-wider">
+              @{hero.author?.username || "arkta_official"}
+            </Text>
+          </View>
         </BlurView>
       </TouchableOpacity>
     );
   };
 
-  const renderSearchList = () => {
-    let data: any[] = [];
-    if (activeTab === "users") data = filteredUsers;
-    else if (activeTab === "posts") data = searchResults?.posts || [];
-    else if (activeTab === "hashtags") data = searchResults?.hashtags || [];
+  const renderDefaultView = () => (
+    <FlatList
+      data={trendingData?.hashtags || []}
+      keyExtractor={(item) => item.id}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={() => (
+        <View>
+          {/* <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingVertical: 16,
+            }}
+          >
+            {EXPLORE_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedCategory(cat.id);
+                }}
+                className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 shadow-sm ${
+                  selectedCategory === cat.id
+                    ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
+                    : "bg-gray-100/50 dark:bg-slate-800/50 border-gray-50 dark:border-slate-700"
+                } border shadow-gray-200 dark:shadow-none`}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={16}
+                  color={selectedCategory === cat.id ? cat.color : "#94A3B8"}
+                />
+                <Text
+                  className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
+                >
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView> */}
+
+          {renderHeroTrending()}
+
+          <View className="px-6 pb-4 pt-2 mt-4">
+            <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
+              Trending Topics
+            </Text>
+          </View>
+        </View>
+      )}
+      renderItem={renderTrendingHashtag}
+      ListFooterComponent={() =>
+        trendingData?.hashtags?.length > 0 ? (
+          <View className="p-12 items-center opacity-40">
+            <Ionicons name="infinite" size={24} color="#94A3B8" />
+          </View>
+        ) : null
+      }
+      refreshing={isTrendingLoading}
+      onRefresh={refetchTrending}
+    />
+  );
+
+  const renderSearchContent = () => {
+    if (isSearching)
+      return (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#0EA5E9" />
+        </View>
+      );
+
+    let listData: any[] = [];
+    if (activeTab === "users") listData = filteredUsers;
+    else if (activeTab === "posts") listData = searchResults?.posts || [];
+    else listData = searchResults?.hashtags || [];
 
     return (
       <FlatList
-        data={data}
+        data={listData}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={() =>
-          !isSearching && (
-            <View className="flex-1 items-center justify-center mt-20 px-10">
-              <Text className="text-gray-400 font-black uppercase text-xs tracking-widest">
-                No results found
-              </Text>
-            </View>
-          )
-        }
-        ListFooterComponent={
-          isSearching ? (
-            <View className="py-12 items-center">
-              <ActivityIndicator size="large" color="#0EA5E9" />
-            </View>
-          ) : null
-        }
+        contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item, index }) => {
           if (activeTab === "users") {
             return (
-              <UserSearchItem
-                item={item}
-                onPress={(id: string) => router.push(`/profile/${id}`)}
-              />
+              <TouchableOpacity
+                onPress={() => handlePressProfile(item.id)}
+                className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A]"
+              >
+                <Image
+                  source={{
+                    uri:
+                      item.image ||
+                      `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
+                  }}
+                  className="w-14 h-14 rounded-[22px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
+                />
+                <View className="ml-4 flex-1">
+                  <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
+                    {item.name}
+                  </Text>
+                  <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
+                    @{item.username}
+                  </Text>
+                </View>
+                <View className="bg-gray-100 dark:bg-slate-800 w-10 h-10 rounded-2xl items-center justify-center">
+                  <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                </View>
+              </TouchableOpacity>
             );
           }
-
           if (activeTab === "hashtags") {
-            return (
-              <TrendingHashtagItem
-                item={item}
-                index={index}
-                onPress={handleHashtagPress}
-              />
-            );
+            return renderTrendingHashtag({ item, index });
           }
-
-          // Posts Tab
           return (
             <View className="px-3 pt-3">
               <PostCard
                 item={item}
                 user={currentUser}
-                onPressPost={onPressPost}
-                onPressProfile={onPressProfile}
+                onPressPost={handlePressPost}
+                onPressProfile={handlePressProfile}
                 onPressOptions={handlePressOptions}
-                onPressComment={onPressComment}
+                onPressComment={handlePressPost}
                 onPressRepost={onPressRepost}
-                onLike={onLike}
-                onBookmark={onBookmark}
+                onLike={handleLike}
+                onBookmark={handleBookmark}
               />
             </View>
           );
         }}
+        ListEmptyComponent={() => (
+          <View className="flex-1 items-center justify-center mt-20 px-10">
+            <View className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-[40px] items-center justify-center mb-6">
+              <Ionicons name="search" size={32} color="#CBD5E1" />
+            </View>
+            <Text className="text-gray-400 dark:text-slate-500 font-black uppercase text-xs tracking-widest text-center">
+              No results found for &quot;{search}&quot;
+            </Text>
+          </View>
+        )}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === "android"}
       />
     );
   };
 
   return (
     <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
-      {/* Search Header */}
+      {/* Search Header - Sticky Blur */}
       <BlurView
         intensity={90}
         tint={isDark ? "dark" : "light"}
@@ -454,27 +462,47 @@ export default function ExploreScreen() {
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="px-5 pb-4">
-          <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] px-5 py-3 border border-gray-100 dark:border-slate-700 shadow-sm">
+          <View>
+            <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-[-1px] uppercase">
+              Explore
+            </Text>
+            {/* Visual feedback for background updating without breaking UI */}
+            <Text className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">
+              Find what you're looking for
+            </Text>
+          </View>
+          <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] mt-6 px-5 py-1 border border-gray-100 dark:border-slate-700 shadow-sm shadow-gray-100/50 dark:shadow-none">
             <Ionicons name="search" size={20} color="#94A3B8" />
             <TextInput
-              placeholder="Search people, posts, hashtags..."
+              placeholder="Search..."
               placeholderTextColor="#CBD5E1"
-              className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-bold"
+              className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-medium"
               value={search}
-              onChangeText={setSearch}
+              onChangeText={(text) => {
+                setSearch(text);
+                if (text.length >= 2) {
+                  // Optionally trigger vibration on typing results
+                }
+              }}
               autoCapitalize="none"
               autoCorrect={false}
             />
             {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch("")}>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSearch("");
+                }}
+              >
                 <Ionicons name="close-circle" size={20} color="#CBD5E1" />
               </TouchableOpacity>
             )}
           </View>
         </View>
 
+        {/* Tab System for Results */}
         {search.length >= 2 && (
-          <View className="flex-row h-14 relative px-2">
+          <View className="flex-row bg-white/20 dark:bg-slate-800/20 rounded-full h-14 relative px-2">
             {["users", "posts", "hashtags"].map((tab, index) => (
               <TouchableOpacity
                 key={tab}
@@ -482,11 +510,7 @@ export default function ExploreScreen() {
                 onPress={() => handleTabChange(tab as any, index)}
               >
                 <Text
-                  className={`font-black uppercase text-[10px] tracking-widest ${
-                    activeTab === tab
-                      ? "text-gray-900 dark:text-white"
-                      : "text-gray-400 dark:text-slate-500"
-                  }`}
+                  className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
                 >
                   {tab}
                 </Text>
@@ -497,9 +521,10 @@ export default function ExploreScreen() {
                 {
                   position: "absolute",
                   bottom: 0,
-                  width: "33.33%",
+                  width: "37%",
                   height: 3,
                   backgroundColor: "#0EA5E9",
+                  borderRadius: 3,
                 },
                 indicatorStyle,
               ]}
@@ -508,89 +533,43 @@ export default function ExploreScreen() {
         )}
       </BlurView>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <View className="flex-1">
-        {search.length < 2 ? (
-          <FlatList
-            data={trendingData?.hashtags || []}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={isTrendingFetching}
-                onRefresh={refetchTrending}
-                tintColor="#0EA5E9"
-              />
-            }
-            ListHeaderComponent={() => (
-              <View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                  }}
-                >
-                  {/* {EXPLORE_CATEGORIES.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      onPress={() => setSelectedCategory(cat.id)}
-                      className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 border ${
-                        selectedCategory === cat.id
-                          ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
-                          : "bg-gray-100/50 dark:bg-slate-800/50 border-transparent"
-                      }`}
-                    >
-                      <Ionicons
-                        name={cat.icon as any}
-                        size={16}
-                        color={
-                          selectedCategory === cat.id ? cat.color : "#94A3B8"
-                        }
-                      />
-                      <Text
-                        className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
-                      >
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))} */}
-                </ScrollView>
-                {renderHeroTrending()}
-                <View className="px-6 pb-4">
-                  <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
-                    Trending Topics
-                  </Text>
-                </View>
-              </View>
-            )}
-            renderItem={({ item, index }) => (
-              <TrendingHashtagItem
-                item={item}
-                index={index}
-                onPress={handleHashtagPress}
-                totalMax={Math.max(...(trendingData?.hashtags || []).map((h: any) => h.count || 0), 1)}
-              />
-            )}
-          />
-        ) : (
-          renderSearchList()
-        )}
+        {search.length < 2 ? renderDefaultView() : renderSearchContent()}
       </View>
 
-      {/* Post Options Modal */}
+      {/* Floating Action Button (FAB) */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/compose/post");
+        }}
+        style={{
+          shadowColor: "#0EA5E9",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 15,
+          elevation: 10,
+        }}
+        className="absolute bottom-28 right-6 bg-sky-500 w-16 h-16 rounded-[24px] items-center justify-center border-2 border-white/20"
+      >
+        <Ionicons name="add" size={32} color="white" />
+      </TouchableOpacity>
+
       <PostOptionsModal
         isVisible={optionsModalVisible}
         onClose={() => setOptionsModalVisible(false)}
         isOwner={postForOptions?.author?.id === currentUser?.id}
         onDelete={async () => {
+          if (!postForOptions?.id) return;
           try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await deletePost({ id: postForOptions.id }).unwrap();
+            setOptionsModalVisible(false);
           } catch (err) {
-            console.error("Delete failed:", err);
+            console.error("Delete failed", err);
           }
-          setOptionsModalVisible(false);
         }}
       />
 
@@ -604,7 +583,8 @@ export default function ExploreScreen() {
     </View>
   );
 }
-// import React, { useState, useCallback, useMemo } from "react";
+
+// import React, { useState, useCallback, useMemo, useEffect } from "react";
 // import {
 //   View,
 //   TextInput,
@@ -612,9 +592,9 @@ export default function ExploreScreen() {
 //   Text,
 //   TouchableOpacity,
 //   ActivityIndicator,
-//   // Dimensions,
 //   ScrollView,
-//   Platform,
+//   RefreshControl,
+//   Alert,
 // } from "react-native";
 // import { Ionicons } from "@expo/vector-icons";
 // import { useRouter, useLocalSearchParams } from "expo-router";
@@ -625,16 +605,19 @@ export default function ExploreScreen() {
 // import { useTheme } from "../../context/ThemeContext";
 // import { useSelector } from "react-redux";
 // import { useSafeAreaInsets } from "react-native-safe-area-context";
+// import { useFocusEffect } from "@react-navigation/native";
 // import { BlurView } from "expo-blur";
 // import { Image } from "expo-image";
 // import * as Haptics from "expo-haptics";
 // import PostCard from "../../components/PostCard";
 // import PostOptionsModal from "../../components/PostOptionsModal";
+// import RepostModal from "../../components/RepostModal";
 // import {
 //   useLikePostMutation,
 //   useRepostPostMutation,
 //   useBookmarkPostMutation,
 //   useDeletePostMutation,
+//   useDeleteRepostMutation,
 // } from "../../store/postApi";
 // import Animated, {
 //   FadeInDown,
@@ -644,102 +627,305 @@ export default function ExploreScreen() {
 //   interpolate,
 // } from "react-native-reanimated";
 
-// // const { width } = Dimensions.get("window");
+// // const EXPLORE_CATEGORIES = [
+// //   { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
+// //   { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
+// //   { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
+// //   { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
+// //   { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
+// // ];
 
-// const EXPLORE_CATEGORIES = [
-//   { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
-//   { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
-//   { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
-//   { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
-//   { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
-// ];
+// /* Memoized List Items */
+// const RANK_COLORS = ["#F59E0B", "#94A3B8", "#CD7F32"] as const;
+
+// const TrendingHashtagItem = React.memo(function TrendingHashtagItem({
+//   item,
+//   index,
+//   onPress,
+//   totalMax,
+// }: any) {
+//   const rank = index + 1;
+//   const isTopThree = rank <= 3;
+//   const barPercent =
+//     totalMax > 0 ? Math.max((item.count / totalMax) * 100, 8) : 8;
+
+//   return (
+//     <Animated.View entering={FadeInDown.delay(index * 50)}>
+//       <TouchableOpacity
+//         onPress={() => onPress(item.name)}
+//         className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] justify-between active:opacity-80"
+//       >
+//         {/* Rank Badge */}
+//         <View
+//           className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${
+//             isTopThree ? "" : "bg-gray-100/80 dark:bg-slate-800/80"
+//           }`}
+//           style={
+//             isTopThree ? { backgroundColor: `${RANK_COLORS[index]}20` } : {}
+//           }
+//         >
+//           <Text
+//             className={`text-[13px] font-black ${
+//               isTopThree ? "" : "text-gray-400 dark:text-slate-500"
+//             }`}
+//             style={isTopThree ? { color: RANK_COLORS[index] } : {}}
+//           >
+//             {rank}
+//           </Text>
+//         </View>
+
+//         <View className="flex-1 mr-4">
+//           <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
+//             {isTopThree ? "🔥 Hot" : "Rising"} · #{rank}
+//           </Text>
+//           <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
+//             #{item.name}
+//           </Text>
+//           <View className="flex-row items-center mt-2">
+//             <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider mr-3">
+//               {item.count} Posts
+//             </Text>
+//             {/* Volume bar */}
+//             <View className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+//               <View
+//                 className="h-full rounded-full"
+//                 style={{
+//                   width: `${barPercent}%`,
+//                   backgroundColor: isTopThree
+//                     ? RANK_COLORS[index] || "#0EA5E9"
+//                     : "#0EA5E9",
+//                   opacity: isTopThree ? 1 : 0.4,
+//                 }}
+//               />
+//             </View>
+//           </View>
+//         </View>
+
+//         <View
+//           className={`w-10 h-10 rounded-2xl items-center justify-center border ${
+//             isTopThree
+//               ? "border-amber-200/50 dark:border-amber-500/20"
+//               : "border-gray-200/50 dark:border-slate-700/50"
+//           }`}
+//           style={
+//             isTopThree
+//               ? { backgroundColor: `${RANK_COLORS[index]}10` }
+//               : { backgroundColor: "rgba(148,163,184,0.08)" }
+//           }
+//         >
+//           <Ionicons
+//             name={isTopThree ? "flame" : "trending-up"}
+//             size={18}
+//             color={isTopThree ? RANK_COLORS[index] : "#94A3B8"}
+//           />
+//         </View>
+//       </TouchableOpacity>
+//     </Animated.View>
+//   );
+// });
+
+// const UserSearchItem = React.memo(function UserSearchItem({
+//   item,
+//   onPress,
+// }: any) {
+//   return (
+//     <TouchableOpacity
+//       onPress={() => onPress(item.id)}
+//       className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] active:opacity-80"
+//     >
+//       <Image
+//         source={{
+//           uri:
+//             item.image ||
+//             `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
+//         }}
+//         className="w-14 h-14 rounded-[22px] bg-gray-100 dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
+//       />
+//       <View className="ml-4 flex-1">
+//         <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
+//           {item.name}
+//         </Text>
+//         <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
+//           @{item.username}
+//         </Text>
+//       </View>
+//       <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+//     </TouchableOpacity>
+//   );
+// });
 
 // export default function ExploreScreen() {
 //   const router = useRouter();
 //   const insets = useSafeAreaInsets();
 //   const { isDark } = useTheme();
 //   const { q } = useLocalSearchParams<{ q?: string }>();
+
 //   const [search, setSearch] = useState(q || "");
 //   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
 //     "users",
 //   );
-//   const [selectedCategory, setSelectedCategory] = useState("1");
+//   // const [selectedCategory, setSelectedCategory] = useState("1");
+//   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+//   const [repostModalVisible, setRepostModalVisible] = useState(false);
+//   const [postForOptions, setPostForOptions] = useState<any>(null);
+//   const [postForRepost, setPostForRepost] = useState<any>(null);
 
-//   const { data: searchResults, isLoading: isSearching } = useGlobalSearchQuery(
+//   const currentUser = useSelector((state: any) => state.auth.user);
+//   const tabProgress = useSharedValue(0);
+
+//   // Sync deep link search param
+//   useEffect(() => {
+//     if (q && typeof q === "string" && q !== search) {
+//       setSearch(q);
+//       if (q.length >= 2) setActiveTab("users");
+//     }
+//   }, [search, q]);
+
+//   // API Queries
+//   const { data: searchResults, isFetching: isSearching } = useGlobalSearchQuery(
 //     search,
-//     {
-//       skip: search.length < 2,
-//     },
+//     { skip: search.length < 2 },
 //   );
 
 //   const {
 //     data: trendingData,
-//     isLoading: isTrendingLoading,
+//     isFetching: isTrendingFetching,
 //     refetch: refetchTrending,
 //   } = useGetTrendingQuery();
 
+//   // Mutations
 //   const [likePost] = useLikePostMutation();
 //   const [repostPost] = useRepostPostMutation();
+//   const [deleteRepost] = useDeleteRepostMutation();
 //   const [bookmarkPost] = useBookmarkPostMutation();
 //   const [deletePost] = useDeletePostMutation();
 
-//   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
-//   const [postForOptions, setPostForOptions] = useState<any>(null);
+//   // Refetch on focus
+//   useFocusEffect(
+//     useCallback(() => {
+//       refetchTrending();
+//     }, [refetchTrending]),
+//   );
 
-//   const currentUser = useSelector((state: any) => state.auth.user);
+//   // ==================== HANDLERS ====================
+//   const handleHashtagPress = useCallback(
+//     (name: string) => {
+//       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+//       setSearch(`#${name}`);
+//       setActiveTab("posts");
+//       tabProgress.value = withSpring(1, { damping: 20 }); // Set to index 1 for "posts"
+//     },
+//     [tabProgress],
+//   );
 
-//   const handleLike = useCallback(
-//     async (id: string) => {
+//   // FIXED: Animation logic uses whole numbers for the index
+//   const handleTabChange = useCallback(
+//     (tab: "users" | "posts" | "hashtags", index: number) => {
+//       if (tab === activeTab) return;
+//       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+//       setActiveTab(tab);
+//       tabProgress.value = withSpring(index, {
+//         damping: 20,
+//         stiffness: 150,
+//         mass: 0.5,
+//       });
+//     },
+//     [activeTab, tabProgress],
+//   );
+
+//   const handlePressOptions = useCallback((post: any) => {
+//     setPostForOptions(post);
+//     setOptionsModalVisible(true);
+//   }, []);
+
+//   const onPressPost = useCallback(
+//     (id: string) => router.push(`/post/${id}`),
+//     [router],
+//   );
+
+//   const onPressProfile = useCallback(
+//     (userId: string) => router.push(`/profile/${userId}`),
+//     [router],
+//   );
+
+//   const onPressComment = useCallback(
+//     (postId: string) => router.push(`/post/${postId}?comment=true`),
+//     [router],
+//   );
+
+//   const onPressRepost = useCallback((post: any) => {
+//     setPostForRepost(post);
+//     setRepostModalVisible(true);
+//   }, []);
+
+//   const onDirectRepost = useCallback(async () => {
+//     if (!postForRepost) return;
+//     const isRepostItem =
+//       !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+//     const realPostId =
+//       isRepostItem && postForRepost.originalPost
+//         ? postForRepost.originalPost.id
+//         : postForRepost.id;
+
+//     try {
+//       if (postForRepost.repostedByMe) {
+//         await deleteRepost({ id: realPostId }).unwrap();
+//         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+//       } else {
+//         await repostPost({ id: realPostId }).unwrap();
+//         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+//       }
+//     } catch (error: any) {
+//       console.error("Repost action failed", error);
+//     }
+//   }, [postForRepost, repostPost, deleteRepost]);
+
+//   const onQuote = useCallback(() => {
+//     if (!postForRepost) return;
+//     const isRepostItem =
+//       !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+//     const displayPost =
+//       isRepostItem && postForRepost.originalPost
+//         ? postForRepost.originalPost
+//         : postForRepost;
+
+//     router.push({
+//       pathname: "/compose/post",
+//       params: {
+//         quoteId: displayPost.id,
+//         quoteContent: displayPost.content,
+//         quoteAuthor: displayPost.author?.name || "Member",
+//       },
+//     });
+//   }, [postForRepost, router]);
+
+//   const onLike = useCallback(
+//     async (postId: string) => {
 //       try {
-//         await likePost({ postId: id }).unwrap();
-//       } catch (err) {
-//         console.error("Like failed", err);
+//         await likePost({ postId }).unwrap();
+//       } catch (error) {
+//         console.error("Like failed:", error);
 //       }
 //     },
 //     [likePost],
 //   );
 
-//   const handleBookmark = useCallback(
-//     async (id: string) => {
+//   const onBookmark = useCallback(
+//     async (postId: string) => {
 //       try {
-//         await bookmarkPost(id).unwrap();
-//       } catch (err) {
-//         console.error("Bookmark failed", err);
+//         await bookmarkPost({ postId }).unwrap();
+//         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+//       } catch (error) {
+//         console.error("Bookmark failed:", error);
 //       }
 //     },
 //     [bookmarkPost],
 //   );
 
-//   const handleRepostAction = useCallback(
-//     async (post: any) => {
-//       try {
-//         await repostPost({ id: post.id }).unwrap();
-//       } catch (err) {
-//         console.error("Repost failed", err);
-//       }
-//     },
-//     [repostPost],
-//   );
-
-//   const handlePressPost = useCallback(
-//     (id: string) => {
-//       router.push(`/post/${id}`);
-//     },
-//     [router],
-//   );
-
-//   const handlePressProfile = useCallback(
-//     (id: string) => {
-//       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//       router.push(id === currentUser?.id ? "/profile" : `/profile/${id}`);
-//     },
-//     [router, currentUser?.id],
-//   );
-
-//   const handlePressOptions = useCallback((p: any) => {
-//     setPostForOptions(p);
-//     setOptionsModalVisible(true);
-//   }, []);
+//   // FIXED: Interpolation correctly maps [0, 1, 2] to the correct percentage offsets
+//   const indicatorStyle = useAnimatedStyle(() => ({
+//     left: `${interpolate(tabProgress.value, [0, 1, 2], [0, 33.33, 66.66])}%`,
+//   }));
 
 //   const filteredUsers = useMemo(() => {
 //     return (
@@ -749,71 +935,15 @@ export default function ExploreScreen() {
 //     );
 //   }, [searchResults, currentUser]);
 
-//   const tabProgress = useSharedValue(0);
-
-//   const handleTabChange = (
-//     tab: "users" | "posts" | "hashtags",
-//     index: number,
-//   ) => {
-//     if (tab === activeTab) return;
-//     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//     setActiveTab(tab);
-//     tabProgress.value = withSpring(index * (1 / 3), {
-//       damping: 20,
-//       stiffness: 120,
-//     });
-//   };
-
-//   const indicatorStyle = useAnimatedStyle(() => ({
-//     left: `${interpolate(tabProgress.value, [0, 1], [0, 100])}%`,
-//   }));
-
-//   const renderTrendingHashtag = ({
-//     item,
-//     index,
-//   }: {
-//     item: any;
-//     index: number;
-//   }) => (
-//     <Animated.View entering={FadeInDown.delay(index * 50)}>
-//       <TouchableOpacity
-//         onPress={() => {
-//           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//           setSearch(`#${item.name}`);
-//           setActiveTab("posts");
-//           tabProgress.value = withSpring(1 / 3, { damping: 20 });
-//         }}
-//         className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A] justify-between"
-//       >
-//         <View className="flex-1 mr-4">
-//           <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
-//             Rising · #{index + 1}
-//           </Text>
-//           <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
-//             #{item.name}
-//           </Text>
-//           <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] mt-1.5 uppercase tracking-wider">
-//             {item.count} Posts
-//           </Text>
-//         </View>
-//         <TouchableOpacity className="bg-gray-100/80 dark:bg-slate-800/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50 dark:border-slate-700/50">
-//           <Ionicons name="trending-up" size={18} color="#94A3B8" />
-//         </TouchableOpacity>
-//       </TouchableOpacity>
-//     </Animated.View>
-//   );
-
 //   const renderHeroTrending = () => {
 //     if (!trendingData?.posts?.[0]) return null;
 //     const hero = trendingData.posts[0];
+
 //     return (
 //       <TouchableOpacity
 //         activeOpacity={0.9}
-//         className="mx-5 mt-4 mb-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 border border-white"
-//         onPress={() => {
-//           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-//           router.push(`/post/${hero.id}`);
-//         }}
+//         className="mx-5 mt-4 mb-8 rounded-[40px] overflow-hidden border border-white dark:border-slate-800 shadow-xl shadow-sky-100 dark:shadow-none"
+//         onPress={() => router.push(`/post/${hero.id}`)}
 //       >
 //         <Image
 //           source={{
@@ -823,197 +953,98 @@ export default function ExploreScreen() {
 //           }}
 //           className="w-full h-56 bg-sky-200"
 //           contentFit="cover"
-//           transition={500}
 //         />
 //         <BlurView
 //           intensity={95}
 //           tint={isDark ? "dark" : "light"}
-//           className="p-6 bg-white/40 dark:bg-slate-900/60 absolute bottom-0 left-0 right-0"
+//           className="p-6 absolute bottom-0 left-0 right-0"
 //         >
 //           <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">
 //             Featured Post
 //           </Text>
 //           <Text
-//             className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-7"
+//             className="text-xl font-black text-gray-900 dark:text-white leading-7"
 //             numberOfLines={2}
 //           >
 //             {hero.content}
 //           </Text>
-//           <View className="flex-row items-center mt-4">
-//             <View className="shadow-sm shadow-gray-200">
-//               <Image
-//                 source={{
-//                   uri:
-//                     hero.author?.image ||
-//                     `https://api.dicebear.com/7.x/avataaars/png?seed=${hero.author?.id}`,
-//                 }}
-//                 className="w-7 h-7 rounded-xl mr-3 bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
-//               />
-//             </View>
-//             <Text className="text-gray-500 dark:text-slate-400 font-black text-[12px] uppercase tracking-wider">
-//               @official
-//             </Text>
-//           </View>
 //         </BlurView>
 //       </TouchableOpacity>
 //     );
 //   };
 
-//   const renderDefaultView = () => (
-//     <FlatList
-//       data={trendingData?.hashtags || []}
-//       keyExtractor={(item) => item.id}
-//       showsVerticalScrollIndicator={false}
-//       ListHeaderComponent={() => (
-//         <View>
-//           <ScrollView
-//             horizontal
-//             showsHorizontalScrollIndicator={false}
-//             contentContainerStyle={{
-//               paddingHorizontal: 20,
-//               paddingVertical: 16,
-//             }}
-//           >
-//             {EXPLORE_CATEGORIES.map((cat) => (
-//               <TouchableOpacity
-//                 key={cat.id}
-//                 onPress={() => {
-//                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//                   setSelectedCategory(cat.id);
-//                 }}
-//                 className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 shadow-sm ${
-//                   selectedCategory === cat.id
-//                     ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
-//                     : "bg-gray-100/50 dark:bg-slate-800/50 border-gray-50 dark:border-slate-700"
-//                 } border shadow-gray-200 dark:shadow-none`}
-//               >
-//                 <Ionicons
-//                   name={cat.icon as any}
-//                   size={16}
-//                   color={selectedCategory === cat.id ? cat.color : "#94A3B8"}
-//                 />
-//                 <Text
-//                   className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
-//                 >
-//                   {cat.name}
-//                 </Text>
-//               </TouchableOpacity>
-//             ))}
-//           </ScrollView>
-
-//           {renderHeroTrending()}
-
-//           <View className="px-6 pb-4">
-//             <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
-//               Trending Topics
-//             </Text>
-//           </View>
-//         </View>
-//       )}
-//       renderItem={renderTrendingHashtag}
-//       ListFooterComponent={() =>
-//         trendingData?.hashtags?.length > 0 ? (
-//           <View className="p-12 items-center opacity-40">
-//             <Ionicons name="infinite" size={24} color="#94A3B8" />
-//           </View>
-//         ) : null
-//       }
-//       refreshing={isTrendingLoading}
-//       onRefresh={refetchTrending}
-//     />
-//   );
-
-//   const renderSearchContent = () => {
-//     if (isSearching)
-//       return (
-//         <View className="flex-1 items-center justify-center">
-//           <ActivityIndicator size="large" color="#0EA5E9" />
-//         </View>
-//       );
-
-//     let listData = [];
-//     if (activeTab === "users") listData = filteredUsers;
-//     else if (activeTab === "posts") listData = searchResults?.posts || [];
-//     else listData = searchResults?.hashtags || [];
+//   const renderSearchList = () => {
+//     let data: any[] = [];
+//     if (activeTab === "users") data = filteredUsers;
+//     else if (activeTab === "posts") data = searchResults?.posts || [];
+//     else if (activeTab === "hashtags") data = searchResults?.hashtags || [];
 
 //     return (
 //       <FlatList
-//         data={listData}
+//         data={data}
 //         keyExtractor={(item) => item.id}
-//         showsVerticalScrollIndicator={false}
 //         contentContainerStyle={{ paddingBottom: 100 }}
-//         renderItem={({ item }) => {
+//         showsVerticalScrollIndicator={false}
+//         ListEmptyComponent={() =>
+//           !isSearching && (
+//             <View className="flex-1 items-center justify-center mt-20 px-10">
+//               <Text className="text-gray-400 font-black uppercase text-xs tracking-widest">
+//                 No results found
+//               </Text>
+//             </View>
+//           )
+//         }
+//         ListFooterComponent={
+//           isSearching ? (
+//             <View className="py-12 items-center">
+//               <ActivityIndicator size="large" color="#0EA5E9" />
+//             </View>
+//           ) : null
+//         }
+//         renderItem={({ item, index }) => {
 //           if (activeTab === "users") {
 //             return (
-//               <TouchableOpacity
-//                 onPress={() => {
-//                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//                   router.push(`/profile/${item.id}`);
-//                 }}
-//                 className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A]"
-//               >
-//                 <Image
-//                   source={{
-//                     uri:
-//                       item.image ||
-//                       `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
-//                   }}
-//                   className="w-14 h-14 rounded-[22px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
-//                 />
-//                 <View className="ml-4 flex-1">
-//                   <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
-//                     {item.name}
-//                   </Text>
-//                   <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
-//                     @{item.username}
-//                   </Text>
-//                 </View>
-//                 <View className="bg-gray-100 dark:bg-slate-800 w-10 h-10 rounded-2xl items-center justify-center">
-//                   <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-//                 </View>
-//               </TouchableOpacity>
+//               <UserSearchItem
+//                 item={item}
+//                 onPress={(id: string) => router.push(`/profile/${id}`)}
+//               />
 //             );
 //           }
+
 //           if (activeTab === "hashtags") {
-//             return renderTrendingHashtag({ item, index: 0 });
+//             return (
+//               <TrendingHashtagItem
+//                 item={item}
+//                 index={index}
+//                 onPress={handleHashtagPress}
+//               />
+//             );
 //           }
+
+//           // Posts Tab
 //           return (
-//             <View className="px-3">
+//             <View className="px-3 pt-3">
 //               <PostCard
 //                 item={item}
 //                 user={currentUser}
-//                 onPressPost={handlePressPost}
-//                 onPressProfile={handlePressProfile}
+//                 onPressPost={onPressPost}
+//                 onPressProfile={onPressProfile}
 //                 onPressOptions={handlePressOptions}
-//                 onPressComment={handlePressPost}
-//                 onPressRepost={handleRepostAction}
-//                 onLike={handleLike}
-//                 onBookmark={handleBookmark}
+//                 onPressComment={onPressComment}
+//                 onPressRepost={onPressRepost}
+//                 onLike={onLike}
+//                 onBookmark={onBookmark}
 //               />
 //             </View>
 //           );
 //         }}
-//         ListEmptyComponent={() => (
-//           <View className="flex-1 items-center justify-center mt-20 px-10">
-//             <View className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-[40px] items-center justify-center mb-6">
-//               <Ionicons name="search" size={32} color="#CBD5E1" />
-//             </View>
-//             <Text className="text-gray-400 dark:text-slate-500 font-black uppercase text-xs tracking-widest text-center">
-//               No results found for &quot;{search}&quot;
-//             </Text>
-//           </View>
-//         )}
-//         initialNumToRender={10}
-//         maxToRenderPerBatch={10}
-//         windowSize={5}
-//         removeClippedSubviews={Platform.OS === "android"}
 //       />
 //     );
 //   };
 
 //   return (
 //     <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
-//       {/* Search Header - Sticky Blur */}
+//       {/* Search Header */}
 //       <BlurView
 //         intensity={90}
 //         tint={isDark ? "dark" : "light"}
@@ -1021,38 +1052,27 @@ export default function ExploreScreen() {
 //         style={{ paddingTop: insets.top + 10 }}
 //       >
 //         <View className="px-5 pb-4">
-//           <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] px-5 py-3 border border-gray-100 dark:border-slate-700 shadow-sm shadow-gray-100/50 dark:shadow-none">
+//           <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] px-5 py-3 border border-gray-100 dark:border-slate-700 shadow-sm">
 //             <Ionicons name="search" size={20} color="#94A3B8" />
 //             <TextInput
-//               placeholder="Search Posts..."
+//               placeholder="Search people, posts, hashtags..."
 //               placeholderTextColor="#CBD5E1"
-//               className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-medium"
+//               className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-bold"
 //               value={search}
-//               onChangeText={(text) => {
-//                 setSearch(text);
-//                 if (text.length >= 2) {
-//                   // Optionally trigger vibration on typing results
-//                 }
-//               }}
+//               onChangeText={setSearch}
 //               autoCapitalize="none"
 //               autoCorrect={false}
 //             />
 //             {search.length > 0 && (
-//               <TouchableOpacity
-//                 onPress={() => {
-//                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//                   setSearch("");
-//                 }}
-//               >
+//               <TouchableOpacity onPress={() => setSearch("")}>
 //                 <Ionicons name="close-circle" size={20} color="#CBD5E1" />
 //               </TouchableOpacity>
 //             )}
 //           </View>
 //         </View>
 
-//         {/* Tab System for Results */}
 //         {search.length >= 2 && (
-//           <View className="flex-row bg-white/20 h-14 relative px-2">
+//           <View className="flex-row h-14 relative px-2">
 //             {["users", "posts", "hashtags"].map((tab, index) => (
 //               <TouchableOpacity
 //                 key={tab}
@@ -1060,7 +1080,11 @@ export default function ExploreScreen() {
 //                 onPress={() => handleTabChange(tab as any, index)}
 //               >
 //                 <Text
-//                   className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
+//                   className={`font-black uppercase text-[10px] tracking-widest ${
+//                     activeTab === tab
+//                       ? "text-gray-900 dark:text-white"
+//                       : "text-gray-400 dark:text-slate-500"
+//                   }`}
 //                 >
 //                   {tab}
 //                 </Text>
@@ -1074,7 +1098,6 @@ export default function ExploreScreen() {
 //                   width: "33.33%",
 //                   height: 3,
 //                   backgroundColor: "#0EA5E9",
-//                   borderRadius: 3,
 //                 },
 //                 indicatorStyle,
 //               ]}
@@ -1083,44 +1106,1232 @@ export default function ExploreScreen() {
 //         )}
 //       </BlurView>
 
-//       {/* Main Content Area */}
+//       {/* Main Content */}
 //       <View className="flex-1">
-//         {search.length < 2 ? renderDefaultView() : renderSearchContent()}
+//         {search.length < 2 ? (
+//           <FlatList
+//             data={trendingData?.hashtags || []}
+//             keyExtractor={(item) => item.id}
+//             showsVerticalScrollIndicator={false}
+//             refreshControl={
+//               <RefreshControl
+//                 refreshing={isTrendingFetching}
+//                 onRefresh={refetchTrending}
+//                 tintColor="#0EA5E9"
+//               />
+//             }
+//             ListHeaderComponent={() => (
+//               <View>
+//                 <ScrollView
+//                   horizontal
+//                   showsHorizontalScrollIndicator={false}
+//                   contentContainerStyle={{
+//                     paddingHorizontal: 10,
+//                     paddingVertical: 10,
+//                   }}
+//                 >
+//                   {/* {EXPLORE_CATEGORIES.map((cat) => (
+//                     <TouchableOpacity
+//                       key={cat.id}
+//                       onPress={() => setSelectedCategory(cat.id)}
+//                       className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 border ${
+//                         selectedCategory === cat.id
+//                           ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
+//                           : "bg-gray-100/50 dark:bg-slate-800/50 border-transparent"
+//                       }`}
+//                     >
+//                       <Ionicons
+//                         name={cat.icon as any}
+//                         size={16}
+//                         color={
+//                           selectedCategory === cat.id ? cat.color : "#94A3B8"
+//                         }
+//                       />
+//                       <Text
+//                         className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
+//                       >
+//                         {cat.name}
+//                       </Text>
+//                     </TouchableOpacity>
+//                   ))} */}
+//                 </ScrollView>
+//                 {renderHeroTrending()}
+//                 <View className="px-6 pb-4">
+//                   <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
+//                     Trending Topics
+//                   </Text>
+//                 </View>
+//               </View>
+//             )}
+//             renderItem={({ item, index }) => (
+//               <TrendingHashtagItem
+//                 item={item}
+//                 index={index}
+//                 onPress={handleHashtagPress}
+//                 totalMax={Math.max(
+//                   ...(trendingData?.hashtags || []).map(
+//                     (h: any) => h.count || 0,
+//                   ),
+//                   1,
+//                 )}
+//               />
+//             )}
+//           />
+//         ) : (
+//           renderSearchList()
+//         )}
 //       </View>
 
-//       <TouchableOpacity
-//         activeOpacity={0.9}
-//         onPress={() => {
-//           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-//           router.push("/compose/post");
-//         }}
-//         style={{
-//           shadowColor: "#0EA5E9",
-//           shadowOffset: { width: 0, height: 10 },
-//           shadowOpacity: 0.3,
-//           shadowRadius: 15,
-//           elevation: 10,
-//         }}
-//         className="absolute bottom-28 right-6 bg-sky-500 w-16 h-16 rounded-[24px] items-center justify-center border-2 border-white/20"
-//       >
-//         <Ionicons name="add" size={32} color="white" />
-//       </TouchableOpacity>
-
+//       {/* Post Options Modal */}
 //       <PostOptionsModal
 //         isVisible={optionsModalVisible}
 //         onClose={() => setOptionsModalVisible(false)}
 //         isOwner={postForOptions?.author?.id === currentUser?.id}
 //         onDelete={async () => {
-//           if (!postForOptions?.id) return;
 //           try {
-//             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 //             await deletePost({ id: postForOptions.id }).unwrap();
-//             setOptionsModalVisible(false);
 //           } catch (err) {
-//             console.error("Delete failed", err);
+//             console.error("Delete failed:", err);
 //           }
+//           setOptionsModalVisible(false);
 //         }}
+//       />
+
+//       <RepostModal
+//         isVisible={repostModalVisible}
+//         onClose={() => setRepostModalVisible(false)}
+//         onRepost={onDirectRepost}
+//         onQuote={onQuote}
+//         hasReposted={!!postForRepost?.repostedByMe}
 //       />
 //     </View>
 //   );
 // }
+
+// // original code
+// // import React, { useState, useCallback, useMemo, useEffect } from "react";
+// // import {
+// //   View,
+// //   TextInput,
+// //   FlatList,
+// //   Text,
+// //   TouchableOpacity,
+// //   ActivityIndicator,
+// //   ScrollView,
+// //   RefreshControl,
+// //   Alert,
+// // } from "react-native";
+// // import { Ionicons } from "@expo/vector-icons";
+// // import { useRouter, useLocalSearchParams } from "expo-router";
+// // import {
+// //   useGlobalSearchQuery,
+// //   useGetTrendingQuery,
+// // } from "../../store/searchApi";
+// // import { useTheme } from "../../context/ThemeContext";
+// // import { useSelector } from "react-redux";
+// // import { useSafeAreaInsets } from "react-native-safe-area-context";
+// // import { useFocusEffect } from "@react-navigation/native";
+// // import { BlurView } from "expo-blur";
+// // import { Image } from "expo-image";
+// // import * as Haptics from "expo-haptics";
+// // import PostCard from "../../components/PostCard";
+// // import PostOptionsModal from "../../components/PostOptionsModal";
+// // import RepostModal from "../../components/RepostModal";
+// // import {
+// //   useLikePostMutation,
+// //   useRepostPostMutation,
+// //   useBookmarkPostMutation,
+// //   useDeletePostMutation,
+// //   useDeleteRepostMutation,
+// // } from "../../store/postApi";
+// // import Animated, {
+// //   FadeInDown,
+// //   useSharedValue,
+// //   useAnimatedStyle,
+// //   withSpring,
+// //   interpolate,
+// // } from "react-native-reanimated";
+
+// // // const EXPLORE_CATEGORIES = [
+// // //   { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
+// // //   { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
+// // //   { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
+// // //   { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
+// // //   { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
+// // // ];
+
+// // /* Memoized List Items */
+// // const RANK_COLORS = ["#F59E0B", "#94A3B8", "#CD7F32"] as const;
+
+// // const TrendingHashtagItem = React.memo(function TrendingHashtagItem({
+// //   item,
+// //   index,
+// //   onPress,
+// //   totalMax,
+// // }: any) {
+// //   const rank = index + 1;
+// //   const isTopThree = rank <= 3;
+// //   const barPercent = totalMax > 0 ? Math.max((item.count / totalMax) * 100, 8) : 8;
+
+// //   return (
+// //     <Animated.View entering={FadeInDown.delay(index * 50)}>
+// //       <TouchableOpacity
+// //         onPress={() => onPress(item.name)}
+// //         className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] justify-between active:opacity-80"
+// //       >
+// //         {/* Rank Badge */}
+// //         <View
+// //           className={`w-8 h-8 rounded-xl items-center justify-center mr-4 ${
+// //             isTopThree ? "" : "bg-gray-100/80 dark:bg-slate-800/80"
+// //           }`}
+// //           style={isTopThree ? { backgroundColor: `${RANK_COLORS[index]}20` } : {}}
+// //         >
+// //           <Text
+// //             className={`text-[13px] font-black ${
+// //               isTopThree ? "" : "text-gray-400 dark:text-slate-500"
+// //             }`}
+// //             style={isTopThree ? { color: RANK_COLORS[index] } : {}}
+// //           >
+// //             {rank}
+// //           </Text>
+// //         </View>
+
+// //         <View className="flex-1 mr-4">
+// //           <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
+// //             {isTopThree ? "🔥 Hot" : "Rising"} · #{rank}
+// //           </Text>
+// //           <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
+// //             #{item.name}
+// //           </Text>
+// //           <View className="flex-row items-center mt-2">
+// //             <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider mr-3">
+// //               {item.count} Posts
+// //             </Text>
+// //             {/* Volume bar */}
+// //             <View className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+// //               <View
+// //                 className="h-full rounded-full"
+// //                 style={{
+// //                   width: `${barPercent}%`,
+// //                   backgroundColor: isTopThree ? RANK_COLORS[index] || "#0EA5E9" : "#0EA5E9",
+// //                   opacity: isTopThree ? 1 : 0.4,
+// //                 }}
+// //               />
+// //             </View>
+// //           </View>
+// //         </View>
+
+// //         <View
+// //           className={`w-10 h-10 rounded-2xl items-center justify-center border ${
+// //             isTopThree
+// //               ? "border-amber-200/50 dark:border-amber-500/20"
+// //               : "border-gray-200/50 dark:border-slate-700/50"
+// //           }`}
+// //           style={isTopThree ? { backgroundColor: `${RANK_COLORS[index]}10` } : { backgroundColor: "rgba(148,163,184,0.08)" }}
+// //         >
+// //           <Ionicons
+// //             name={isTopThree ? "flame" : "trending-up"}
+// //             size={18}
+// //             color={isTopThree ? RANK_COLORS[index] : "#94A3B8"}
+// //           />
+// //         </View>
+// //       </TouchableOpacity>
+// //     </Animated.View>
+// //   );
+// // });
+
+// // const UserSearchItem = React.memo(function UserSearchItem({
+// //   item,
+// //   onPress,
+// // }: any) {
+// //   return (
+// //     <TouchableOpacity
+// //       onPress={() => onPress(item.id)}
+// //       className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-white dark:bg-[#0F172A] active:opacity-80"
+// //     >
+// //       <Image
+// //         source={{
+// //           uri:
+// //             item.image ||
+// //             `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
+// //         }}
+// //         className="w-14 h-14 rounded-[22px] bg-gray-100 dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
+// //       />
+// //       <View className="ml-4 flex-1">
+// //         <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
+// //           {item.name}
+// //         </Text>
+// //         <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
+// //           @{item.username}
+// //         </Text>
+// //       </View>
+// //       <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+// //     </TouchableOpacity>
+// //   );
+// // });
+
+// // export default function ExploreScreen() {
+// //   const router = useRouter();
+// //   const insets = useSafeAreaInsets();
+// //   const { isDark } = useTheme();
+// //   const { q } = useLocalSearchParams<{ q?: string }>();
+
+// //   const [search, setSearch] = useState(q || "");
+// //   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
+// //     "users",
+// //   );
+// //   // const [selectedCategory, setSelectedCategory] = useState("1");
+// //   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+// //   const [repostModalVisible, setRepostModalVisible] = useState(false);
+// //   const [postForOptions, setPostForOptions] = useState<any>(null);
+// //   const [postForRepost, setPostForRepost] = useState<any>(null);
+
+// //   const currentUser = useSelector((state: any) => state.auth.user);
+// //   const tabProgress = useSharedValue(0);
+
+// //   // Sync deep link search param
+// //   useEffect(() => {
+// //     if (q && typeof q === "string" && q !== search) {
+// //       setSearch(q);
+// //       if (q.length >= 2) setActiveTab("users");
+// //     }
+// //   }, [search, q]);
+
+// //   // API Queries
+// //   const { data: searchResults, isFetching: isSearching } = useGlobalSearchQuery(
+// //     search,
+// //     { skip: search.length < 2 },
+// //   );
+
+// //   const {
+// //     data: trendingData,
+// //     isFetching: isTrendingFetching,
+// //     refetch: refetchTrending,
+// //   } = useGetTrendingQuery();
+
+// //   // Mutations
+// //   const [likePost] = useLikePostMutation();
+// //   const [repostPost] = useRepostPostMutation();
+// //   const [deleteRepost] = useDeleteRepostMutation();
+// //   const [bookmarkPost] = useBookmarkPostMutation();
+// //   const [deletePost] = useDeletePostMutation();
+
+// //   // Refetch on focus
+// //   useFocusEffect(
+// //     useCallback(() => {
+// //       refetchTrending();
+// //     }, [refetchTrending]),
+// //   );
+
+// //   // ==================== HANDLERS ====================
+// //   const handleHashtagPress = useCallback(
+// //     (name: string) => {
+// //       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// //       setSearch(`#${name}`);
+// //       setActiveTab("posts");
+// //       tabProgress.value = withSpring(1 / 3, { damping: 20 });
+// //     },
+// //     [tabProgress],
+// //   );
+
+// //   const handleTabChange = useCallback(
+// //     (tab: "users" | "posts" | "hashtags", index: number) => {
+// //       if (tab === activeTab) return;
+// //       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// //       setActiveTab(tab);
+// //       tabProgress.value = withSpring(index * (1 / 3), {
+// //         damping: 20,
+// //         stiffness: 120,
+// //       });
+// //     },
+// //     [activeTab, tabProgress],
+// //   );
+
+// //   const handlePressOptions = useCallback((post: any) => {
+// //     setPostForOptions(post);
+// //     setOptionsModalVisible(true);
+// //   }, []);
+
+// //   const onPressPost = useCallback(
+// //     (id: string) => router.push(`/post/${id}`),
+// //     [router],
+// //   );
+
+// //   const onPressProfile = useCallback(
+// //     (userId: string) => router.push(`/profile/${userId}`),
+// //     [router],
+// //   );
+
+// //   const onPressComment = useCallback(
+// //     (postId: string) => router.push(`/post/${postId}?comment=true`),
+// //     [router],
+// //   );
+
+// //   const onPressRepost = useCallback((post: any) => {
+// //     setPostForRepost(post);
+// //     setRepostModalVisible(true);
+// //   }, []);
+
+// //   const onDirectRepost = useCallback(async () => {
+// //     if (!postForRepost) return;
+// //     const isRepostItem =
+// //       !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+// //     const realPostId =
+// //       isRepostItem && postForRepost.originalPost
+// //         ? postForRepost.originalPost.id
+// //         : postForRepost.id;
+
+// //     try {
+// //       if (postForRepost.repostedByMe) {
+// //         await deleteRepost({ id: realPostId }).unwrap();
+// //         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+// //       } else {
+// //         await repostPost({ id: realPostId }).unwrap();
+// //         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+// //       }
+// //     } catch (error: any) {
+// //       console.error("Repost action failed", error);
+// //     }
+// //   }, [postForRepost, repostPost, deleteRepost]);
+
+// //   const onQuote = useCallback(() => {
+// //     if (!postForRepost) return;
+// //     const isRepostItem =
+// //       !!postForRepost.isRepost || !!postForRepost.repostedByMe;
+// //     const displayPost =
+// //       isRepostItem && postForRepost.originalPost
+// //         ? postForRepost.originalPost
+// //         : postForRepost;
+
+// //     router.push({
+// //       pathname: "/compose/post",
+// //       params: {
+// //         quoteId: displayPost.id,
+// //         quoteContent: displayPost.content,
+// //         quoteAuthor: displayPost.author?.name || "Member",
+// //       },
+// //     });
+// //   }, [postForRepost, router]);
+
+// //   const onLike = useCallback(
+// //     async (postId: string) => {
+// //       try {
+// //         await likePost({ postId }).unwrap();
+// //       } catch (error) {
+// //         console.error("Like failed:", error);
+// //       }
+// //     },
+// //     [likePost],
+// //   );
+
+// //   const onBookmark = useCallback(
+// //     async (postId: string) => {
+// //       try {
+// //         await bookmarkPost({ postId }).unwrap();
+// //         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// //       } catch (error) {
+// //         console.error("Bookmark failed:", error);
+// //       }
+// //     },
+// //     [bookmarkPost],
+// //   );
+
+// //   const indicatorStyle = useAnimatedStyle(() => ({
+// //     left: `${interpolate(tabProgress.value, [0, 1], [0, 66.67])}%`,
+// //   }));
+
+// //   const filteredUsers = useMemo(() => {
+// //     return (
+// //       searchResults?.users?.filter(
+// //         (user: any) => user.id !== currentUser?.id,
+// //       ) || []
+// //     );
+// //   }, [searchResults, currentUser]);
+
+// //   const renderHeroTrending = () => {
+// //     if (!trendingData?.posts?.[0]) return null;
+// //     const hero = trendingData.posts[0];
+
+// //     return (
+// //       <TouchableOpacity
+// //         activeOpacity={0.9}
+// //         className="mx-5 mt-4 mb-8 rounded-[40px] overflow-hidden border border-white dark:border-slate-800 shadow-xl shadow-sky-100 dark:shadow-none"
+// //         onPress={() => router.push(`/post/${hero.id}`)}
+// //       >
+// //         <Image
+// //           source={{
+// //             uri:
+// //               hero.image ||
+// //               `https://api.dicebear.com/7.x/shapes/png?seed=${hero.id}`,
+// //           }}
+// //           className="w-full h-56 bg-sky-200"
+// //           contentFit="cover"
+// //         />
+// //         <BlurView
+// //           intensity={95}
+// //           tint={isDark ? "dark" : "light"}
+// //           className="p-6 absolute bottom-0 left-0 right-0"
+// //         >
+// //           <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">
+// //             Featured Post
+// //           </Text>
+// //           <Text
+// //             className="text-xl font-black text-gray-900 dark:text-white leading-7"
+// //             numberOfLines={2}
+// //           >
+// //             {hero.content}
+// //           </Text>
+// //         </BlurView>
+// //       </TouchableOpacity>
+// //     );
+// //   };
+
+// //   const renderSearchList = () => {
+// //     let data: any[] = [];
+// //     if (activeTab === "users") data = filteredUsers;
+// //     else if (activeTab === "posts") data = searchResults?.posts || [];
+// //     else if (activeTab === "hashtags") data = searchResults?.hashtags || [];
+
+// //     return (
+// //       <FlatList
+// //         data={data}
+// //         keyExtractor={(item) => item.id}
+// //         contentContainerStyle={{ paddingBottom: 100 }}
+// //         showsVerticalScrollIndicator={false}
+// //         ListEmptyComponent={() =>
+// //           !isSearching && (
+// //             <View className="flex-1 items-center justify-center mt-20 px-10">
+// //               <Text className="text-gray-400 font-black uppercase text-xs tracking-widest">
+// //                 No results found
+// //               </Text>
+// //             </View>
+// //           )
+// //         }
+// //         ListFooterComponent={
+// //           isSearching ? (
+// //             <View className="py-12 items-center">
+// //               <ActivityIndicator size="large" color="#0EA5E9" />
+// //             </View>
+// //           ) : null
+// //         }
+// //         renderItem={({ item, index }) => {
+// //           if (activeTab === "users") {
+// //             return (
+// //               <UserSearchItem
+// //                 item={item}
+// //                 onPress={(id: string) => router.push(`/profile/${id}`)}
+// //               />
+// //             );
+// //           }
+
+// //           if (activeTab === "hashtags") {
+// //             return (
+// //               <TrendingHashtagItem
+// //                 item={item}
+// //                 index={index}
+// //                 onPress={handleHashtagPress}
+// //               />
+// //             );
+// //           }
+
+// //           // Posts Tab
+// //           return (
+// //             <View className="px-3 pt-3">
+// //               <PostCard
+// //                 item={item}
+// //                 user={currentUser}
+// //                 onPressPost={onPressPost}
+// //                 onPressProfile={onPressProfile}
+// //                 onPressOptions={handlePressOptions}
+// //                 onPressComment={onPressComment}
+// //                 onPressRepost={onPressRepost}
+// //                 onLike={onLike}
+// //                 onBookmark={onBookmark}
+// //               />
+// //             </View>
+// //           );
+// //         }}
+// //       />
+// //     );
+// //   };
+
+// //   return (
+// //     <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
+// //       {/* Search Header */}
+// //       <BlurView
+// //         intensity={90}
+// //         tint={isDark ? "dark" : "light"}
+// //         className="z-50 border-b border-gray-100/50 dark:border-slate-800/50"
+// //         style={{ paddingTop: insets.top + 10 }}
+// //       >
+// //         <View className="px-5 pb-4">
+// //           <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] px-5 py-3 border border-gray-100 dark:border-slate-700 shadow-sm">
+// //             <Ionicons name="search" size={20} color="#94A3B8" />
+// //             <TextInput
+// //               placeholder="Search people, posts, hashtags..."
+// //               placeholderTextColor="#CBD5E1"
+// //               className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-bold"
+// //               value={search}
+// //               onChangeText={setSearch}
+// //               autoCapitalize="none"
+// //               autoCorrect={false}
+// //             />
+// //             {search.length > 0 && (
+// //               <TouchableOpacity onPress={() => setSearch("")}>
+// //                 <Ionicons name="close-circle" size={20} color="#CBD5E1" />
+// //               </TouchableOpacity>
+// //             )}
+// //           </View>
+// //         </View>
+
+// //         {search.length >= 2 && (
+// //           <View className="flex-row h-14 relative px-2">
+// //             {["users", "posts", "hashtags"].map((tab, index) => (
+// //               <TouchableOpacity
+// //                 key={tab}
+// //                 className="flex-1 items-center justify-center"
+// //                 onPress={() => handleTabChange(tab as any, index)}
+// //               >
+// //                 <Text
+// //                   className={`font-black uppercase text-[10px] tracking-widest ${
+// //                     activeTab === tab
+// //                       ? "text-gray-900 dark:text-white"
+// //                       : "text-gray-400 dark:text-slate-500"
+// //                   }`}
+// //                 >
+// //                   {tab}
+// //                 </Text>
+// //               </TouchableOpacity>
+// //             ))}
+// //             <Animated.View
+// //               style={[
+// //                 {
+// //                   position: "absolute",
+// //                   bottom: 0,
+// //                   width: "33.33%",
+// //                   height: 3,
+// //                   backgroundColor: "#0EA5E9",
+// //                 },
+// //                 indicatorStyle,
+// //               ]}
+// //             />
+// //           </View>
+// //         )}
+// //       </BlurView>
+
+// //       {/* Main Content */}
+// //       <View className="flex-1">
+// //         {search.length < 2 ? (
+// //           <FlatList
+// //             data={trendingData?.hashtags || []}
+// //             keyExtractor={(item) => item.id}
+// //             showsVerticalScrollIndicator={false}
+// //             refreshControl={
+// //               <RefreshControl
+// //                 refreshing={isTrendingFetching}
+// //                 onRefresh={refetchTrending}
+// //                 tintColor="#0EA5E9"
+// //               />
+// //             }
+// //             ListHeaderComponent={() => (
+// //               <View>
+// //                 <ScrollView
+// //                   horizontal
+// //                   showsHorizontalScrollIndicator={false}
+// //                   contentContainerStyle={{
+// //                     paddingHorizontal: 10,
+// //                     paddingVertical: 10,
+// //                   }}
+// //                 >
+// //                   {/* {EXPLORE_CATEGORIES.map((cat) => (
+// //                     <TouchableOpacity
+// //                       key={cat.id}
+// //                       onPress={() => setSelectedCategory(cat.id)}
+// //                       className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 border ${
+// //                         selectedCategory === cat.id
+// //                           ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
+// //                           : "bg-gray-100/50 dark:bg-slate-800/50 border-transparent"
+// //                       }`}
+// //                     >
+// //                       <Ionicons
+// //                         name={cat.icon as any}
+// //                         size={16}
+// //                         color={
+// //                           selectedCategory === cat.id ? cat.color : "#94A3B8"
+// //                         }
+// //                       />
+// //                       <Text
+// //                         className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
+// //                       >
+// //                         {cat.name}
+// //                       </Text>
+// //                     </TouchableOpacity>
+// //                   ))} */}
+// //                 </ScrollView>
+// //                 {renderHeroTrending()}
+// //                 <View className="px-6 pb-4">
+// //                   <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
+// //                     Trending Topics
+// //                   </Text>
+// //                 </View>
+// //               </View>
+// //             )}
+// //             renderItem={({ item, index }) => (
+// //               <TrendingHashtagItem
+// //                 item={item}
+// //                 index={index}
+// //                 onPress={handleHashtagPress}
+// //                 totalMax={Math.max(...(trendingData?.hashtags || []).map((h: any) => h.count || 0), 1)}
+// //               />
+// //             )}
+// //           />
+// //         ) : (
+// //           renderSearchList()
+// //         )}
+// //       </View>
+
+// //       {/* Post Options Modal */}
+// //       <PostOptionsModal
+// //         isVisible={optionsModalVisible}
+// //         onClose={() => setOptionsModalVisible(false)}
+// //         isOwner={postForOptions?.author?.id === currentUser?.id}
+// //         onDelete={async () => {
+// //           try {
+// //             await deletePost({ id: postForOptions.id }).unwrap();
+// //           } catch (err) {
+// //             console.error("Delete failed:", err);
+// //           }
+// //           setOptionsModalVisible(false);
+// //         }}
+// //       />
+
+// //       <RepostModal
+// //         isVisible={repostModalVisible}
+// //         onClose={() => setRepostModalVisible(false)}
+// //         onRepost={onDirectRepost}
+// //         onQuote={onQuote}
+// //         hasReposted={!!postForRepost?.repostedByMe}
+// //       />
+// //     </View>
+// //   );
+// // }
+// // // import React, { useState, useCallback, useMemo } from "react";
+// // // import {
+// // //   View,
+// // //   TextInput,
+// // //   FlatList,
+// // //   Text,
+// // //   TouchableOpacity,
+// // //   ActivityIndicator,
+// // //   // Dimensions,
+// // //   ScrollView,
+// // //   Platform,
+// // // } from "react-native";
+// // // import { Ionicons } from "@expo/vector-icons";
+// // // import { useRouter, useLocalSearchParams } from "expo-router";
+// // // import {
+// // //   useGlobalSearchQuery,
+// // //   useGetTrendingQuery,
+// // // } from "../../store/searchApi";
+// // // import { useTheme } from "../../context/ThemeContext";
+// // // import { useSelector } from "react-redux";
+// // // import { useSafeAreaInsets } from "react-native-safe-area-context";
+// // // import { BlurView } from "expo-blur";
+// // // import { Image } from "expo-image";
+// // // import * as Haptics from "expo-haptics";
+// // // import PostCard from "../../components/PostCard";
+// // // import PostOptionsModal from "../../components/PostOptionsModal";
+// // // import {
+// // //   useLikePostMutation,
+// // //   useRepostPostMutation,
+// // //   useBookmarkPostMutation,
+// // //   useDeletePostMutation,
+// // // } from "../../store/postApi";
+// // // import Animated, {
+// // //   FadeInDown,
+// // //   useSharedValue,
+// // //   useAnimatedStyle,
+// // //   withSpring,
+// // //   interpolate,
+// // // } from "react-native-reanimated";
+
+// // // // const { width } = Dimensions.get("window");
+
+// // // const EXPLORE_CATEGORIES = [
+// // //   { id: "1", name: "Trending", icon: "flame", color: "#F59E0B" },
+// // //   { id: "2", name: "Mindful", icon: "leaf", color: "#10B981" },
+// // //   { id: "3", name: "Tech", icon: "hardware-chip", color: "#6366F1" },
+// // //   { id: "4", name: "Art", icon: "color-palette", color: "#EC4899" },
+// // //   { id: "5", name: "Gaming", icon: "game-controller", color: "#8B5CF6" },
+// // // ];
+
+// // // export default function ExploreScreen() {
+// // //   const router = useRouter();
+// // //   const insets = useSafeAreaInsets();
+// // //   const { isDark } = useTheme();
+// // //   const { q } = useLocalSearchParams<{ q?: string }>();
+// // //   const [search, setSearch] = useState(q || "");
+// // //   const [activeTab, setActiveTab] = useState<"users" | "posts" | "hashtags">(
+// // //     "users",
+// // //   );
+// // //   const [selectedCategory, setSelectedCategory] = useState("1");
+
+// // //   const { data: searchResults, isLoading: isSearching } = useGlobalSearchQuery(
+// // //     search,
+// // //     {
+// // //       skip: search.length < 2,
+// // //     },
+// // //   );
+
+// // //   const {
+// // //     data: trendingData,
+// // //     isLoading: isTrendingLoading,
+// // //     refetch: refetchTrending,
+// // //   } = useGetTrendingQuery();
+
+// // //   const [likePost] = useLikePostMutation();
+// // //   const [repostPost] = useRepostPostMutation();
+// // //   const [bookmarkPost] = useBookmarkPostMutation();
+// // //   const [deletePost] = useDeletePostMutation();
+
+// // //   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+// // //   const [postForOptions, setPostForOptions] = useState<any>(null);
+
+// // //   const currentUser = useSelector((state: any) => state.auth.user);
+
+// // //   const handleLike = useCallback(
+// // //     async (id: string) => {
+// // //       try {
+// // //         await likePost({ postId: id }).unwrap();
+// // //       } catch (err) {
+// // //         console.error("Like failed", err);
+// // //       }
+// // //     },
+// // //     [likePost],
+// // //   );
+
+// // //   const handleBookmark = useCallback(
+// // //     async (id: string) => {
+// // //       try {
+// // //         await bookmarkPost(id).unwrap();
+// // //       } catch (err) {
+// // //         console.error("Bookmark failed", err);
+// // //       }
+// // //     },
+// // //     [bookmarkPost],
+// // //   );
+
+// // //   const handleRepostAction = useCallback(
+// // //     async (post: any) => {
+// // //       try {
+// // //         await repostPost({ id: post.id }).unwrap();
+// // //       } catch (err) {
+// // //         console.error("Repost failed", err);
+// // //       }
+// // //     },
+// // //     [repostPost],
+// // //   );
+
+// // //   const handlePressPost = useCallback(
+// // //     (id: string) => {
+// // //       router.push(`/post/${id}`);
+// // //     },
+// // //     [router],
+// // //   );
+
+// // //   const handlePressProfile = useCallback(
+// // //     (id: string) => {
+// // //       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// // //       router.push(id === currentUser?.id ? "/profile" : `/profile/${id}`);
+// // //     },
+// // //     [router, currentUser?.id],
+// // //   );
+
+// // //   const handlePressOptions = useCallback((p: any) => {
+// // //     setPostForOptions(p);
+// // //     setOptionsModalVisible(true);
+// // //   }, []);
+
+// // //   const filteredUsers = useMemo(() => {
+// // //     return (
+// // //       searchResults?.users?.filter(
+// // //         (user: any) => user.id !== currentUser?.id,
+// // //       ) || []
+// // //     );
+// // //   }, [searchResults, currentUser]);
+
+// // //   const tabProgress = useSharedValue(0);
+
+// // //   const handleTabChange = (
+// // //     tab: "users" | "posts" | "hashtags",
+// // //     index: number,
+// // //   ) => {
+// // //     if (tab === activeTab) return;
+// // //     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// // //     setActiveTab(tab);
+// // //     tabProgress.value = withSpring(index * (1 / 3), {
+// // //       damping: 20,
+// // //       stiffness: 120,
+// // //     });
+// // //   };
+
+// // //   const indicatorStyle = useAnimatedStyle(() => ({
+// // //     left: `${interpolate(tabProgress.value, [0, 1], [0, 100])}%`,
+// // //   }));
+
+// // //   const renderTrendingHashtag = ({
+// // //     item,
+// // //     index,
+// // //   }: {
+// // //     item: any;
+// // //     index: number;
+// // //   }) => (
+// // //     <Animated.View entering={FadeInDown.delay(index * 50)}>
+// // //       <TouchableOpacity
+// // //         onPress={() => {
+// // //           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// // //           setSearch(`#${item.name}`);
+// // //           setActiveTab("posts");
+// // //           tabProgress.value = withSpring(1 / 3, { damping: 20 });
+// // //         }}
+// // //         className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A] justify-between"
+// // //       >
+// // //         <View className="flex-1 mr-4">
+// // //           <Text className="text-gray-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1.5">
+// // //             Rising · #{index + 1}
+// // //           </Text>
+// // //           <Text className="font-black text-[18px] text-gray-900 dark:text-white tracking-tight">
+// // //             #{item.name}
+// // //           </Text>
+// // //           <Text className="text-gray-500 dark:text-slate-400 font-bold text-[11px] mt-1.5 uppercase tracking-wider">
+// // //             {item.count} Posts
+// // //           </Text>
+// // //         </View>
+// // //         <TouchableOpacity className="bg-gray-100/80 dark:bg-slate-800/80 w-10 h-10 rounded-2xl items-center justify-center border border-gray-200/50 dark:border-slate-700/50">
+// // //           <Ionicons name="trending-up" size={18} color="#94A3B8" />
+// // //         </TouchableOpacity>
+// // //       </TouchableOpacity>
+// // //     </Animated.View>
+// // //   );
+
+// // //   const renderHeroTrending = () => {
+// // //     if (!trendingData?.posts?.[0]) return null;
+// // //     const hero = trendingData.posts[0];
+// // //     return (
+// // //       <TouchableOpacity
+// // //         activeOpacity={0.9}
+// // //         className="mx-5 mt-4 mb-8 rounded-[40px] overflow-hidden shadow-xl shadow-sky-100 border border-white"
+// // //         onPress={() => {
+// // //           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+// // //           router.push(`/post/${hero.id}`);
+// // //         }}
+// // //       >
+// // //         <Image
+// // //           source={{
+// // //             uri:
+// // //               hero.image ||
+// // //               `https://api.dicebear.com/7.x/shapes/png?seed=${hero.id}`,
+// // //           }}
+// // //           className="w-full h-56 bg-sky-200"
+// // //           contentFit="cover"
+// // //           transition={500}
+// // //         />
+// // //         <BlurView
+// // //           intensity={95}
+// // //           tint={isDark ? "dark" : "light"}
+// // //           className="p-6 bg-white/40 dark:bg-slate-900/60 absolute bottom-0 left-0 right-0"
+// // //         >
+// // //           <Text className="text-[10px] font-black text-sky-600 uppercase tracking-[3px] mb-2">
+// // //             Featured Post
+// // //           </Text>
+// // //           <Text
+// // //             className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-7"
+// // //             numberOfLines={2}
+// // //           >
+// // //             {hero.content}
+// // //           </Text>
+// // //           <View className="flex-row items-center mt-4">
+// // //             <View className="shadow-sm shadow-gray-200">
+// // //               <Image
+// // //                 source={{
+// // //                   uri:
+// // //                     hero.author?.image ||
+// // //                     `https://api.dicebear.com/7.x/avataaars/png?seed=${hero.author?.id}`,
+// // //                 }}
+// // //                 className="w-7 h-7 rounded-xl mr-3 bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700"
+// // //               />
+// // //             </View>
+// // //             <Text className="text-gray-500 dark:text-slate-400 font-black text-[12px] uppercase tracking-wider">
+// // //               @official
+// // //             </Text>
+// // //           </View>
+// // //         </BlurView>
+// // //       </TouchableOpacity>
+// // //     );
+// // //   };
+
+// // //   const renderDefaultView = () => (
+// // //     <FlatList
+// // //       data={trendingData?.hashtags || []}
+// // //       keyExtractor={(item) => item.id}
+// // //       showsVerticalScrollIndicator={false}
+// // //       ListHeaderComponent={() => (
+// // //         <View>
+// // //           <ScrollView
+// // //             horizontal
+// // //             showsHorizontalScrollIndicator={false}
+// // //             contentContainerStyle={{
+// // //               paddingHorizontal: 20,
+// // //               paddingVertical: 16,
+// // //             }}
+// // //           >
+// // //             {EXPLORE_CATEGORIES.map((cat) => (
+// // //               <TouchableOpacity
+// // //                 key={cat.id}
+// // //                 onPress={() => {
+// // //                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// // //                   setSelectedCategory(cat.id);
+// // //                 }}
+// // //                 className={`flex-row items-center px-6 py-3 rounded-[24px] mr-3 shadow-sm ${
+// // //                   selectedCategory === cat.id
+// // //                     ? "bg-white dark:bg-slate-800 border-sky-100 dark:border-sky-900"
+// // //                     : "bg-gray-100/50 dark:bg-slate-800/50 border-gray-50 dark:border-slate-700"
+// // //                 } border shadow-gray-200 dark:shadow-none`}
+// // //               >
+// // //                 <Ionicons
+// // //                   name={cat.icon as any}
+// // //                   size={16}
+// // //                   color={selectedCategory === cat.id ? cat.color : "#94A3B8"}
+// // //                 />
+// // //                 <Text
+// // //                   className={`ml-3 font-black uppercase text-[11px] tracking-widest ${selectedCategory === cat.id ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
+// // //                 >
+// // //                   {cat.name}
+// // //                 </Text>
+// // //               </TouchableOpacity>
+// // //             ))}
+// // //           </ScrollView>
+
+// // //           {renderHeroTrending()}
+
+// // //           <View className="px-6 pb-4">
+// // //             <Text className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
+// // //               Trending Topics
+// // //             </Text>
+// // //           </View>
+// // //         </View>
+// // //       )}
+// // //       renderItem={renderTrendingHashtag}
+// // //       ListFooterComponent={() =>
+// // //         trendingData?.hashtags?.length > 0 ? (
+// // //           <View className="p-12 items-center opacity-40">
+// // //             <Ionicons name="infinite" size={24} color="#94A3B8" />
+// // //           </View>
+// // //         ) : null
+// // //       }
+// // //       refreshing={isTrendingLoading}
+// // //       onRefresh={refetchTrending}
+// // //     />
+// // //   );
+
+// // //   const renderSearchContent = () => {
+// // //     if (isSearching)
+// // //       return (
+// // //         <View className="flex-1 items-center justify-center">
+// // //           <ActivityIndicator size="large" color="#0EA5E9" />
+// // //         </View>
+// // //       );
+
+// // //     let listData = [];
+// // //     if (activeTab === "users") listData = filteredUsers;
+// // //     else if (activeTab === "posts") listData = searchResults?.posts || [];
+// // //     else listData = searchResults?.hashtags || [];
+
+// // //     return (
+// // //       <FlatList
+// // //         data={listData}
+// // //         keyExtractor={(item) => item.id}
+// // //         showsVerticalScrollIndicator={false}
+// // //         contentContainerStyle={{ paddingBottom: 100 }}
+// // //         renderItem={({ item }) => {
+// // //           if (activeTab === "users") {
+// // //             return (
+// // //               <TouchableOpacity
+// // //                 onPress={() => {
+// // //                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// // //                   router.push(`/profile/${item.id}`);
+// // //                 }}
+// // //                 className="flex-row items-center p-5 border-b border-gray-100/50 dark:border-slate-800/50 bg-[#F8FAFC] dark:bg-[#0F172A]"
+// // //               >
+// // //                 <Image
+// // //                   source={{
+// // //                     uri:
+// // //                       item.image ||
+// // //                       `https://api.dicebear.com/7.x/avataaars/png?seed=${item.id}`,
+// // //                   }}
+// // //                   className="w-14 h-14 rounded-[22px] bg-white dark:bg-slate-800 border border-gray-50 dark:border-slate-700 shadow-sm"
+// // //                 />
+// // //                 <View className="ml-4 flex-1">
+// // //                   <Text className="font-black text-[16px] text-gray-900 dark:text-white tracking-tight">
+// // //                     {item.name}
+// // //                   </Text>
+// // //                   <Text className="text-sky-500 font-bold text-[12px] uppercase tracking-wider">
+// // //                     @{item.username}
+// // //                   </Text>
+// // //                 </View>
+// // //                 <View className="bg-gray-100 dark:bg-slate-800 w-10 h-10 rounded-2xl items-center justify-center">
+// // //                   <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+// // //                 </View>
+// // //               </TouchableOpacity>
+// // //             );
+// // //           }
+// // //           if (activeTab === "hashtags") {
+// // //             return renderTrendingHashtag({ item, index: 0 });
+// // //           }
+// // //           return (
+// // //             <View className="px-3">
+// // //               <PostCard
+// // //                 item={item}
+// // //                 user={currentUser}
+// // //                 onPressPost={handlePressPost}
+// // //                 onPressProfile={handlePressProfile}
+// // //                 onPressOptions={handlePressOptions}
+// // //                 onPressComment={handlePressPost}
+// // //                 onPressRepost={handleRepostAction}
+// // //                 onLike={handleLike}
+// // //                 onBookmark={handleBookmark}
+// // //               />
+// // //             </View>
+// // //           );
+// // //         }}
+// // //         ListEmptyComponent={() => (
+// // //           <View className="flex-1 items-center justify-center mt-20 px-10">
+// // //             <View className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-[40px] items-center justify-center mb-6">
+// // //               <Ionicons name="search" size={32} color="#CBD5E1" />
+// // //             </View>
+// // //             <Text className="text-gray-400 dark:text-slate-500 font-black uppercase text-xs tracking-widest text-center">
+// // //               No results found for &quot;{search}&quot;
+// // //             </Text>
+// // //           </View>
+// // //         )}
+// // //         initialNumToRender={10}
+// // //         maxToRenderPerBatch={10}
+// // //         windowSize={5}
+// // //         removeClippedSubviews={Platform.OS === "android"}
+// // //       />
+// // //     );
+// // //   };
+
+// // //   return (
+// // //     <View className="flex-1 bg-[#F8FAFC] dark:bg-[#0F172A]">
+// // //       {/* Search Header - Sticky Blur */}
+// // //       <BlurView
+// // //         intensity={90}
+// // //         tint={isDark ? "dark" : "light"}
+// // //         className="z-50 border-b border-gray-100/50 dark:border-slate-800/50"
+// // //         style={{ paddingTop: insets.top + 10 }}
+// // //       >
+// // //         <View className="px-5 pb-4">
+// // //           <View className="flex-row items-center bg-white dark:bg-slate-800 rounded-[24px] px-5 py-3 border border-gray-100 dark:border-slate-700 shadow-sm shadow-gray-100/50 dark:shadow-none">
+// // //             <Ionicons name="search" size={20} color="#94A3B8" />
+// // //             <TextInput
+// // //               placeholder="Search Posts..."
+// // //               placeholderTextColor="#CBD5E1"
+// // //               className="flex-1 ml-4 text-[16px] text-gray-900 dark:text-white font-medium"
+// // //               value={search}
+// // //               onChangeText={(text) => {
+// // //                 setSearch(text);
+// // //                 if (text.length >= 2) {
+// // //                   // Optionally trigger vibration on typing results
+// // //                 }
+// // //               }}
+// // //               autoCapitalize="none"
+// // //               autoCorrect={false}
+// // //             />
+// // //             {search.length > 0 && (
+// // //               <TouchableOpacity
+// // //                 onPress={() => {
+// // //                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+// // //                   setSearch("");
+// // //                 }}
+// // //               >
+// // //                 <Ionicons name="close-circle" size={20} color="#CBD5E1" />
+// // //               </TouchableOpacity>
+// // //             )}
+// // //           </View>
+// // //         </View>
+
+// // //         {/* Tab System for Results */}
+// // //         {search.length >= 2 && (
+// // //           <View className="flex-row bg-white/20 h-14 relative px-2">
+// // //             {["users", "posts", "hashtags"].map((tab, index) => (
+// // //               <TouchableOpacity
+// // //                 key={tab}
+// // //                 className="flex-1 items-center justify-center"
+// // //                 onPress={() => handleTabChange(tab as any, index)}
+// // //               >
+// // //                 <Text
+// // //                   className={`font-black uppercase text-[10px] tracking-widest ${activeTab === tab ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-slate-500"}`}
+// // //                 >
+// // //                   {tab}
+// // //                 </Text>
+// // //               </TouchableOpacity>
+// // //             ))}
+// // //             <Animated.View
+// // //               style={[
+// // //                 {
+// // //                   position: "absolute",
+// // //                   bottom: 0,
+// // //                   width: "33.33%",
+// // //                   height: 3,
+// // //                   backgroundColor: "#0EA5E9",
+// // //                   borderRadius: 3,
+// // //                 },
+// // //                 indicatorStyle,
+// // //               ]}
+// // //             />
+// // //           </View>
+// // //         )}
+// // //       </BlurView>
+
+// // //       {/* Main Content Area */}
+// // //       <View className="flex-1">
+// // //         {search.length < 2 ? renderDefaultView() : renderSearchContent()}
+// // //       </View>
+
+// // //       <TouchableOpacity
+// // //         activeOpacity={0.9}
+// // //         onPress={() => {
+// // //           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+// // //           router.push("/compose/post");
+// // //         }}
+// // //         style={{
+// // //           shadowColor: "#0EA5E9",
+// // //           shadowOffset: { width: 0, height: 10 },
+// // //           shadowOpacity: 0.3,
+// // //           shadowRadius: 15,
+// // //           elevation: 10,
+// // //         }}
+// // //         className="absolute bottom-28 right-6 bg-sky-500 w-16 h-16 rounded-[24px] items-center justify-center border-2 border-white/20"
+// // //       >
+// // //         <Ionicons name="add" size={32} color="white" />
+// // //       </TouchableOpacity>
+
+// // //       <PostOptionsModal
+// // //         isVisible={optionsModalVisible}
+// // //         onClose={() => setOptionsModalVisible(false)}
+// // //         isOwner={postForOptions?.author?.id === currentUser?.id}
+// // //         onDelete={async () => {
+// // //           if (!postForOptions?.id) return;
+// // //           try {
+// // //             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+// // //             await deletePost({ id: postForOptions.id }).unwrap();
+// // //             setOptionsModalVisible(false);
+// // //           } catch (err) {
+// // //             console.error("Delete failed", err);
+// // //           }
+// // //         }}
+// // //       />
+// // //     </View>
+// // //   );
+// // // }
