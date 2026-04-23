@@ -47,9 +47,6 @@ export const store = configureStore({
     }).concat(api.middleware),
 });
 
-// 4. Setup listeners for cache behaviors
-setupListeners(store.dispatch);
-
 export const persistor = persistStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;
