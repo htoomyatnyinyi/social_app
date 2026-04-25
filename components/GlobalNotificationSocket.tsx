@@ -10,7 +10,7 @@ import { useGetNotificationPreferencesQuery } from "../store/settingsApi";
 
 export function GlobalNotificationSocket() {
   const token = useSelector((state: any) => state.auth.token);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<any>();
   const { processGlobalSignaling, setGlobalSendSignal } = useWebRTCContext();
 
   const { data: preferences } = useGetNotificationPreferencesQuery(
@@ -90,7 +90,7 @@ export function GlobalNotificationSocket() {
         });
       };
 
-      socket.onmessage = (event) => {
+      socket.onmessage = (event: any) => {
         try {
           const data = JSON.parse(event.data);
           const signalingTypes = [

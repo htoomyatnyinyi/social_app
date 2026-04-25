@@ -44,7 +44,7 @@ export const store = configureStore({
         // Ignore redux-persist actions for serialization checks
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(api.middleware),
+    }).concat(api.middleware as any),
 });
 
 export const persistor = persistStore(store);
@@ -58,7 +58,7 @@ setupListeners(store.dispatch, (dispatch, actions) => {
   let isFocused = true;
 
   // 1. Handle Focus (AppState)
-  const subscription = AppState.addEventListener('change', (nextAppState : any) => {
+  const subscription = AppState.addEventListener('change', (nextAppState: any) => {
     if (nextAppState === 'active') {
       dispatch(actions.onFocus());
     } else {

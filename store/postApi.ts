@@ -174,7 +174,47 @@ export const postApi = api.injectEndpoints({
 
     createPost: builder.mutation({
       query: (newPost) => ({ url: "/posts", method: "POST", body: newPost }),
-      invalidatesTags: [{ type: "Post", id: "LIST" }, { type: "Post", id: "FEED" }],
+      async onQueryStarted({ content, image, images }, { dispatch, queryFulfilled, getState }) {
+        const currentUser = (getState() as any).auth?.user;
+        if (!currentUser) return;
+
+        const tempId = `temp-${Date.now()}`;
+        const newPostOptimistic = {
+          id: tempId,
+          content,
+          image: image || (images && images[0]),
+          images: images || [],
+          createdAt: new Date().toISOString(),
+          author: currentUser,
+          authorId: currentUser.id,
+          _count: { likes: 0, replies: 0, reposts: 0, quotes: 0 },
+          isLiked: false,
+          isBookmarked: false,
+          repostedByMe: false,
+        };
+
+        const patches = [
+          dispatch(postApi.util.updateQueryData("getPosts" as any, { type: "public", cursor: null } as any, (draft: any) => {
+            if (draft?.posts) draft.posts.unshift(newPostOptimistic);
+          })),
+          dispatch(postApi.util.updateQueryData("getFeed" as any, { cursor: null } as any, (draft: any) => {
+            if (draft?.posts) draft.posts.unshift(newPostOptimistic);
+          })),
+          dispatch(postApi.util.updateQueryData("getUserPosts" as any, { id: currentUser.id, cursor: null } as any, (draft: any) => {
+            if (draft?.posts) draft.posts.unshift(newPostOptimistic);
+          })),
+        ];
+
+        try { await queryFulfilled; } catch { patches.forEach(p => p.undo()); }
+      },
+      invalidatesTags: (result, error, arg) => {
+        const userId = result?.authorId || result?.author?.id;
+        return [
+          { type: "Post", id: "LIST" },
+          { type: "Post", id: "FEED" },
+          ...(userId ? [{ type: "Post" as const, id: `USER-${userId}` }] : []),
+        ];
+      },
     }),
 
     likePost: builder.mutation({
@@ -362,34 +402,52 @@ export const postApi = api.injectEndpoints({
     }),
 
     replyPost: builder.mutation({
-      query: ({ postId, content }) => ({ url: `/posts/${postId}/reply`, method: "POST", body: { content } }),
-      async onQueryStarted({ postId, content }, { dispatch, queryFulfilled, getState }) {
+      query: ({ postId, content, image, images }) => ({ 
+        url: `/posts/${postId}/reply`, 
+        method: "POST", 
+        body: { content, image, images } 
+      }),
+      async onQueryStarted({ postId, content, image, images }, { dispatch, queryFulfilled, getState }) {
         const currentUser = (getState() as any).auth?.user;
         const tempId = `temp-${Date.now()}`;
 
-        const patchThread = dispatch(
-          postApi.util.updateQueryData("getThread", postId, (draft: any) => {
-            if (Array.isArray(draft)) {
-              draft.push({
-                id: tempId,
-                content,
-                createdAt: new Date().toISOString(),
-                author: currentUser || { name: "You", username: "me" },
-                replyToId: postId,
-                _count: { likes: 0, replies: 0, reposts: 0 },
-                isLiked: false,
-              });
-            }
-          })
-        );
+        const replyOptimistic = {
+          id: tempId,
+          content,
+          image: image || (images && images[0]),
+          images: images || [],
+          createdAt: new Date().toISOString(),
+          author: currentUser || { name: "You", username: "me" },
+          replyToId: postId,
+          _count: { likes: 0, replies: 0, reposts: 0, quotes: 0 },
+          isLiked: false,
+        };
 
-        try { await queryFulfilled; } catch { patchThread.undo(); }
+        const patches = [
+          dispatch(
+            postApi.util.updateQueryData("getThread", postId, (draft: any) => {
+              if (Array.isArray(draft)) {
+                draft.push(replyOptimistic);
+              }
+            })
+          ),
+          dispatch(
+            postApi.util.updateQueryData("getReplies", { id: postId, cursor: null }, (draft: any) => {
+              if (draft?.posts) {
+                draft.posts.unshift(replyOptimistic);
+              }
+            })
+          )
+        ];
+
+        try { await queryFulfilled; } catch { patches.forEach(p => p.undo()); }
       },
       invalidatesTags: (result, error, { postId }) => [
         { type: "Post", id: postId },
         { type: "Post", id: `THREAD-${postId}` },
         { type: "Post", id: `REPLIES-${postId}` },
         { type: "Post", id: "FEED" },
+        { type: "Post", id: "LIST" },
       ],
     }),
 

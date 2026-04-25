@@ -63,8 +63,8 @@ const AudioPlayer = ({
   useEffect(() => {
     return sound
       ? () => {
-          sound.unloadAsync();
-        }
+        sound.unloadAsync();
+      }
       : undefined;
   }, [sound]);
 
@@ -680,8 +680,8 @@ export default function ChatScreen() {
       if (tempUri) {
         setTimeout(async () => {
           try {
-            await FileSystem.deleteAsync(tempUri, { idempotent: true });
-          } catch {}
+            await FileSystem.deleteAsync(tempUri as string, { idempotent: true } as any);
+          } catch { }
         }, 60000);
       }
     }
@@ -695,7 +695,7 @@ export default function ChatScreen() {
 
         if (!rec._isDoneRecording) {
           // private but commonly used check
-          await rec.stopAndUnloadAsync().catch(() => {});
+          await rec.stopAndUnloadAsync().catch(() => { });
         }
       }
 
@@ -812,10 +812,10 @@ export default function ChatScreen() {
           { text: "✨ Star", onPress: () => sendReaction(item.id, "✨") },
           isMe
             ? {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => deleteMessage(item.id),
-              }
+              text: "Delete",
+              style: "destructive",
+              onPress: () => deleteMessage(item.id),
+            }
             : null,
           { text: "Cancel", style: "cancel" },
         ].filter(Boolean) as any,
@@ -858,7 +858,7 @@ export default function ChatScreen() {
 
           if (!rec._isDoneRecording) {
             // Private but commonly used check
-            await rec.stopAndUnloadAsync().catch(() => {});
+            await rec.stopAndUnloadAsync().catch(() => { });
           }
         }
       } catch (e) {
@@ -1359,11 +1359,10 @@ export default function ChatScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.back();
               }}
-              className={`w-10 h-10 rounded-2xl items-center justify-center border ${
-                isDark
+              className={`w-10 h-10 rounded-2xl items-center justify-center border ${isDark
                   ? "bg-slate-800 border-slate-700"
                   : "bg-white border-slate-100 shadow-sm shadow-slate-200"
-              }`}
+                }`}
             >
               <Ionicons
                 name="chevron-back"
@@ -1522,21 +1521,19 @@ export default function ChatScreen() {
           <View className="flex-row items-end px-4">
             <TouchableOpacity
               onPress={pickImage}
-              className={`w-11 h-11 rounded-full items-center justify-center border mb-1 mr-2 ${
-                isDark
+              className={`w-11 h-11 rounded-full items-center justify-center border mb-1 mr-2 ${isDark
                   ? "bg-slate-900 border-slate-800"
                   : "bg-white border-slate-100 shadow-sm"
-              }`}
+                }`}
             >
               <Ionicons name="image" size={20} color="#64748B" />
             </TouchableOpacity>
 
             <View
-              className={`flex-1 flex-row items-end rounded-[28px] border px-4 py-1.5 ${
-                isDark
+              className={`flex-1 flex-row items-end rounded-[28px] border px-4 py-1.5 ${isDark
                   ? "bg-slate-900 border-slate-800"
                   : "bg-white border-slate-200 shadow-sm"
-              }`}
+                }`}
             >
               <TextInput
                 placeholder="Message..."
@@ -1551,13 +1548,12 @@ export default function ChatScreen() {
               <TouchableOpacity
                 onPress={handleSend}
                 disabled={!inputText.trim() && !selectedImage}
-                className={`w-9 h-9 rounded-full items-center justify-center mb-1 ml-2 ${
-                  inputText.trim() || selectedImage
+                className={`w-9 h-9 rounded-full items-center justify-center mb-1 ml-2 ${inputText.trim() || selectedImage
                     ? "bg-sky-500"
                     : isDark
                       ? "bg-slate-800"
                       : "bg-slate-100"
-                }`}
+                  }`}
               >
                 <Ionicons
                   name="arrow-up"
@@ -1571,13 +1567,12 @@ export default function ChatScreen() {
 
             <TouchableOpacity
               onPress={isRecording ? stopRecording : startRecording}
-              className={`w-11 h-11 rounded-full items-center justify-center ml-2 mb-1 border ${
-                isRecording
+              className={`w-11 h-11 rounded-full items-center justify-center ml-2 mb-1 border ${isRecording
                   ? "bg-rose-500 border-rose-400"
                   : isDark
                     ? "bg-slate-900 border-slate-800"
                     : "bg-white border-slate-100 shadow-sm shadow-slate-200"
-              }`}
+                }`}
             >
               <Ionicons
                 name={isRecording ? "stop" : "mic"}
