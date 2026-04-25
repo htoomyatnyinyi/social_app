@@ -1391,20 +1391,22 @@ export default function ChatScreen() {
             </View>
           </View>
 
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={startVoiceCall}
-              className={`w-10 h-10 rounded-full items-center justify-center mr-2 ${isDark ? "bg-emerald-500/10" : "bg-emerald-50"}`}
-            >
-              <Ionicons name="call" size={18} color="#10B981" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={startVideoCall}
-              className={`w-10 h-10 rounded-full items-center justify-center ${isDark ? "bg-sky-500/10" : "bg-sky-50"}`}
-            >
-              <Ionicons name="videocam" size={18} color="#0EA5E9" />
-            </TouchableOpacity>
-          </View>
+          {title !== "Public" && (
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={startVoiceCall}
+                className={`w-10 h-10 rounded-full items-center justify-center mr-2 ${isDark ? "bg-emerald-500/10" : "bg-emerald-50"}`}
+              >
+                <Ionicons name="call" size={18} color="#10B981" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={startVideoCall}
+                className={`w-10 h-10 rounded-full items-center justify-center ${isDark ? "bg-sky-500/10" : "bg-sky-50"}`}
+              >
+                <Ionicons name="videocam" size={18} color="#0EA5E9" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </BlurView>
     ),

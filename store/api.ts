@@ -11,7 +11,10 @@ const rawBaseQuery = fetchBaseQuery({
     const token = state.auth?.token;
 
     if (token) {
+      console.log("📤 API: Attaching token to request (len:", token.length, ")");
       headers.set("authorization", `Bearer ${token}`);
+    } else {
+      console.log("⚠️ API: No token found in auth state");
     }
     return headers;
   },
