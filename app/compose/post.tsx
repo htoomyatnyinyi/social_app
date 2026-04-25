@@ -86,6 +86,7 @@ export default function ComposePostScreen() {
         await replyPost({
           postId: replyToId as string,
           content: finalContent,
+          images: images.map((img) => img.base64),
         }).unwrap();
       } else {
         await createPost({
@@ -96,7 +97,8 @@ export default function ComposePostScreen() {
       }
       router.back();
     } catch (e: any) {
-      Alert.alert("Error", "Failed to post.", e);
+      console.error("[Compose] Post failed:", e);
+      Alert.alert("Error", e?.data?.message || e?.message || "Failed to post.");
     }
   };
 

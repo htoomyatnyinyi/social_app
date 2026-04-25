@@ -20,7 +20,7 @@ async function mediaUrlToDataUriIfNeeded(
 
   // For audio messages we currently store a local file URI; convert to base64.
   if (messageType === "audio") {
-    const info = await FileSystem.getInfoAsync(mediaUrl, { size: true });
+    const info = await FileSystem.getInfoAsync(mediaUrl);
     if (!info.exists) {
       throw new Error("Audio file does not exist");
     }
@@ -28,7 +28,7 @@ async function mediaUrlToDataUriIfNeeded(
       throw new Error("Audio file too large to upload");
     }
     const base64 = await FileSystem.readAsStringAsync(mediaUrl, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: "base64",
     });
     return `data:audio/m4a;base64,${base64}`;
   }

@@ -131,7 +131,6 @@ export const useWebRTC = ({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         staysActiveInBackground: true,
-        shouldDuckOthersIOS: true,
         playThroughEarpieceAndroid: !isSpeaker,
       });
     } catch (e) {
@@ -162,7 +161,6 @@ export const useWebRTC = ({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
-        shouldDuckOthersIOS: false,
         playThroughEarpieceAndroid: false,
       });
     } catch (e) {}
