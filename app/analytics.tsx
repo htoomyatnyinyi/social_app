@@ -18,6 +18,7 @@ import { useAnalyticsLogic } from "../hooks/useAnalyticsLogic";
 import { StatCard } from "../components/analytics/StatCard";
 import { AnalyticsSkeleton } from "../components/analytics/AnalyticsSkeleton";
 import { formatMetric } from "../utils/analyticsUtils";
+import { useCallMcpToolMutation } from "../store/mcpApi";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -108,6 +109,20 @@ export default function AnalyticsScreen() {
     isLoading,
     refetch,
   } = useAnalyticsLogic();
+
+  const [callMcpTool, { data: mcpData }] = useCallMcpToolMutation();
+  const globalStats = useMemo(() => {
+    if (!mcpData?.content?.[0]?.text) return null;
+    try {
+      return JSON.parse(mcpData.content[0].text);
+    } catch {
+      return null;
+    }
+  }, [mcpData]);
+
+  React.useEffect(() => {
+    callMcpTool({ tool: "get_system_stats" });
+  }, [callMcpTool]);
 
   const stats = [
     { label: "Impressions", value: overview.formattedImpressions, icon: "eye" as const, color: "#0EA5E9" },
@@ -335,6 +350,68 @@ export default function AnalyticsScreen() {
             </View>
           </Animated.View>
         </View>
+
+        {/* ── Global System Metrics (MCP) ────────────────── */}
+        {globalStats && (
+          <View className="px-5 mt-8">
+            <Animated.View
+              entering={FadeInDown.delay(600).springify()}
+              className={`rounded-[32px] border overflow-hidden ${isDark ? "bg-slate-800/80 border-slate-700" : "bg-white border-gray-100 shadow-xl shadow-gray-100"}`}
+            >
+              <BlurView intensity={isDark ? 20 : 40} tint={isDark ? "dark" : "light"} className="p-6">
+                <View className="flex-row items-center justify-between mb-6">
+                  <View>
+                    <Text className={`text-[10px] font-black uppercase tracking-[3px] mb-1 ${isDark ? "text-cyan-400" : "text-cyan-600"}`}>
+                      Live Platform Data
+                    </Text>
+                    <Text className={`text-xl font-black tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>
+                      Global System Metrics
+                    </Text>
+                  </View>
+                  <View className="w-12 h-12 rounded-2xl bg-cyan-500/10 items-center justify-center">
+                    <Ionicons name="globe" size={24} color="#06B6D4" />
+                  </View>
+                </View>
+
+                <View className="flex-row space-x-4">
+                  <View className="flex-1">
+                    <Text className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
+                      Total Users
+                    </Text>
+                    <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
+                      {formatMetric(globalStats.totalUsers, 'number')}
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
+                      Total Posts
+                    </Text>
+                    <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
+                      {formatMetric(globalStats.totalPosts, 'number')}
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
+                      Platform Likes
+                    </Text>
+                    <Text className={`text-xl font-black ${isDark ? "text-white" : "text-gray-900"}`}>
+                      {formatMetric(globalStats.totalLikes, 'number')}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className={`mt-6 pt-4 border-t ${isDark ? "border-slate-700" : "border-gray-50"}`}>
+                  <View className="flex-row items-center">
+                    <View className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                    <Text className={`text-[10px] font-bold ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+                      MCP Server Connected & Active
+                    </Text>
+                  </View>
+                </View>
+              </BlurView>
+            </Animated.View>
+          </View>
+        )}
 
         {/* Footer */}
         <View className="items-center mt-10 mb-6 opacity-20">
