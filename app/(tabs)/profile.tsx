@@ -35,6 +35,7 @@ import {
   useGetUserPostsQuery,
   useGetUserRepliesQuery,
 } from "../../store/profileApi";
+import { useCallMcpToolMutation } from "../../store/mcpApi";
 
 const { width } = Dimensions.get("window");
 
@@ -56,6 +57,29 @@ export default function ProfileScreen() {
   // TO CALL LOGOUT MODAL.
   // 1. Add this state at the top of your component
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
+  // AI Insight State
+  const [isInsightModalVisible, setIsInsightModalVisible] = useState(false);
+  const [callMcpTool, { isLoading: isInsightLoading }] = useCallMcpToolMutation();
+  const [insightResult, setInsightResult] = useState<string | null>(null);
+
+  const handleFetchInsight = async () => {
+    if (!profile?.username) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const response = await callMcpTool({ 
+        tool: "generate_profile_insight", 
+        arguments: { username: profile.username } 
+      }).unwrap();
+      
+      if (response.content?.[0]?.text) {
+        setInsightResult(response.content[0].text);
+        setIsInsightModalVisible(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch AI insight:", err);
+    }
+  };
 
   // --- QUERIES ---
   const {
@@ -268,6 +292,18 @@ export default function ProfileScreen() {
           </View>
 
           <View className="flex-row items-center space-x-2 pt-2">
+            <TouchableOpacity
+              onPress={handleFetchInsight}
+              disabled={isInsightLoading}
+              className={`w-11 h-11 items-center justify-center rounded-2xl border ${isDark ? "bg-slate-800 border-indigo-700" : "bg-white border-indigo-100 shadow-sm"}`}
+            >
+              {isInsightLoading ? (
+                <ActivityIndicator size="small" color={accentColor} />
+              ) : (
+                <Text style={{ fontSize: 18 }}>✨</Text>
+              )}
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => setIsLogoutModalVisible(true)}
               className={`w-11 h-11 mr-2 items-center justify-center rounded-2xl border ${isDark ? "bg-slate-800 border-red-700" : "bg-white border-red-100 shadow-sm"}`}
@@ -683,6 +719,66 @@ export default function ProfileScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+          </BlurView>
+        </View>
+      </Modal>
+
+      {/* AI INSIGHT MODAL */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isInsightModalVisible}
+        onRequestClose={() => setIsInsightModalVisible(false)}
+      >
+        <View className="flex-1 justify-end">
+          <TouchableOpacity 
+            className="absolute inset-0 bg-black/40" 
+            activeOpacity={1} 
+            onPress={() => setIsInsightModalVisible(false)} 
+          />
+          <BlurView
+            intensity={isDark ? 40 : 60}
+            tint={isDark ? "dark" : "light"}
+            className={`w-full p-8 rounded-t-[44px] border-t overflow-hidden ${
+              isDark ? "bg-slate-900/90 border-slate-700" : "bg-white/90 border-gray-100"
+            }`}
+          >
+            <View className="w-12 h-1.5 bg-slate-400/30 rounded-full self-center mb-6" />
+            
+            <View className="flex-row items-center mb-6">
+              <View 
+                className="w-14 h-14 rounded-2xl items-center justify-center mr-4"
+                style={{ backgroundColor: `${accentColor}15` }}
+              >
+                <Text style={{ fontSize: 32 }}>✨</Text>
+              </View>
+              <View>
+                <Text className={`text-2xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>
+                  AI Insight
+                </Text>
+                <Text className={`text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
+                  Personality Analysis
+                </Text>
+              </View>
+            </View>
+
+            <View className={`p-6 rounded-3xl ${isDark ? "bg-slate-800/50" : "bg-slate-50"}`}>
+              <Text className={`text-[16px] leading-[24px] font-medium ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                {insightResult}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setIsInsightModalVisible(false)}
+              style={{ backgroundColor: accentColor }}
+              className="mt-8 py-4 rounded-2xl items-center shadow-lg"
+            >
+              <Text className="text-white font-black uppercase tracking-[2px] text-xs">
+                Incredible
+              </Text>
+            </TouchableOpacity>
+            
+            <View className="h-10" />
           </BlurView>
         </View>
       </Modal>
