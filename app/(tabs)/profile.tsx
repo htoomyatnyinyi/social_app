@@ -383,7 +383,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Meditation Quick Action */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             router.push("/settings/meditation");
@@ -418,6 +418,45 @@ export default function ProfileScreen() {
             size={16}
             color={isDark ? "#475569" : "#CBD5E1"}
           />
+        </TouchableOpacity> */}
+
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push("/analytics");
+          }}
+          className={`mt-4 flex-row items-center p-4 rounded-3xl border ${isDark ? "bg-slate-800/40 border-slate-700" : "bg-slate-50 border-slate-100 shadow-sm"}`}
+        >
+          <View
+            style={{ backgroundColor: `${accentColor}20` }}
+            className="w-10 h-10 rounded-2xl items-center justify-center"
+          >
+            <Ionicons name="bar-chart-outline" size={20} color={accentColor} />
+
+            {/* <Ionicons name="leaf" size={20} color={accentColor} /> */}
+          </View>
+          <View className="ml-4 flex-1">
+            <Text
+              className={`text-[10px] font-black uppercase tracking-[2px] ${isDark ? "text-slate-500" : "text-gray-400"}`}
+            >
+              Analytics
+            </Text>
+            <Text
+              className={`text-[15px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}
+            >
+              Granular insights and reach data
+            </Text>
+          </View>
+          {/* <View className="items-end mr-2">
+            <Text style={{ color: accentColor }} className="font-black text-xs">
+              {profile?.meditationStats?.totalMinutes || 0}m
+            </Text>
+          </View> */}
+          {/* <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={isDark ? "#475569" : "#CBD5E1"}
+          /> */}
         </TouchableOpacity>
 
         {/* Stats Row */}
@@ -462,14 +501,19 @@ export default function ProfileScreen() {
 
           <View className="flex-row space-x-2">
             <TouchableOpacity
-              onPress={() => router.push("/analytics")}
+              // onPress={() => router.push("/analytics")}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push("/settings/meditation");
+              }}
               className={`w-11 h-11 items-center justify-center rounded-2xl ${isDark ? "bg-slate-800" : "bg-slate-100"}`}
             >
-              <Ionicons
-                name="bar-chart-outline"
-                size={18}
-                color={accentColor}
-              />
+              <Ionicons name="leaf" size={18} color={accentColor} />
+              {/* <Text
+                className={`text-[8px] font-black ${isDark ? "text-slate-500" : "text-gray-400"}`}
+              >
+                {profile?.meditationStats?.totalMinutes || 0}m
+              </Text> */}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push("/bookmarks")}

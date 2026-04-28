@@ -45,6 +45,29 @@ export const settingsApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Settings"],
     }),
+    getSecurityPreferences: builder.query({
+      query: () => "/settings/security-preferences",
+      providesTags: ["Settings"],
+    }),
+    updateSecurityPreferences: builder.mutation({
+      query: (data) => ({
+        url: "/settings/security-preferences",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Settings"],
+    }),
+    getActiveSessions: builder.query({
+      query: () => "/settings/active-sessions",
+      providesTags: ["Settings"],
+    }),
+    revokeSession: builder.mutation({
+      query: (id) => ({
+        url: `/settings/active-sessions/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Settings"],
+    }),
   }),
 });
 
@@ -56,4 +79,8 @@ export const {
   useLazyGetAccountArchiveQuery,
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferencesMutation,
+  useGetSecurityPreferencesQuery,
+  useUpdateSecurityPreferencesMutation,
+  useGetActiveSessionsQuery,
+  useRevokeSessionMutation,
 } = settingsApi;

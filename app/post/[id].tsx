@@ -757,7 +757,7 @@ export default function PostDetailScreen() {
                   }}
                 >
                   <Text
-                    className={`text-[12px] font-black uppercase tracking-wider ${isDark ? "text-sky-400" : "text-sky-600"}`}
+                    className={`text-[8px] font-black uppercase tracking-wider ${isDark ? "text-sky-400" : "text-sky-600"}`}
                   >
                     Show Parent Post
                   </Text>
@@ -783,7 +783,7 @@ export default function PostDetailScreen() {
                   <View className="flex-1">
                     <View className="flex-row items-center">
                       <Text
-                        className={`font-black text-[18px] tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}
+                        className={`font-black text-[15px] tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}
                       >
                         {rootPost.author?.name || "Member"}
                       </Text>
@@ -796,14 +796,14 @@ export default function PostDetailScreen() {
                         />
                       )}
                     </View>
-                    <Text className="text-sky-500 font-bold text-[14px]">
+                    <Text className="text-sky-500 font-bold text-[12px]">
                       @{rootPost.author?.username || "official"}
                     </Text>
                   </View>
                 </TouchableOpacity>
 
                 <View className="flex-row items-center space-x-2">
-                  {rootPost.author?.id !== currentUser?.id && (
+                  {/* {rootPost.author?.id !== currentUser?.id && (
                     <TouchableOpacity
                       className={`px-6 py-2.5 rounded-2xl shadow-sm ${
                         rootPost.isFollowing
@@ -832,7 +832,7 @@ export default function PostDetailScreen() {
                         {rootPost.isFollowing ? "Following" : "Follow"}
                       </Text>
                     </TouchableOpacity>
-                  )}
+                  )} */}
 
                   <TouchableOpacity
                     onPress={() => {
@@ -853,7 +853,7 @@ export default function PostDetailScreen() {
 
               {/* Content Body */}
               <Text
-                className={`text-[18px] leading-7 font-medium mb-5 ${isDark ? "text-white" : "text-gray-900"}`}
+                className={`text-[16px] leading-7 font-medium mb-5 ${isDark ? "text-white" : "text-gray-900"}`}
               >
                 {(() => {
                   if (rootPost.isDeleted)
@@ -987,7 +987,7 @@ export default function PostDetailScreen() {
 
               {/* Timestamp & Metrics */}
               <View
-                className={`py-4 border-y mb-4 px-1 ${isDark ? "border-slate-800/80" : "border-gray-100/80"}`}
+                className={`py-2 border-y mb-4 px-1 ${isDark ? "border-slate-800/80" : "border-gray-100/80"}`}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
@@ -1011,16 +1011,31 @@ export default function PostDetailScreen() {
                       )}
                     </Text>
                   </View>
-                  <View className="flex-row items-center">
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push({
+                        pathname: "/post/post-analytics",
+                        params: { id: rootPost.id },
+                      });
+                    }}
+                    className={` flex-row items-center justify-between p-4 rounded-2xl border ${isDark ? "bg-slate-800/40 border-slate-700/50" : "bg-gray-50/80 border-gray-100"}`}
+                  >
                     <Ionicons name="stats-chart" size={14} color="#10B981" />
                     <Text className="text-emerald-500 font-black text-[11px] ml-1.5 uppercase tracking-widest">
                       {rootPost.viewCount ?? rootPost.views ?? 0} Views
                     </Text>
-                  </View>
+                  </TouchableOpacity>
+                  {/* <View className="flex-row items-center">
+                    <Ionicons name="stats-chart" size={14} color="#10B981" />
+                    <Text className="text-emerald-500 font-black text-[11px] ml-1.5 uppercase tracking-widest">
+                      {rootPost.viewCount ?? rootPost.views ?? 0} Views
+                    </Text>
+                  </View> */}
                 </View>
 
                 {/* Analytics Entry Point for Authors */}
-                {currentUser?.id === rootPost.authorId && (
+                {/* {currentUser?.id === rootPost.authorId && (
                   <TouchableOpacity
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1056,7 +1071,7 @@ export default function PostDetailScreen() {
                       color={isDark ? "#475569" : "#CBD5E1"}
                     />
                   </TouchableOpacity>
-                )}
+                )} */}
               </View>
 
               <View className="flex-row justify-between items-center px-1">
