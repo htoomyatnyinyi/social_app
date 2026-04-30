@@ -1,8 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { metrics } from "../lib/metrics";
 
-const DEFAULT_DEV_API_URL = "http://localhost:8080";
+const DEFAULT_DEV_API_URL = "https://server.myanmarsocial.ccwu.cc";
+// export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_DEV_API_URL;
+
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,

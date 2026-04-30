@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "HMNN",
-    "slug": "hmnn",
-    "version": "1.0.0",
+    "name": "m",
+    "slug": "m",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "hmnn",
+    "scheme": "m",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.htoomyatnyinyi.hmnn",
+      "bundleIdentifier": "com.htoomyatnyinyi.m",
       "bitcode": false
     },
     "android": {
@@ -19,7 +19,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.htoomyatnyinyi.hmnn",
+      "package": "com.htoomyatnyinyi.m",
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
@@ -69,7 +69,13 @@
         "@config-plugins/react-native-webrtc",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for video calls.",
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio calls."
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio calls.",
+          "foregroundService": {
+            "notificationTitle": "Video Call in Progress",
+            "notificationBody": "Tap to return to the call",
+            "channelId": "foreground-service"
+          },
+          "audioMode": "voicecall"
         }
       ],
       "expo-audio",
@@ -80,7 +86,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
+      "apiUrl": "https://server.myanmarsocial.ccwu.cc",
+      "router": {},
+      "eas": {
+        "projectId": "a68eec1b-82fd-4b89-8f0a-d933febda55b"
+      }
     }
   }
 }
